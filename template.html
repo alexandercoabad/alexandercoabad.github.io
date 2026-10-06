@@ -1,0 +1,521 @@
+<title>AgilA32 Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one bench. Left column = the board (switches, LEDs, pins) and controls; right column = waveform and checks;
+   state panel underneath. Stacks to one column on a phone. */
+:root{
+  --bg:#e9eeed; --surface:#f7faf9; --ink:#14201f; --muted:#5b6b69; --line:#c9d4d2;
+  --accent:#0a7c76; --accent-ink:#ffffff; --led-on:#e5484d; --led-off:#d6dddb;
+  --good:#1a7f45; --bad:#c2312f; --wave:#0a7c76; --wave-oe:#b36a00; --grid:#d5dedc; --code:#eef3f2;
+  --font-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1514; --surface:#151e1d; --ink:#e3ecea; --muted:#8fa19e; --line:#26332f;
+  --accent:#3cc4b8; --accent-ink:#06201d; --led-on:#ff6b70; --led-off:#26312f;
+  --good:#4cc383; --bad:#ff7a76; --wave:#3cc4b8; --wave-oe:#f0a640; --grid:#1f2b29; --code:#101918; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1514; --surface:#151e1d; --ink:#e3ecea; --muted:#8fa19e; --line:#26332f;
+  --accent:#3cc4b8; --accent-ink:#06201d; --led-on:#ff6b70; --led-off:#26312f;
+  --good:#4cc383; --bad:#ff7a76; --wave:#3cc4b8; --wave-oe:#f0a640; --grid:#1f2b29; --code:#101918; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:14px;line-height:1.45;padding-inline:16px;padding-block:18px 32px}
+.wrap{max-width:1240px;margin-inline:auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;justify-content:space-between}
+h1{font-size:22px;font-weight:600;margin:0;letter-spacing:-.01em}
+header p{margin:0;color:var(--muted);max-width:62ch;text-wrap:pretty}
+.grid{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0}
+.panel h2{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+label{font-size:13px}
+select,textarea,button,input{font:inherit;color:inherit}
+select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
+textarea{font-family:var(--font-mono);font-size:12px;min-height:62px;resize:vertical}
+button{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 11px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button:focus-visible,select:focus-visible,textarea:focus-visible,.sw:focus-visible,canvas:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.5;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row.tight{gap:6px}
+.pins{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+.pin{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.pin small{font-family:var(--font-mono);font-size:10px;color:var(--muted);text-align:center;white-space:nowrap}
+.pin small.n{color:var(--ink)}
+.led{width:22px;height:22px;border-radius:50%;background:var(--led-off);border:1px solid var(--line);transition:background .05s}
+.led.on{background:var(--led-on);box-shadow:0 0 10px color-mix(in srgb,var(--led-on) 70%,transparent);border-color:var(--led-on)}
+.sw{width:22px;height:34px;border-radius:5px;background:var(--bg);border:1px solid var(--line);position:relative;cursor:pointer;padding:0}
+.sw::after{content:"";position:absolute;left:3px;right:3px;height:13px;border-radius:3px;background:var(--muted);top:17px;transition:top .08s}
+.sw[aria-pressed="true"]::after{top:3px;background:var(--accent)}
+.sw:disabled{cursor:default;opacity:.7}
+.padled{width:22px;height:10px;border-radius:3px;background:var(--led-off);border:1px solid var(--line)}
+.padled.hi{background:var(--accent);border-color:var(--accent)}
+.padled.drv{box-shadow:0 0 0 2px var(--wave-oe)}
+.sect{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.sect:first-of-type{margin-top:0;padding-top:0;border-top:0}
+.cap{font-size:11px;color:var(--muted);margin:6px 0 0;text-wrap:pretty}
+.status{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-family:var(--font-mono);font-size:12px;font-variant-numeric:tabular-nums}
+.status dt{color:var(--muted)} .status dd{margin:0}
+.wavebox{position:relative}
+canvas{display:block;width:100%;background:var(--surface);border-radius:4px;touch-action:none}
+.checks{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.checks li{display:flex;gap:8px;align-items:baseline}
+.badge{font-family:var(--font-mono);font-size:11px;font-weight:500;padding:1px 7px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.badge.pass{color:var(--good)} .badge.fail{color:var(--bad)} .badge.wait{color:var(--muted)}
+.regs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px 10px;font-family:var(--font-mono);font-size:11.5px;font-variant-numeric:tabular-nums}
+@media (min-width:1000px){.regs{grid-template-columns:repeat(8,minmax(0,1fr))}}
+.regs span{color:var(--muted)} .regs b{font-weight:400}
+.pio{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+@media (max-width:560px){.pio{grid-template-columns:minmax(0,1fr)}}
+.pio div{background:var(--code);border-radius:6px;padding:8px 10px;font-family:var(--font-mono);font-size:11.5px;font-variant-numeric:tabular-nums;overflow-x:auto}
+.pio h3{margin:0 0 4px;font:600 11px var(--font-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.hint{color:var(--muted);font-size:12px}
+.err{color:var(--bad);font-family:var(--font-mono);font-size:12px;white-space:pre-wrap}
+.themebtn{padding:3px 9px;font-size:12px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>AgilA32 Simulator</h1>
+      <p>The chip's own Verilog (RV32I CPU and two-state-machine PIO), compiled to WebAssembly and running in this page. Chip clock 24 MHz; the simulation itself runs slower than real time.</p>
+    </div>
+    <button class="themebtn" id="theme" type="button" aria-label="Switch colour theme">Theme</button>
+  </header>
+
+  <div class="grid">
+    <div class="stack">
+      <section class="panel" aria-label="Board">
+        <h2>Board</h2>
+        <div class="sect">
+          <div class="hint" style="margin-bottom:6px">Inputs <span style="font-family:var(--font-mono)">ui_in[7:0]</span> (click a switch)</div>
+          <div class="pins" id="sws"></div>
+        </div>
+        <div class="sect">
+          <div class="hint" style="margin-bottom:6px">Outputs <span style="font-family:var(--font-mono)">uo_out[7:0]</span></div>
+          <div class="pins" id="leds"></div>
+        </div>
+        <div class="sect">
+          <div class="hint" style="margin-bottom:6px">Bidirectional <span style="font-family:var(--font-mono)">uio[7:0]</span> (outlined = chip drives the pin)</div>
+          <div class="pins" id="uios"></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Scenario">
+        <h2>Scenario</h2>
+        <div class="row" style="flex-direction:column;align-items:stretch;gap:8px">
+          <label for="scn">What to run</label>
+          <select id="scn"></select>
+          <p class="cap" id="scnDesc" style="margin:0"></p>
+          <div id="customBox" hidden>
+            <label for="custom">Program bytes (hex, at most 44 bytes, sent over the GPIO bootloader)</label>
+            <textarea id="custom" spellcheck="false"></textarea>
+          </div>
+          <div class="row">
+            <button class="primary" id="go" type="button">Load and run</button>
+            <button id="pause" type="button">Pause</button>
+            <button id="step" type="button">Step 20k clocks</button>
+            <button id="rst" type="button">Reset chip</button>
+          </div>
+          <div class="row">
+            <label for="speed">Speed</label>
+            <select id="speed" style="width:auto">
+              <option value="4000">4k clocks / frame</option>
+              <option value="20000">20k</option>
+              <option value="100000" selected>100k</option>
+              <option value="500000">500k</option>
+              <option value="3000000">Maximum</option>
+            </select>
+          </div>
+          <label class="row tight"><input type="checkbox" id="fast" checked> Fast QSPI clock <span class="hint">(skips the slow boot-ROM wait, as the RTL tests do)</span></label>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Status">
+        <h2>Status</h2>
+        <dl class="status">
+          <dt>State</dt><dd id="stState">loading</dd>
+          <dt>Clocks</dt><dd id="stClk">0</dd>
+          <dt>Chip time</dt><dd id="stTime">0 µs</dd>
+          <dt>Sim speed</dt><dd id="stSpeed">-</dd>
+        </dl>
+        <p class="err" id="errBox"></p>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="panel" aria-label="Waveform">
+        <h2>Waveform</h2>
+        <div class="row" style="margin-bottom:8px">
+          <button id="follow" type="button">Follow</button>
+          <button id="zin" type="button" aria-label="Zoom in">+</button>
+          <button id="zout" type="button" aria-label="Zoom out">&minus;</button>
+          <button id="fit" type="button">Fit all</button>
+          <span class="hint" id="wvInfo"></span>
+        </div>
+        <div class="wavebox"><canvas id="wave" tabindex="0" aria-label="Pin waveforms: scroll to zoom, drag to pan"></canvas></div>
+        <p class="cap">Scroll to zoom, drag to pan. The time axis is in chip clocks; the label shows microseconds at 24 MHz. The orange outline on PAD 8 and PAD 9 marks the span where the chip drives the pad.</p>
+      </section>
+
+      <section class="panel" aria-label="Checks">
+        <h2>Checks</h2>
+        <ul class="checks" id="checks"></ul>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel" aria-label="Processor state">
+    <h2>Processor state</h2>
+    <div class="row" style="margin-bottom:8px;font-family:var(--font-mono);font-size:12px">
+      <span>PC <b id="rPc">00</b></span><span>FSM state <b id="rSt">0</b></span><span>IR <b id="rIr">00000000</b></span>
+    </div>
+    <div class="regs" id="regs"></div>
+    <div class="pio">
+      <div><h3>PIO state machine 0</h3><span id="p0"></span></div>
+      <div><h3>PIO state machine 1</h3><span id="p1"></span></div>
+    </div>
+    <p class="cap">PIO pin outputs <span id="pPins" style="font-family:var(--font-mono)"></span></p>
+  </section>
+</div>
+
+<script>
+"use strict";
+const WASM_GZ_B64 = "%%WASM%%";
+const DATA = %%DATA%%;
+const CLK_HZ = 24e6;
+const $ = id => document.getElementById(id);
+const hex = (v, w) => (v >>> 0).toString(16).toUpperCase().padStart(w, "0");
+const bytesOf = s => Uint8Array.from((s.match(/[0-9a-fA-F]{2}/g) || []).map(h => parseInt(h, 16)));
+let E = null;                         // wasm exports
+let running = true, queue = [], qi = 0, swVal = 0, scn = null, scnClocks = 0, doneClocks = -1;
+let tr = {n: 0, cap: 1 << 16, cyc: new Float64Array(1 << 16), uo: new Uint8Array(1 << 16), uio: new Uint8Array(1 << 16), oe: new Uint8Array(1 << 16), ui: new Uint8Array(1 << 16)};
+let readN = 0;
+
+// ---------- theme ----------
+(function(){
+  const root = document.documentElement, b = $("theme");
+  let t = null; try { t = localStorage.getItem("agila-theme"); } catch (e) {}
+  if (t) root.setAttribute("data-theme", t);
+  b.onclick = () => {
+    const dark = root.getAttribute("data-theme") ? root.getAttribute("data-theme") === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    const n = dark ? "light" : "dark"; root.setAttribute("data-theme", n);
+    try { localStorage.setItem("agila-theme", n); } catch (e) {}
+    drawWave();
+  };
+})();
+
+// ---------- board widgets ----------
+const UI_NAMES = ["DATA", "CLOCK", "START", "", "", "", "", ""];
+const UO_NAMES = ["", "", "", "", "", "", "", "PWM/PIO7"];
+const UIO_NAMES = ["CS0", "MOSI", "MISO", "SCK", "PAD8", "PAD9", "CS1", "CS2"];
+(function(){
+  for (let i = 7; i >= 0; i--) {
+    const sw = document.createElement("div"); sw.className = "pin";
+    sw.innerHTML = `<button class="sw" type="button" aria-pressed="false" aria-label="ui_in[${i}]" data-bit="${i}"></button><small class="n">ui${i}</small><small>${UI_NAMES[i]}</small>`;
+    $("sws").appendChild(sw);
+    const led = document.createElement("div"); led.className = "pin";
+    led.innerHTML = `<div class="led" id="led${i}"></div><small class="n">uo${i}</small><small>${i === 7 ? "LED7" : "LED" + i}</small>`;
+    $("leds").appendChild(led);
+    const p = document.createElement("div"); p.className = "pin";
+    p.innerHTML = `<div class="padled" id="uio${i}"></div><small class="n">uio${i}</small><small>${UIO_NAMES[i]}</small>`;
+    $("uios").appendChild(p);
+  }
+  $("sws").addEventListener("click", ev => {
+    const b = ev.target.closest(".sw"); if (!b || b.disabled) return;
+    swVal ^= 1 << +b.dataset.bit; applySwitches();
+  });
+})();
+function applySwitches(){
+  document.querySelectorAll(".sw").forEach(b => b.setAttribute("aria-pressed", String((swVal >> +b.dataset.bit) & 1)));
+  if (E && qi >= queue.length) E.sim_set_ui(swVal);
+}
+function lockSwitches(lock){ document.querySelectorAll(".sw").forEach(b => b.disabled = lock); }
+
+// ---------- scenarios ----------
+const bitrev32 = v => { let r = 0; for (let i = 0; i < 32; i++) { r = (r << 1) | ((v >>> i) & 1); } return r >>> 0; };
+const expectedByte = w => (bitrev32((~w) >>> 0) >>> 24) & 0x7F;
+const SIG_GOLD = [0x00,0x15,0xEC,0xCA,0xD8,0x27,0x2A,0x53,0xFF,0xD7,0xC5,0x00,0x38,0xB5,0x01,0x00,0x93,0xC3,0x5A,0x02];
+const PAD_GOLD = [[3,3],[0,0],[1,0],[2,0],[3,0],[0,0],[3,3]];
+const HOLD = 200;                      // GPIO bootloader: clocks per half-bit phase
+function bootSteps(bytes, idle){
+  const s = [{ui: idle | 4, run: 20}];
+  const put = B => { for (let i = 7; i >= 0; i--) { const b = (B >> i) & 1;
+    s.push({ui: (idle | 4) & ~3 | b, run: HOLD}); s.push({ui: (idle | 4) | 2 | b, run: HOLD}); s.push({ui: (idle | 4) & ~3 | b, run: HOLD}); } };
+  put(bytes.length); bytes.forEach(put);
+  s.push({ui: idle, run: 0});
+  return s;
+}
+function distinct(arr){ const o = []; for (const v of arr) if (!o.length || o[o.length - 1] !== v) o.push(v); return o; }
+function uoSeq(from){ const a = []; for (let i = from || 0; i < tr.n; i++) a.push(tr.uo[i]); return distinct(a); }
+
+const SCENARIOS = [
+ {id:"demo", name:"Power-on boot ROM demo",
+  desc:"Reset with the QSPI Pmod attached. The boot ROM tests the PSRAM (LED7 stays low on a pass), then counts on LED0-3 while it waits for the bootloader START input (ui2).",
+  ui:0, flash:null, pins:true, steps:()=>[{run:15000}],
+  check:()=>{ const v = uoSeq(); const low = v.filter(x => x < 16 || (x & 0x80) === 0); const counted = new Set(uoSeq().map(x => x & 15));
+    return [{ok:(E.sim_get_uo() & 0x80) === 0, t:"Self-test passed: LED7 low"}, {ok:counted.size >= 8, t:`Demo counter seen on LED0-3 (${counted.size} of 16 values so far)`, wait:counted.size < 8}]; }},
+ {id:"nopmod", name:"Power-on without a QSPI Pmod",
+  desc:"Same boot ROM, but the flash and PSRAM are not connected. The self-test fails and the ROM latches LED7 high.",
+  ui:0, flash:null, pins:false, steps:()=>[{run:15000}],
+  check:()=>[{ok:(E.sim_get_uo() & 0x80) !== 0, t:"Self-test failed as expected: LED7 high"}]},
+ {id:"sig", name:"PIO signature test",
+  desc:"The post-layout test image. The GPIO bootloader sends a 4-byte hand-off stub, the CPU then runs from flash and drives both PIO state machines through a fixed mix of instructions. The 20 values on uo_out and the open-drain pad sequence are compared with golden values.",
+  ui:0x6A, flash:"sig", pins:true, pull:true, fitOnPass:true, steps:s=>[{run:15000}, ...bootSteps(DATA.stub, 0x6A)],
+  check:()=>{
+    const all = uoSeq(scn.t0);
+    let s = -1; for (let i = 0; i < all.length - 1; i++) if (all[i] === 0 && all[i+1] === 0x15) s = i;
+    const got = s >= 0 ? all.slice(s) : [];
+    const ok = got.length >= SIG_GOLD.length && SIG_GOLD.every((v, i) => got[i] === v);
+    const pads = []; for (let i = scn.i0; i < tr.n; i++) { const p = [(tr.oe[i] >> 4) & 3, (tr.uio[i] >> 4) & 3]; const l = pads[pads.length - 1]; if (!l || l[0] !== p[0] || l[1] !== p[1]) pads.push(p); }
+    let ps = 0; for (let i = 0; i < pads.length - 1; i++) if (pads[i][0] === 3 && pads[i][1] === 3 && pads[i+1][0] === 0 && pads[i+1][1] === 0) ps = i;
+    const pg = pads.slice(ps), pok = pg.length >= PAD_GOLD.length && PAD_GOLD.every((v, i) => pg[i] && pg[i][0] === v[0] && pg[i][1] === v[1]);
+    return [{ok, wait:!ok && got.length < SIG_GOLD.length, t:`uo_out sequence: ${Math.min(got.length, SIG_GOLD.length)} of ${SIG_GOLD.length} golden values matched` + (ok ? "" : got.length ? " (so far: " + got.map(x => hex(x,2)).join(" ") + ")" : "")},
+            {ok:pok, wait:!pok && !ok, t:"Pad 8 / pad 9 (output enable, output) sequence matches the golden list"}]; }},
+ {id:"smoke", name:"PIO smoke test",
+  desc:"Three words go CPU to TX FIFO to state machine to RX FIFO and back, each result shown on LED0-6. State machine 1 answers each echo with four pulses on LED7. The checks are the ones in the post-layout test.",
+  ui:0, flash:"smoke", pins:true, fitOnPass:true, steps:()=>[{run:15000}, ...bootSteps(DATA.stub, 0)],
+  check:()=>{
+    const want = [0x55, 0x01, 0xF0].map(expectedByte);
+    const seen = distinct(Array.from({length: tr.n - scn.i0}, (_, i) => tr.uo[scn.i0 + i] & 0x7F));
+    let k = 0; for (const x of seen) if (k < 3 && x === want[k]) k++;
+    const pulses = []; let hi = null;
+    for (let i = scn.i0; i < tr.n; i++) { const l = (tr.uo[i] >> 7) & 1; if (l && hi === null) hi = tr.cyc[i]; if (!l && hi !== null) { pulses.push([hi, tr.cyc[i]]); hi = null; } }
+    const wid = pulses.every(p => p[1] - p[0] === 4);
+    let per = pulses.length >= 12;
+    for (let b = 0; b < 3 && per; b++) for (let j = 0; j < 3; j++) if (pulses[4*b+j+1][0] - pulses[4*b+j][0] !== 10) per = false;
+    const done = k === 3 && pulses.length >= 12;
+    return [{ok:k === 3, wait:k < 3, t:`Echoed words appear in order (${k} of 3)`},
+            {ok:pulses.length === 12 && wid && per, wait:!done, t:`Pulses on LED7: ${pulses.length} of 12; 4 clocks high, 10-clock period inside each burst`}]; }},
+ {id:"led", name:"Bootload your own program",
+  desc:"Sends the bytes below to the chip with the GPIO bootloader (length byte first, then the program, most significant bit first). The example is an 8-instruction RV32I counter that stores to LED_OUT (address 0xF0) with a delay loop.",
+  ui:0, flash:null, pins:true, custom:true, steps:()=>{ const b = bytesOf($("custom").value).slice(0, 44); return [{run:15000}, ...bootSteps(Array.from(b), 0)]; },
+  check:()=>{ const v = uoSeq(scn.i0 ? scn.i0 : 0); return [{ok:v.length > 6, wait:v.length <= 6, t:`LED_OUT changed ${Math.max(0, v.length - 1)} times since the program started`}]; }}
+];
+const IMG = k => k === "sig" ? bytesOf(DATA.sig) : k === "smoke" ? bytesOf(DATA.smoke) : null;
+
+function pullTrace(){
+  const n = E.sim_trace_len(); if (n <= readN) return;
+  const p = E.sim_trace_ptr(), sz = E.sim_trace_rec_size(), dv = new DataView(E.memory.buffer);
+  for (let i = readN; i < n; i++) {
+    if (tr.n === tr.cap) {                       // grow, or drop the oldest half past 3M records
+      const ncap = tr.cap * 2;
+      if (ncap > (3 << 20)) { const h = tr.n >> 1; for (const k of ["cyc","uo","uio","oe","ui"]) tr[k].copyWithin(0, h, tr.n); tr.n -= h; scn.i0 = Math.max(0, scn.i0 - h); scn.t0 = Math.max(0, (scn.t0||0) - h); }
+      else { for (const k of ["cyc","uo","uio","oe","ui"]) { const a = new tr[k].constructor(ncap); a.set(tr[k]); tr[k] = a; } tr.cap = ncap; }
+    }
+    const b = p + i * sz, j = tr.n++;
+    tr.cyc[j] = dv.getUint32(b, true) + dv.getUint32(b + 4, true) * 4294967296;
+    tr.uo[j] = dv.getUint8(b + 8); tr.uio[j] = dv.getUint8(b + 9); tr.oe[j] = dv.getUint8(b + 10); tr.ui[j] = dv.getUint8(b + 11);
+  }
+  readN = n;
+  if (n > 900000) { E.sim_trace_clear(); readN = 0; }
+}
+const cyclesNow = () => E.sim_cycles_lo() + E.sim_cycles_hi() * 4294967296;
+
+function startScenario(id){
+  scn = SCENARIOS.find(s => s.id === id);
+  E.sim_init();
+  const img = IMG(scn.flash);
+  if (img) new Uint8Array(E.memory.buffer).set(img, E.sim_flash_ptr());
+  E.sim_set_pins_attached(scn.pins ? 1 : 0);
+  E.sim_set_pullups(1);
+  swVal = scn.ui; E.sim_set_ui(swVal); E.sim_set_uio_in(0x30);
+  tr.n = 0; readN = 0; E.sim_trace_clear(); wv.follow = true;
+  E.sim_set_reset(1); E.sim_run(10); E.sim_set_reset(0);
+  E.sim_force_fast_qspi($("fast").checked ? 1 : 0);
+  scn.i0 = 0; scn.t0 = 0; scnClocks = 0; doneClocks = -1;
+  queue = scn.steps(scn); qi = 0; cur = null; running = true; $("pause").textContent = "Pause";
+  applySwitches(); lockSwitches(true); renderChecks([]);
+  $("errBox").textContent = "";
+}
+
+// ---------- run loop ----------
+let cur = null, lastStat = 0, simRate = 0;
+function advance(maxClocks, deadline){
+  let done = 0;
+  while (done < maxClocks && performance.now() < deadline) {
+    if (qi < queue.length) {
+      if (!cur) { cur = {run: queue[qi].run}; if (queue[qi].ui !== undefined) E.sim_set_ui(queue[qi].ui);
+        if (qi === 0 && scn) { /* first step */ } }
+      const n = Math.min(cur.run, maxClocks - done, 4000);
+      if (n > 0) { E.sim_run(n); done += n; cur.run -= n; }
+      if (cur.run <= 0) { qi++; cur = null; if (qi >= queue.length) { E.sim_set_ui(swVal); lockSwitches(false); scn.qEnd = cyclesNow(); scn.i0 = 0; scn.t0 = 0; } }
+    } else { const n = Math.min(4000, maxClocks - done); E.sim_run(n); done += n; }
+  }
+  return done;
+}
+
+let lastT = performance.now();
+function frame(now){
+  requestAnimationFrame(frame);
+  if (!E) return;
+  const dt = now - lastT; lastT = now;
+  if (running) {
+    const cpf = +$("speed").value, t0 = performance.now();
+    const done = advance(cpf, t0 + 12);
+    const el = performance.now() - t0; if (done > 0 && el > 0) simRate = simRate * .8 + (done / el / 1000) * .2;
+    pullTrace();
+  }
+  updateBoard();
+  if (now - lastStat > 120) { lastStat = now; updateStatus(); updateState(); if (running || needCheck) runChecks(); }
+  if (wv.follow || wv.dirty) drawWave();
+}
+let needCheck = true;
+function runChecks(){
+  if (!scn || qi < queue.length) { renderChecks([]); return; }
+  let res; try { res = scn.check(); } catch (e) { res = [{ok:false, t:"check error: " + e.message}]; }
+  renderChecks(res);
+  needCheck = !res.every(r => r.ok);
+  if (!needCheck && scn.fitOnPass && !scn.fitted && tr.n) {       // finished: stop and frame the activity
+    scn.fitted = true; running = false; $("pause").textContent = "Resume"; wv.follow = false;
+    const last = tr.cyc[tr.n - 1], a = scn.qEnd || 0; wv.v0 = Math.max(0, a - (last - a) * .02); wv.v1 = last + (last - a) * .03 + 50; wv.win = wv.v1 - wv.v0; wv.dirty = true;
+  }
+}
+function renderChecks(res){
+  const ul = $("checks"); ul.innerHTML = "";
+  if (!scn) return;
+  if (qi < queue.length) { const li = document.createElement("li"); li.innerHTML = `<span class="badge wait">running</span><span>Loading: ${qi < 1 ? "boot ROM self-test" : "sending the program over the GPIO bootloader"}</span>`; ul.appendChild(li); return; }
+  for (const r of res) { const li = document.createElement("li"); const st = r.ok ? "pass" : r.wait ? "wait" : "fail";
+    li.innerHTML = `<span class="badge ${st}">${r.ok ? "PASS" : r.wait ? "waiting" : "FAIL"}</span><span></span>`; li.lastChild.textContent = r.t; ul.appendChild(li); }
+}
+function updateBoard(){
+  const uo = E.sim_get_uo(), uio = E.sim_get_uio_out(), oe = E.sim_get_uio_oe(), ui = E.sim_get_ui();
+  for (let i = 0; i < 8; i++) {
+    $("led" + i).classList.toggle("on", !!((uo >> i) & 1));
+    const p = $("uio" + i); const drv = (oe >> i) & 1; const hi = drv ? (uio >> i) & 1 : (i === 4 || i === 5 ? 1 : (i === 2 ? 0 : 0));
+    p.classList.toggle("hi", !!hi); p.classList.toggle("drv", !!drv);
+  }
+  if (qi < queue.length) document.querySelectorAll(".sw").forEach(b => b.setAttribute("aria-pressed", String((ui >> +b.dataset.bit) & 1)));
+}
+function updateStatus(){
+  const c = cyclesNow();
+  $("stState").textContent = !scn ? "ready" : qi < queue.length ? (running ? "loading" : "paused") : scn.fitted ? "finished, all checks passed" : running ? "running" : "paused";
+  $("stClk").textContent = c.toLocaleString("en-US");
+  const us = c / CLK_HZ * 1e6; $("stTime").textContent = us < 1000 ? us.toFixed(1) + " µs" : (us / 1000).toFixed(3) + " ms";
+  $("stSpeed").textContent = running ? simRate.toFixed(2) + " M clocks/s (" + (simRate / 24 * 100).toFixed(1) + "% of real time)" : "-";
+}
+function buildRegs(){ const r = $("regs"); for (let i = 1; i < 32; i++) { const d = document.createElement("div"); d.innerHTML = `<span>x${i}</span> <b id="x${i}">00000000</b>`; r.appendChild(d); } }
+function updateState(){
+  $("rPc").textContent = hex(E.sim_core_pc(), 2); $("rSt").textContent = E.sim_core_state(); $("rIr").textContent = hex(E.sim_core_ir(), 8);
+  for (let i = 1; i < 32; i++) $("x" + i).textContent = hex(E.sim_core_reg(i), 8);
+  for (let s = 0; s < 2; s++) $("p" + s).innerHTML = `pc ${hex(E.sim_pio_pc(s), 2)}<br>x &nbsp;${hex(E.sim_pio_x(s), 8)}<br>y &nbsp;${hex(E.sim_pio_y(s), 8)}<br>isr ${hex(E.sim_pio_isr(s), 8)}<br>osr ${hex(E.sim_pio_osr(s), 8)}`;
+  $("pPins").textContent = "out " + hex(E.sim_pio_pin_out(), 3) + "  dir " + hex(E.sim_pio_pin_dir(), 3);
+}
+
+// ---------- waveform ----------
+const CH = [];
+for (let i = 7; i >= 0; i--) CH.push({n: i === 7 ? "uo7 LED7" : "uo" + i + " LED" + i, g: k => (tr.uo[k] >> i) & 1});
+CH.push({n:"SCK", g:k => (tr.uio[k] >> 3) & 1}, {n:"MOSI", g:k => (tr.uio[k] >> 1) & 1}, {n:"CS0 flash", g:k => (tr.uio[k]) & 1},
+        {n:"CS1 RAM A", g:k => (tr.uio[k] >> 6) & 1}, {n:"CS2 RAM B", g:k => (tr.uio[k] >> 7) & 1},
+        {n:"PAD8", g:k => ((tr.oe[k] >> 4) & 1) ? (tr.uio[k] >> 4) & 1 : 1, oe:k => (tr.oe[k] >> 4) & 1},
+        {n:"PAD9", g:k => ((tr.oe[k] >> 5) & 1) ? (tr.uio[k] >> 5) & 1 : 1, oe:k => (tr.oe[k] >> 5) & 1},
+        {n:"ui0 DATA", g:k => tr.ui[k] & 1}, {n:"ui1 CLOCK", g:k => (tr.ui[k] >> 1) & 1}, {n:"ui2 START", g:k => (tr.ui[k] >> 2) & 1});
+const wv = {follow:true, v0:0, v1:20000, win:20000, dirty:true};
+const cv = $("wave"), ctx = cv.getContext("2d");
+const ROW = 20, GUT = 96, TOP = 22;
+function css(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function lowerBound(t){ let lo = 0, hi = tr.n; while (lo < hi) { const m = (lo + hi) >> 1; if (tr.cyc[m] < t) lo = m + 1; else hi = m; } return lo; }
+function fmtT(c){ const us = c / CLK_HZ * 1e6; return us >= 1000 ? (us / 1000).toFixed(2) + " ms" : us >= 10 ? us.toFixed(0) + " µs" : us.toFixed(2) + " µs"; }
+function drawWave(){
+  wv.dirty = false;
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = TOP + CH.length * ROW + 6;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + "px"; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const cc = E ? cyclesNow() : 0;
+  if (wv.follow) { wv.v1 = Math.max(cc, wv.win); wv.v0 = wv.v1 - wv.win; }
+  const pw = W - GUT - 6, v0 = wv.v0, v1 = wv.v1, span = v1 - v0, grid = css("--grid"), ink = css("--ink"), muted = css("--muted"), wave = css("--wave"), woe = css("--wave-oe");
+  ctx.font = "11px " + css("--font-mono"); ctx.textBaseline = "middle";
+  // time axis
+  const rawStep = span / (pw / 90), mag = Math.pow(10, Math.floor(Math.log10(rawStep))), step = [1, 2, 5, 10].map(m => m * mag).find(s => s >= rawStep) || mag * 10;
+  ctx.strokeStyle = grid; ctx.fillStyle = muted; ctx.lineWidth = 1; ctx.textAlign = "left";
+  for (let t = Math.ceil(v0 / step) * step; t <= v1; t += step) {
+    const x = GUT + (t - v0) / span * pw; ctx.beginPath(); ctx.moveTo(Math.round(x) + .5, TOP - 4); ctx.lineTo(Math.round(x) + .5, H - 4); ctx.stroke();
+    ctx.fillText(fmtT(t), x + 3, 9);
+  }
+  // rows
+  ctx.textAlign = "left";
+  const i0 = Math.max(0, lowerBound(v0) - 1), iEnd = Math.min(tr.n, lowerBound(v1) + 1);
+  CH.forEach((ch, r) => {
+    const y0 = TOP + r * ROW, yh = y0 + 4, yl = y0 + ROW - 5;
+    ctx.fillStyle = r % 2 ? "transparent" : "rgba(127,140,138,.06)"; ctx.fillRect(0, y0, W, ROW);
+    ctx.fillStyle = ink; ctx.fillText(ch.n, 6, y0 + ROW / 2);
+    // per pixel min/max
+    const lo = new Int8Array(pw + 1).fill(2), hi = new Int8Array(pw + 1).fill(-1), oeA = ch.oe ? new Uint8Array(pw + 1) : null;
+    let prev = i0 < tr.n ? ch.g(i0) : 0, prevOe = ch.oe && i0 < tr.n ? ch.oe(i0) : 0, lastX = -1;
+    let xi = 0;
+    for (let k = i0; k < iEnd; k++) {
+      const x = Math.max(0, Math.min(pw, Math.floor((tr.cyc[k] - v0) / span * pw)));
+      for (; xi < x; xi++) { lo[xi] = Math.min(lo[xi], prev); hi[xi] = Math.max(hi[xi], prev); if (oeA) oeA[xi] = prevOe; }
+      prev = ch.g(k); prevOe = ch.oe ? ch.oe(k) : 0;
+      lo[x] = Math.min(lo[x], prev); hi[x] = Math.max(hi[x], prev); if (oeA) oeA[x] = prevOe;
+    }
+    const xEnd = Math.max(0, Math.min(pw, Math.floor(((E ? cc : v1) - v0) / span * pw)));
+    for (; xi <= xEnd && xi <= pw; xi++) { lo[xi] = Math.min(lo[xi], prev); hi[xi] = Math.max(hi[xi], prev); if (oeA) oeA[xi] = prevOe; }
+    ctx.lineWidth = 1.4; ctx.strokeStyle = wave; ctx.beginPath();
+    let pl = -1;
+    for (let x = 0; x <= pw; x++) {
+      if (hi[x] < 0) continue;
+      const px = GUT + x + .5;
+      if (pl >= 0 && pl !== lo[x] && pl !== hi[x] && lo[x] === hi[x]) { ctx.moveTo(px, pl ? yh : yl); ctx.lineTo(px, lo[x] ? yh : yl); }
+      if (lo[x] !== hi[x]) { ctx.moveTo(px, yl); ctx.lineTo(px, yh); }
+      else { const y = lo[x] ? yh : yl; ctx.moveTo(px - 1, y); ctx.lineTo(px + 1, y); }
+      pl = hi[x] === lo[x] ? lo[x] : hi[x];
+    }
+    ctx.stroke();
+    if (oeA) { ctx.strokeStyle = woe; ctx.lineWidth = 1; ctx.beginPath(); let on = false, sx = 0;
+      for (let x = 0; x <= pw + 1; x++) { const o = x <= pw && hi[x] >= 0 && oeA[x]; if (o && !on) { on = true; sx = x; } if (!o && on) { on = false; ctx.rect(GUT + sx + .5, y0 + 2.5, x - sx, ROW - 5); } }
+      ctx.stroke(); }
+  });
+  ctx.strokeStyle = grid; ctx.beginPath(); ctx.moveTo(GUT + .5, TOP - 4); ctx.lineTo(GUT + .5, H - 4); ctx.stroke();
+  if (wv.hover != null) { const x = GUT + (wv.hover - v0) / span * pw; ctx.strokeStyle = ink; ctx.globalAlpha = .35; ctx.beginPath(); ctx.moveTo(x + .5, TOP - 4); ctx.lineTo(x + .5, H - 4); ctx.stroke(); ctx.globalAlpha = 1; }
+  $("wvInfo").textContent = (wv.hover != null ? `cursor clock ${Math.round(wv.hover).toLocaleString("en-US")} (${fmtT(wv.hover)})   ` : "") + `view ${Math.round(span).toLocaleString("en-US")} clocks`;
+}
+function xToT(ev){ const r = cv.getBoundingClientRect(), pw = r.width - GUT - 6; return wv.v0 + Math.max(0, Math.min(1, (ev.clientX - r.left - GUT) / pw)) * (wv.v1 - wv.v0); }
+cv.addEventListener("wheel", ev => { ev.preventDefault(); const t = xToT(ev), f = ev.deltaY < 0 ? .8 : 1.25; zoomAt(t, f); }, {passive:false});
+function zoomAt(t, f){ wv.follow = false; const a = (t - wv.v0) / (wv.v1 - wv.v0), span = Math.max(40, (wv.v1 - wv.v0) * f); wv.v0 = t - a * span; wv.v1 = wv.v0 + span; wv.win = span; wv.dirty = true; }
+let drag = null;
+cv.addEventListener("pointerdown", ev => { drag = {x:ev.clientX, v0:wv.v0, v1:wv.v1}; cv.setPointerCapture(ev.pointerId); });
+cv.addEventListener("pointermove", ev => {
+  wv.hover = xToT(ev);
+  if (drag) { wv.follow = false; const pw = cv.clientWidth - GUT - 6, d = (ev.clientX - drag.x) / pw * (drag.v1 - drag.v0); wv.v0 = drag.v0 - d; wv.v1 = drag.v1 - d; }
+  wv.dirty = true; });
+cv.addEventListener("pointerup", () => drag = null);
+cv.addEventListener("pointerleave", () => { wv.hover = null; wv.dirty = true; });
+$("zin").onclick = () => zoomAt((wv.v0 + wv.v1) / 2, .5);
+$("zout").onclick = () => zoomAt((wv.v0 + wv.v1) / 2, 2);
+$("fit").onclick = () => { wv.follow = false; wv.v0 = 0; wv.v1 = Math.max(100, E ? cyclesNow() : 100); wv.win = wv.v1; wv.dirty = true; };
+$("follow").onclick = () => { wv.follow = true; wv.dirty = true; };
+addEventListener("resize", () => wv.dirty = true);
+
+// ---------- controls ----------
+function fillScenarios(){
+  const s = $("scn"); SCENARIOS.forEach(x => { const o = document.createElement("option"); o.value = x.id; o.textContent = x.name; s.appendChild(o); });
+  s.onchange = () => showDesc();
+  $("custom").value = DATA.led;
+  showDesc();
+}
+function showDesc(){ const x = SCENARIOS.find(s => s.id === $("scn").value); $("scnDesc").textContent = x.desc; $("customBox").hidden = !x.custom; }
+$("go").onclick = () => { needCheck = true; startScenario($("scn").value); wv.win = 40000; };
+$("pause").onclick = () => { running = !running; $("pause").textContent = running ? "Pause" : "Resume"; };
+$("step").onclick = () => { if (!E) return; running = false; $("pause").textContent = "Resume"; advance(20000, performance.now() + 4000); pullTrace(); updateStatus(); updateState(); runChecks(); wv.dirty = true; };
+$("rst").onclick = () => { E.sim_set_reset(1); E.sim_run(10); E.sim_set_reset(0); E.sim_force_fast_qspi($("fast").checked ? 1 : 0); needCheck = true; };
+$("fast").onchange = () => { if (E) E.sim_force_fast_qspi($("fast").checked ? 1 : 0); };
+
+// ---------- boot ----------
+async function boot(){
+  fillScenarios(); buildRegs();
+  try {
+    const bin = Uint8Array.from(atob(WASM_GZ_B64), c => c.charCodeAt(0));
+    const buf = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
+    const {instance} = await WebAssembly.instantiate(buf, {wasi_snapshot_preview1: {fd_close: () => 0, fd_seek: () => 0, fd_write: () => 0}});
+    E = instance.exports; E._initialize();
+    startScenario("sig"); $("scn").value = "sig"; showDesc();
+    lastT = performance.now(); requestAnimationFrame(frame);
+  } catch (e) { $("stState").textContent = "failed"; $("errBox").textContent = "Could not start the simulator: " + e.message; }
+}
+boot();
+</script>
