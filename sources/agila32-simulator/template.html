@@ -76,6 +76,11 @@ canvas{display:block;width:100%;background:var(--surface);border-radius:4px;touc
 .hint{color:var(--muted);font-size:12px}
 .err{color:var(--bad);font-family:var(--font-mono);font-size:12px;white-space:pre-wrap}
 .themebtn{padding:3px 9px;font-size:12px}
+.sevenseg{display:flex;align-items:center;gap:14px}
+.sevenseg svg{width:96px;height:auto;flex:none;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px}
+.seg{fill:var(--led-off);transition:fill .05s}
+.seg.on{fill:var(--led-on);filter:drop-shadow(0 0 3px color-mix(in srgb,var(--led-on) 70%,transparent))}
+pre.asm{margin:6px 0 0;padding:8px 10px;background:var(--code);border-radius:6px;font:11px/1.45 var(--font-mono);overflow-x:auto;white-space:pre}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -101,6 +106,22 @@ canvas{display:block;width:100%;background:var(--surface);border-radius:4px;touc
           <div class="pins" id="leds"></div>
         </div>
         <div class="sect">
+          <div class="hint" style="margin-bottom:6px">7-segment display (common cathode): <span style="font-family:var(--font-mono)">uo0-uo6</span> = segments a-g, <span style="font-family:var(--font-mono)">uo7</span> = dp</div>
+          <div class="sevenseg">
+            <svg id="seg" viewBox="0 0 76 112" role="img" aria-label="Seven-segment display">
+            <polygon class="seg" id="seg0" points="14,8 18,4 46,4 50,8 46,12 18,12"/>
+            <polygon class="seg" id="seg1" points="56,14 60,18 60,50 56,54 52,50 52,18"/>
+            <polygon class="seg" id="seg2" points="56,58 60,62 60,94 56,98 52,94 52,62"/>
+            <polygon class="seg" id="seg3" points="14,104 18,100 46,100 50,104 46,108 18,108"/>
+            <polygon class="seg" id="seg4" points="8,58 12,62 12,94 8,98 4,94 4,62"/>
+            <polygon class="seg" id="seg5" points="8,14 12,18 12,50 8,54 4,50 4,18"/>
+            <polygon class="seg" id="seg6" points="14,56 18,52 46,52 50,56 46,60 18,60"/>
+            <circle class="seg" id="seg7" cx="69" cy="104" r="4"/>
+          </svg>
+            <div class="hint" id="segTxt" style="font-family:var(--font-mono)"></div>
+          </div>
+        </div>
+        <div class="sect">
           <div class="hint" style="margin-bottom:6px">Bidirectional <span style="font-family:var(--font-mono)">uio[7:0]</span> (outlined = chip drives the pin)</div>
           <div class="pins" id="uios"></div>
         </div>
@@ -115,6 +136,7 @@ canvas{display:block;width:100%;background:var(--surface);border-radius:4px;touc
           <div id="customBox" hidden>
             <label for="custom">Program bytes (hex, at most 44 bytes, sent over the GPIO bootloader)</label>
             <textarea id="custom" spellcheck="false"></textarea>
+            <pre class="asm" id="asmBox" hidden></pre>
           </div>
           <div class="row">
             <button class="primary" id="go" type="button">Load and run</button>
@@ -291,9 +313,19 @@ const SCENARIOS = [
     const done = k === 3 && pulses.length >= 12;
     return [{ok:k === 3, wait:k < 3, t:`Echoed words appear in order (${k} of 3)`},
             {ok:pulses.length === 12 && wid && per, wait:!done, t:`Pulses on LED7: ${pulses.length} of 12; 4 clocks high, 10-clock period inside each burst`}]; }},
+ {id:"agila", name:"7-segment display: AGILA32 in a loop",
+  desc:"Bootloads an 11-instruction RV32I program (44 bytes, the whole program RAM) that steps through a pattern table and writes each entry to LED_OUT (0xF0), so the 7-segment display shows A G I L A 3 2 over and over. The table sits in the last two words of the program and is read with lbu. Edit the bytes to change the text, or byte 17 (41) to change the speed: its high nibble is the delay in units of 4096 loop passes (4 is about 230k clocks per character, 8 doubles it).",
+  ui:0, flash:null, pins:true, custom:true, code:DATA.agila, asm:DATA.agilaAsm, steps:()=>{ const b = bytesOf($("custom").value).slice(0, 44); return [{run:15000}, ...bootSteps(Array.from(b), 0)]; },
+  check:()=>{
+    const P = [0x77, 0x3D, 0x30, 0x38, 0x77, 0x4F, 0x5B];     // A G I L A 3 2
+    const all = uoSeq(0);
+    let s = -1; for (let i = 0; i < all.length - 1; i++) if (all[i] === P[0] && all[i + 1] === P[1]) { s = i; break; }
+    let m = 0; if (s >= 0) while (s + m < all.length && all[s + m] === P[m % 7]) m++;
+    return [{ok:m >= 7, wait:m < 7, t:`Display shows A G I L A 3 2 in order (${Math.min(m, 7)} of 7 characters)`},
+            {ok:m >= 14, wait:m < 14, t:`Sequence repeats from the start (${Math.floor(m / 7)} full passes so far)`}]; }},
  {id:"led", name:"Bootload your own program",
   desc:"Sends the bytes below to the chip with the GPIO bootloader (length byte first, then the program, most significant bit first). The example is an 8-instruction RV32I counter that stores to LED_OUT (address 0xF0) with a delay loop.",
-  ui:0, flash:null, pins:true, custom:true, steps:()=>{ const b = bytesOf($("custom").value).slice(0, 44); return [{run:15000}, ...bootSteps(Array.from(b), 0)]; },
+  ui:0, flash:null, pins:true, custom:true, code:DATA.led, steps:()=>{ const b = bytesOf($("custom").value).slice(0, 44); return [{run:15000}, ...bootSteps(Array.from(b), 0)]; },
   check:()=>{ const v = uoSeq(scn.i0 ? scn.i0 : 0); return [{ok:v.length > 6, wait:v.length <= 6, t:`LED_OUT changed ${Math.max(0, v.length - 1)} times since the program started`}]; }}
 ];
 const IMG = k => k === "sig" ? bytesOf(DATA.sig) : k === "smoke" ? bytesOf(DATA.smoke) : null;
@@ -386,9 +418,11 @@ function updateBoard(){
   const uo = E.sim_get_uo(), uio = E.sim_get_uio_out(), oe = E.sim_get_uio_oe(), ui = E.sim_get_ui();
   for (let i = 0; i < 8; i++) {
     $("led" + i).classList.toggle("on", !!((uo >> i) & 1));
+    $("seg" + i).classList.toggle("on", !!((uo >> i) & 1));
     const p = $("uio" + i); const drv = (oe >> i) & 1; const hi = drv ? (uio >> i) & 1 : (i === 4 || i === 5 ? 1 : (i === 2 ? 0 : 0));
     p.classList.toggle("hi", !!hi); p.classList.toggle("drv", !!drv);
   }
+  $("segTxt").textContent = "uo_out = 0x" + hex(uo, 2);
   if (qi < queue.length) document.querySelectorAll(".sw").forEach(b => b.setAttribute("aria-pressed", String((ui >> +b.dataset.bit) & 1)));
 }
 function updateStatus(){
@@ -495,10 +529,16 @@ addEventListener("resize", () => wv.dirty = true);
 function fillScenarios(){
   const s = $("scn"); SCENARIOS.forEach(x => { const o = document.createElement("option"); o.value = x.id; o.textContent = x.name; s.appendChild(o); });
   s.onchange = () => showDesc();
-  $("custom").value = DATA.led;
+  $("custom").oninput = () => { edits[$("scn").value] = $("custom").value; };
   showDesc();
 }
-function showDesc(){ const x = SCENARIOS.find(s => s.id === $("scn").value); $("scnDesc").textContent = x.desc; $("customBox").hidden = !x.custom; }
+const edits = {};
+function showDesc(){
+  const x = SCENARIOS.find(s => s.id === $("scn").value);
+  $("scnDesc").textContent = x.desc; $("customBox").hidden = !x.custom;
+  if (x.custom) { $("custom").value = edits[x.id] !== undefined ? edits[x.id] : (x.code || ""); }
+  $("asmBox").hidden = !x.asm; $("asmBox").textContent = x.asm || "";
+}
 $("go").onclick = () => { needCheck = true; startScenario($("scn").value); wv.win = 40000; };
 $("pause").onclick = () => { running = !running; $("pause").textContent = running ? "Pause" : "Resume"; };
 $("step").onclick = () => { if (!E) return; running = false; $("pause").textContent = "Resume"; advance(20000, performance.now() + 4000); pullTrace(); updateStatus(); updateState(); runChecks(); wv.dirty = true; };
@@ -513,7 +553,7 @@ async function boot(){
     const buf = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
     const {instance} = await WebAssembly.instantiate(buf, {wasi_snapshot_preview1: {fd_close: () => 0, fd_seek: () => 0, fd_write: () => 0}});
     E = instance.exports; E._initialize();
-    startScenario("sig"); $("scn").value = "sig"; showDesc();
+    $("scn").value = "agila"; showDesc(); startScenario("agila");
     lastT = performance.now(); requestAnimationFrame(frame);
   } catch (e) { $("stState").textContent = "failed"; $("errBox").textContent = "Could not start the simulator: " + e.message; }
 }
