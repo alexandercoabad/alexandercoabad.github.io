@@ -80,6 +80,27 @@ canvas{display:block;width:100%;background:var(--surface);border-radius:4px;touc
 .sevenseg svg{width:96px;height:auto;flex:none;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px}
 .seg{fill:var(--led-off);transition:fill .05s}
 .seg.on{fill:var(--led-on);filter:drop-shadow(0 0 3px color-mix(in srgb,var(--led-on) 70%,transparent))}
+#cBox:not([hidden]){display:flex;flex-direction:column;gap:6px}
+section[aria-label="Scenario"] *{min-width:0;max-width:100%;box-sizing:border-box}
+.panel{min-width:0}
+pre.code{font-family:var(--font-mono);font-size:12px;line-height:1.5;margin:0;padding:8px;background:var(--bg);border:1px solid var(--line);border-radius:6px;overflow:auto;white-space:pre}
+pre.code .ln{display:block;padding:0 4px;border-radius:3px}
+pre.code .ln.on{background:var(--accent);color:#fff}
+#bd{width:100%;height:auto;display:block}
+#bd .bx{fill:var(--surface);stroke:var(--line);stroke-width:1;transition:fill .18s,stroke .18s}
+#bd .bx.pio{fill:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+#bd .bx.on{fill:color-mix(in srgb,var(--accent) 32%,var(--surface));stroke:var(--accent);stroke-width:1.6}
+#bd .bt{font:600 9px var(--font-ui);fill:var(--ink)}
+#bd .bs{font:7.5px var(--font-ui);fill:var(--muted)}
+#bd .bm{font:8px var(--font-mono);fill:var(--ink)}
+#bd .frame{fill:none;stroke:var(--line);stroke-width:1}
+#bd .busl{fill:var(--accent);opacity:.35;transition:opacity .18s}
+#bd .busl.on{opacity:1}
+#bd .wire{stroke:var(--accent);stroke-width:1.2;fill:none;opacity:.35;transition:opacity .18s}
+#bd .wire.on{opacity:1;stroke-width:2.2}
+#bd .pp{fill:var(--led-off);stroke:var(--line);transition:fill .1s}
+#bd .pp.on{fill:var(--led-on)}
+#bd .pp.drv{stroke:var(--accent);stroke-width:1.6}
 pre.asm{margin:6px 0 0;padding:8px 10px;background:var(--code);border-radius:6px;font:11px/1.45 var(--font-mono);overflow-x:auto;white-space:pre}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -138,6 +159,14 @@ pre.asm{margin:6px 0 0;padding:8px 10px;background:var(--code);border-radius:6px
             <textarea id="custom" spellcheck="false"></textarea>
             <pre class="asm" id="asmBox" hidden></pre>
           </div>
+          <div id="cBox" hidden>
+            <label for="cex">C example</label>
+            <select id="cex"></select>
+            <div class="hint">C source</div>
+            <pre class="code" id="csrc" tabindex="0" aria-label="C source"></pre>
+            <div class="hint">RV32I instructions the chip runs (current instruction is highlighted)</div>
+            <pre class="code" id="casm" tabindex="0" aria-label="Compiled instructions"></pre>
+          </div>
           <div class="row">
             <button class="primary" id="go" type="button">Load and run</button>
             <button id="pause" type="button">Pause</button>
@@ -185,6 +214,12 @@ pre.asm{margin:6px 0 0;padding:8px 10px;background:var(--code);border-radius:6px
         </div>
         <div class="wavebox"><canvas id="wave" tabindex="0" aria-label="Pin waveforms: scroll to zoom, drag to pan"></canvas></div>
         <p class="cap">Scroll to zoom, drag to pan. The time axis is in chip clocks; the label shows microseconds at 24 MHz. The orange outline on PAD 8 and PAD 9 marks the span where the chip drives the pad.</p>
+      </section>
+
+      <section class="panel" aria-label="Block diagram">
+        <h2>Block diagram (live)</h2>
+        <svg id="bd" viewBox="0 0 620 286" role="img" aria-label="Block diagram of AgilA32: CPU, memory, QSPI engine and PIO block, highlighted as they are used"></svg>
+        <p class="cap">Redrawn from the block diagram in the project documentation. Highlighted blocks are in use: the memory block that holds the current instruction, the target of a load or store (worked out from the instruction and its base register), the QSPI engine while a chip-select is low, and each PIO state machine when its program counter moves. The little circles are the ten PIO pins; a ring means the PIO drives that pin.</p>
       </section>
 
       <section class="panel" aria-label="Checks">
@@ -256,7 +291,7 @@ const UIO_NAMES = ["CS0", "MOSI", "MISO", "SCK", "PAD8", "PAD9", "CS1", "CS2"];
   });
 })();
 function applySwitches(){
-  document.querySelectorAll(".sw").forEach(b => b.setAttribute("aria-pressed", String((swVal >> +b.dataset.bit) & 1)));
+  document.querySelectorAll(".sw").forEach(b => b.setAttribute("aria-pressed", String(((swVal >> +b.dataset.bit) & 1) === 1)));
   if (E && qi >= queue.length) E.sim_set_ui(swVal);
 }
 function lockSwitches(lock){ document.querySelectorAll(".sw").forEach(b => b.disabled = lock); }
@@ -326,6 +361,24 @@ const SCENARIOS = [
     let m = 0; if (s >= 0) while (s + m < all.length && all[s + m] === P[m % 7]) m++;
     return [{ok:m >= 7, wait:m < 7, t:`Display shows A G I L A 3 2 in order (${Math.min(m, 7)} of 7 characters)`},
             {ok:m >= 14, wait:m < 14, t:`Sequence repeats from the start (${Math.floor(m / 7)} full passes so far)`}]; }},
+ {id:"pili", name:"7-segment display: PILIPINAS LASALLE",
+  desc:"A 7-instruction RV32I program plus a 16-byte pattern table: exactly 44 bytes, the whole program RAM, sent over the GPIO bootloader. A free-running counter in a register picks the character, so there is no delay loop and no end marker. The decimal point is set on every second character so the double L in LASALLE is still seen as two characters. Segment order is the usual one: uo0-uo6 = a-g, uo7 = dp. To slow it down for real hardware, change the shift amount 12 to 18 (the srli instruction, about 0.45 s per character at 24 MHz).",
+  ui:0, flash:null, pins:true, custom:true, code:DATA.pili, asm:DATA.piliAsm, steps:()=>{ const b = bytesOf($("custom").value).slice(0, 44); return [{run:15000}, ...bootSteps(Array.from(b), 0)]; },
+  check:()=>{
+    const P = [0x73,0xB0,0x38,0xB0,0x73,0xB0,0x37,0xF7,0x6D,0xB8,0x77,0xED,0x77,0xB8,0x38,0xF9];   // P I L I P I N A S L A S A L L E, dp on odd characters
+    const all = uoSeq(0);
+    let s = -1; for (let i = 0; i < all.length - 1; i++) if (all[i] === P[0] && all[i + 1] === P[1]) { s = i; break; }
+    let m = 0; if (s >= 0) while (s + m < all.length && all[s + m] === P[m % 16]) m++;
+    return [{ok:m >= 16, wait:m < 16, t:`Display shows P I L I P I N A S L A S A L L E in order (${Math.min(m, 16)} of 16 characters)`},
+            {ok:m >= 32, wait:m < 32, t:`Text repeats from the start (${Math.floor(m / 16)} full passes so far)`}]; }},
+ {id:"cprog", name:"C programs (blink, counter, chase, switches)",
+  desc:"Compiled from C with an RV32I compiler, sent over the GPIO bootloader and run on the real design. Pick an example below; the highlighted instruction follows the CPU. Switches example: click the input switches while it runs.",
+  ui:0, flash:null, pins:true, cprog:true, steps:()=>{ const b = bytesOf(DATA.c[$("cex").value].hex); return [{run:15000}, ...bootSteps(Array.from(b), 0)]; },
+  check:()=>{
+    if (scn.qEnd === undefined) return [{ok:false, wait:true, t:"Sending the program over the GPIO bootloader"}];
+    if ($("cex").value === "switches") { const lv = E.sim_get_uo(); return [{ok:lv === swVal, wait:lv !== swVal, t:`LEDs show ${hex(lv,2)}; the input switches are ${hex(swVal,2)}`}]; }
+    const a = []; for (let i = 0; i < tr.n; i++) if (tr.cyc[i] >= scn.qEnd) a.push(tr.uo[i]);
+    const v = distinct(a); return [{ok:v.length > 4, wait:v.length <= 4, t:`LED_OUT changed ${Math.max(0, v.length - 1)} times since the C program started`}]; }},
  {id:"led", name:"Bootload your own program",
   desc:"Sends the bytes below to the chip with the GPIO bootloader (length byte first, then the program, most significant bit first). The example is an 8-instruction RV32I counter that stores to LED_OUT (address 0xF0) with a delay loop.",
   ui:0, flash:null, pins:true, custom:true, code:DATA.led, steps:()=>{ const b = bytesOf($("custom").value).slice(0, 44); return [{run:15000}, ...bootSteps(Array.from(b), 0)]; },
@@ -378,7 +431,7 @@ function advance(maxClocks, deadline){
         if (qi === 0 && scn) { /* first step */ } }
       const n = Math.min(cur.run, maxClocks - done, 4000);
       if (n > 0) { E.sim_run(n); done += n; cur.run -= n; }
-      if (cur.run <= 0) { qi++; cur = null; if (qi >= queue.length) { E.sim_set_ui(swVal); lockSwitches(false); scn.qEnd = cyclesNow(); scn.i0 = 0; scn.t0 = 0; } }
+      if (cur.run <= 0) { qi++; cur = null; if (qi >= queue.length) { E.sim_set_ui(swVal); applySwitches(); lockSwitches(false); scn.qEnd = cyclesNow(); scn.i0 = 0; scn.t0 = 0; } }
     } else { const n = Math.min(4000, maxClocks - done); E.sim_run(n); done += n; }
   }
   return done;
@@ -396,7 +449,7 @@ function frame(now){
     pullTrace();
   }
   updateBoard();
-  if (now - lastStat > 120) { lastStat = now; updateStatus(); updateState(); if (running || needCheck) runChecks(); }
+  if (now - lastStat > 120) { lastStat = now; updateStatus(); updateState(); hiliteC(); drawBlock(); if (running || needCheck) runChecks(); }
   if (wv.follow || wv.dirty) drawWave();
 }
 let needCheck = true;
@@ -426,7 +479,7 @@ function updateBoard(){
     p.classList.toggle("hi", !!hi); p.classList.toggle("drv", !!drv);
   }
   $("segTxt").textContent = "uo_out = 0x" + hex(uo, 2);
-  if (qi < queue.length) document.querySelectorAll(".sw").forEach(b => b.setAttribute("aria-pressed", String((ui >> +b.dataset.bit) & 1)));
+  if (qi < queue.length) document.querySelectorAll(".sw").forEach(b => b.setAttribute("aria-pressed", String(((ui >> +b.dataset.bit) & 1) === 1)));
 }
 function updateStatus(){
   const c = cyclesNow();
@@ -436,6 +489,78 @@ function updateStatus(){
   $("stSpeed").textContent = running ? simRate.toFixed(2) + " M clocks/s (" + (simRate / 24 * 100).toFixed(1) + "% of real time)" : "-";
 }
 function buildRegs(){ const r = $("regs"); for (let i = 1; i < 32; i++) { const d = document.createElement("div"); d.innerHTML = `<span>x${i}</span> <b id="x${i}">00000000</b>`; r.appendChild(d); } }
+// ---------- live block diagram ----------
+const BD = {};
+(function buildBd(){
+  const NS = "http://www.w3.org/2000/svg", svg = document.getElementById("bd");
+  const el = (n, a, p) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; };
+  const txt = (x, y, s, c, anc) => { const e = el("text", {x, y, class: c, "text-anchor": anc || "start"}); e.textContent = s; return e; };
+  const box = (id, x, y, w, h, title, sub, cls) => { BD[id] = el("rect", {x, y, width: w, height: h, rx: 4, class: "bx " + (cls || "")});
+    txt(x + w / 2, y + (sub ? h / 2 - 1 : h / 2 + 3), title, "bt", "middle"); if (sub) txt(x + w / 2, y + h / 2 + 10, sub, "bs", "middle"); };
+  // pad ring
+  [[0, 150, "ui_in[7:0]", "reg 0xF4 and PIO"], [160, 180, "uo_out[7:0]", "LED reg, PWM, PIO pins 0-7"], [350, 120, "uio[4], uio[5]", "PIO pins 8-9"], [480, 139, "uio[0:3,6,7]", "QSPI: flash, PSRAM, CS2"]]
+    .forEach(([x, w, a, b], i) => box("pad" + i, x, 0, w, 28, a, b));
+  el("rect", {x: 0, y: 36, width: 619, height: 230, rx: 5, class: "frame"});
+  txt(8, 50, "tt_um_agila32 (24 MHz, 6x4 tiles)", "bs");
+  box("cpu", 14, 62, 120, 58, "rv32i_core", "RV32I, 7 clocks / instruction");
+  box("rom", 14, 130, 120, 52, "Boot ROM", "0x00-0xAF, 176 B");
+  box("ram", 14, 192, 120, 66, "RAM + registers", "RAM B0-DF, regs F0-FD");
+  BD.bus = el("rect", {x: 152, y: 62, width: 14, height: 196, class: "busl"});
+  txt(159, 276, "8-bit bus", "bs", "middle");
+  box("qspi", 190, 62, 128, 58, "qspi_shared_engine", "flash B4-DF, PSRAM E0-EF");
+  box("tim", 190, 130, 128, 52, "Timer / PWM, PIN_MUX", "EBREAK halt flag");
+  // PIO block
+  el("rect", {x: 340, y: 56, width: 270, height: 202, rx: 5, class: "bx pio"});
+  txt(348, 70, "pio.v  (PIO block)", "bt");
+  box("sm0", 350, 82, 110, 48, "SM0", "", "");
+  box("sm1", 478, 82, 110, 48, "SM1", "", "");
+  BD.sm0t = txt(405, 118, "pc --", "bm", "middle"); BD.sm1t = txt(533, 118, "pc --", "bm", "middle");
+  box("imem", 350, 142, 238, 36, "Shared instruction memory", "32 words x 16 bit");
+  box("pins", 350, 190, 238, 62, "", ""); txt(469, 203, "Pins 0-9: PIN_OWN hand-over", "bt", "middle");
+  BD.pp = []; for (let i = 0; i < 10; i++) { const cx = 372 + i * 22.5; BD.pp.push(el("circle", {cx, cy: 224, r: 7, class: "pp"})); txt(cx, 245, String(i), "bs", "middle"); }
+  // wires
+  const wire = (id, d) => { BD[id] = el("path", {d, class: "wire"}); };
+  wire("wCpu", "M134 91 H152"); wire("wRom", "M134 156 H152"); wire("wRam", "M134 225 H152");
+  wire("wQ", "M166 91 H190"); wire("wT", "M166 156 H190");
+  wire("wPio", "M159 62 V44 H330 V106 H340"); txt(245, 42, "PIO_IDX 0xFF / PIO_DATA 0xFE", "bs", "middle");
+  BD.cpuT = txt(74, 112, "", "bm", "middle");
+  BD.padt0 = txt(75, 17, "", "bm", "middle"); BD.padt0.setAttribute("y", 40);
+  [0, 1, 2, 3].forEach(i => { const e = document.createElementNS(NS, "g"); });
+})();
+const OPN = {0x37:"lui",0x17:"auipc",0x6F:"jal",0x67:"jalr",0x63:"branch",0x03:"load",0x23:"store",0x13:"op-imm",0x33:"op",0x0F:"fence",0x73:"system"};
+const bdPrev = {sm0: -1, sm1: -1, own: 0};
+const bdOn = {};
+function bdSet(id, on){ const e = BD[id]; if (!e) return; if (bdOn[id] === on) return; bdOn[id] = on; e.classList.toggle("on", !!on); }
+function bdRegion(a){ return a < 0xB0 ? "rom" : a < 0xE0 ? "ram" : a < 0xF0 ? "qspi" : a < 0xFE ? "ram" : "pio"; }
+function drawBlock(){
+  if (!E) return;
+  const pc = E.sim_core_pc(), ir = E.sim_core_ir(), st = E.sim_core_state();
+  const op = ir & 0x7F, rs1 = (ir >>> 15) & 31;
+  const use = {cpu: true, rom: false, ram: false, qspi: false, pio: false};
+  use[bdRegion(pc)] = true;                                   // instruction fetch
+  let acc = "";
+  if (op === 0x03 || op === 0x23) {                           // load / store: effective address = rs1 + imm
+    const imm = op === 0x03 ? ((ir | 0) >> 20) : (((ir | 0) >> 25) << 5) | ((ir >>> 7) & 31);
+    const base = rs1 ? E.sim_core_reg(rs1) : 0; const a = (base + imm) & 0xFF;
+    use[bdRegion(a)] = true; acc = (op === 0x03 ? "ld " : "st ") + hex(a, 2);
+  }
+  const uioOut = E.sim_get_uio_out(), uioOe = E.sim_get_uio_oe();
+  const csLow = [0, 6, 7].some(b => ((uioOe >> b) & 1) && !((uioOut >> b) & 1));
+  bdSet("cpu", true); bdSet("rom", use.rom); bdSet("ram", use.ram); bdSet("qspi", use.qspi || csLow);
+  bdSet("wCpu", true); bdSet("wRom", use.rom); bdSet("wRam", use.ram); bdSet("wQ", use.qspi || csLow); bdSet("wT", false);
+  bdSet("wPio", use.pio); bdSet("bus", true);
+  BD.bus.classList.toggle("on", use.rom || use.ram || use.qspi || use.pio);
+  const p0 = E.sim_pio_pc(0), p1 = E.sim_pio_pc(1);
+  bdSet("sm0", p0 !== bdPrev.sm0); bdSet("sm1", p1 !== bdPrev.sm1); bdPrev.sm0 = p0; bdPrev.sm1 = p1;
+  BD.sm0t.textContent = "pc " + hex(p0, 2); BD.sm1t.textContent = "pc " + hex(p1, 2);
+  bdSet("imem", p0 !== 0 || p1 !== 0);
+  BD.cpuT.textContent = "pc " + hex(pc, 2) + "  " + (OPN[op] || "?") + (acc ? "  " + acc : "");
+  const uo = E.sim_get_uo(), ui = E.sim_get_ui();
+  const po = E.sim_pio_pin_out(), pd = E.sim_pio_pin_dir();
+  BD.pp.forEach((c, i) => { c.classList.toggle("on", !!((po >> i) & 1)); c.classList.toggle("drv", !!((pd >> i) & 1)); });
+  bdSet("pins", pd !== 0);
+  bdSet("pad0", ui !== 0); bdSet("pad1", uo !== 0); bdSet("pad2", ((pd >> 8) & 3) !== 0); bdSet("pad3", csLow);
+}
 function updateState(){
   $("rPc").textContent = hex(E.sim_core_pc(), 2); $("rSt").textContent = E.sim_core_state(); $("rIr").textContent = hex(E.sim_core_ir(), 8);
   for (let i = 1; i < 32; i++) $("x" + i).textContent = hex(E.sim_core_reg(i), 8);
@@ -532,6 +657,7 @@ addEventListener("resize", () => wv.dirty = true);
 function fillScenarios(){
   const s = $("scn"); SCENARIOS.forEach(x => { const o = document.createElement("option"); o.value = x.id; o.textContent = x.name; s.appendChild(o); });
   s.onchange = () => showDesc();
+  Object.keys(DATA.c).forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = DATA.c[k].title; $("cex").appendChild(o); });
   $("custom").oninput = () => { edits[$("scn").value] = $("custom").value; };
   showDesc();
 }
@@ -541,7 +667,20 @@ function showDesc(){
   $("scnDesc").textContent = x.desc; $("customBox").hidden = !x.custom;
   if (x.custom) { $("custom").value = edits[x.id] !== undefined ? edits[x.id] : (x.code || ""); }
   $("asmBox").hidden = !x.asm; $("asmBox").textContent = x.asm || "";
+  $("cBox").hidden = !x.cprog; if (x.cprog) showC();
 }
+function showC(){
+  const c = DATA.c[$("cex").value]; $("csrc").textContent = c.src;
+  $("casm").innerHTML = ""; c.asm.forEach(([a, tx]) => { const d = document.createElement("span"); d.className = "ln"; d.dataset.pc = a; d.textContent = hex(a, 2) + ":  " + tx; $("casm").appendChild(d); });
+  hiPc = -1;
+}
+let hiPc = -1;
+function hiliteC(){
+  if (!scn || !scn.cprog || $("cBox").hidden) return;
+  const pc = E.sim_core_pc(); if (pc === hiPc) return; hiPc = pc;
+  for (const d of $("casm").children) d.classList.toggle("on", +d.dataset.pc === pc);
+}
+$("cex").onchange = showC;
 $("go").onclick = () => { needCheck = true; startScenario($("scn").value); wv.win = 40000; };
 $("pause").onclick = () => { running = !running; $("pause").textContent = running ? "Pause" : "Resume"; };
 $("step").onclick = () => { if (!E) return; running = false; $("pause").textContent = "Resume"; advance(20000, performance.now() + 4000); pullTrace(); updateStatus(); updateState(); runChecks(); wv.dirty = true; };
@@ -556,7 +695,7 @@ async function boot(){
     const buf = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
     const {instance} = await WebAssembly.instantiate(buf, {wasi_snapshot_preview1: {fd_close: () => 0, fd_seek: () => 0, fd_write: () => 0}});
     E = instance.exports; E._initialize();
-    $("scn").value = "agila"; showDesc(); startScenario("agila");
+    $("scn").value = "pili"; $("speed").value = "4000"; showDesc(); startScenario("pili");
     lastT = performance.now(); requestAnimationFrame(frame);
   } catch (e) { $("stState").textContent = "failed"; $("errBox").textContent = "Could not start the simulator: " + e.message; }
 }
