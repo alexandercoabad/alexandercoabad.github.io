@@ -1,5 +1,7 @@
 # AgilA32 browser simulator
 
+Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5)
+
 The chip's Verilog (RV32I CPU and the two-state-machine PIO) compiled to WebAssembly and run in the browser:
 `docs/sim/index.html` is one self-contained page (WebAssembly embedded, no server needed). Open it from GitHub Pages or locally.
 
