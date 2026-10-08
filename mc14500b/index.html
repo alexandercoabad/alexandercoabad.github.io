@@ -1,0 +1,211 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MC14500B Simulator</title>
+<style>
+:root{--bg:#e9eeed;--surface:#f7faf9;--ink:#14201f;--muted:#5b6b69;--line:#c9d4d2;--accent:#0a7c76;--ac:#fff;--led:#e5484d;--off:#d6dddb;--hl:#d8ece9;--r:#e5484d;--y:#e8a317;--g:#1fa65a;--road:#9aa6a4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e1514;--surface:#151e1d;--ink:#e3ecea;--muted:#8fa19e;--line:#26332f;--accent:#3cc4b8;--ac:#06201d;--led:#ff6b70;--off:#26312f;--hl:#1c3330;--road:#33403e}}
+:root[data-theme=dark]{--bg:#0e1514;--surface:#151e1d;--ink:#e3ecea;--muted:#8fa19e;--line:#26332f;--accent:#3cc4b8;--ac:#06201d;--led:#ff6b70;--off:#26312f;--hl:#1c3330;--road:#33403e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;padding:18px 16px 32px}
+.wrap{max-width:1180px;margin:auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 18px}h1{font-size:22px;margin:0}header p{margin:2px 0 0;color:var(--muted);max-width:70ch}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,380px);gap:16px;align-items:start}@media(max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0}
+h2{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+select,textarea,button{font:inherit;color:inherit}select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+textarea{width:100%;height:190px;font:12px ui-monospace,Menlo,Consolas,monospace;resize:vertical}
+button{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 11px;cursor:pointer}button:hover{border-color:var(--accent)}
+button.p{background:var(--accent);color:var(--ac);border-color:var(--accent);font-weight:600}
+:is(button,select,textarea,input):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+[hidden]{display:none!important}.cap{font-size:12px;color:var(--muted);margin:6px 0 0}
+.leds{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;text-align:center}
+.led{width:100%;max-width:44px;aspect-ratio:1;margin:auto;border-radius:50%;background:var(--off);border:1px solid var(--line);position:relative}
+.led i{position:absolute;inset:0;border-radius:50%;background:var(--led);opacity:0;box-shadow:0 0 12px var(--led)}
+.leds small{font:10px ui-monospace,monospace;color:var(--muted)}
+#btn{width:100%;padding:14px;font-weight:700;letter-spacing:.06em;touch-action:none;user-select:none}
+#btn.on{background:var(--accent);color:var(--ac)}
+#list{max-height:300px;overflow:auto;font:12px ui-monospace,Menlo,Consolas,monospace;border:1px solid var(--line);border-radius:6px}
+#list div{display:grid;grid-template-columns:2.4em 2.4em 1fr;padding:0 8px}#list div.pc{background:var(--hl);font-weight:700}#list span:first-child,#list span:nth-child(2){color:var(--muted)}
+pre{margin:0;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;overflow-x:auto}
+#err{color:#c2312f;font-size:12px;min-height:1em;margin:4px 0 0}
+#killed .kl{width:16px;height:16px;border-radius:50%;background:var(--off);border:1px solid var(--line);position:relative;display:inline-block}#killed .kl i{position:absolute;inset:0;border-radius:50%;background:var(--y);box-shadow:0 0 10px var(--y)}
+svg{width:100%;height:auto;display:block}.lt{fill-opacity:.14;transition:fill-opacity .04s}
+</style></head><body><div class="wrap">
+<header><div><h1>MC14500B Simulator</h1><p>Cycle-accurate model of <code>tt_um_mc14500b_soc_extended</code> (1-bit ICU, 64-byte program RAM, free-running PC, edge detector, clock divider, output shift latch) with runnable examples.</p></div>
+<button id="theme" type="button">Theme</button></header>
+<div class="grid"><div class="stack">
+<section class="panel"><h2>Example</h2><div class="row"><select id="ex"></select><button class="p" id="go">Assemble &amp; run</button><button id="pause">Pause</button><button id="step">Step instr.</button><label>Chip clock <select id="hz"><option value="1000">1 kHz</option><option value="5000">5 kHz</option><option value="10000">10 kHz</option><option value="50000">50 kHz</option><option value="100000">100 kHz</option><option value="250000">250 kHz</option><option value="1000000">1 MHz</option><option value="5000000">5 MHz</option></select></label></div>
+<p class="cap" id="note"></p></section>
+<section class="panel"><h2>Board</h2><div class="leds" id="leds"></div><p class="cap">uo_out[7:0] (brightness = fraction of time high, like persistence of vision)</p>
+<div id="killed" class="row" hidden style="margin-top:8px"><span class="kl"><i id="led-k"></i></span><b>KILLED</b><span class="cap" style="margin:0">External monitor saw uo_out dark in the PC&ge;54 tail and stopped the chip clock.</span><button id="rst" class="p">Restart (reset + reload)</button></div>
+<div id="scene" hidden style="margin-top:10px"><svg viewBox="0 0 320 210" role="img" aria-label="Traffic intersection">
+<rect x="0" y="80" width="320" height="50" fill="var(--road)"/><rect x="135" y="0" width="50" height="210" fill="var(--road)"/>
+<g stroke="var(--surface)" stroke-width="2" stroke-dasharray="8 6"><line x1="0" y1="105" x2="135" y2="105"/><line x1="185" y1="105" x2="320" y2="105"/><line x1="160" y1="0" x2="160" y2="80"/><line x1="160" y1="130" x2="160" y2="210"/></g>
+<g id="tl"></g><text x="196" y="22" font-size="10" fill="var(--muted)">NS</text><text x="14" y="148" font-size="10" fill="var(--muted)">EW</text><text x="236" y="168" font-size="10" fill="var(--muted)">PED</text></svg></div>
+<div id="scene3" hidden style="margin-top:10px"><div style="max-width:150px;margin:auto"><svg viewBox="0 0 76 112" role="img" aria-label="Seven-segment display"><rect x="0" y="0" width="76" height="112" rx="6" fill="var(--bg)" stroke="var(--line)"/><g style="fill:var(--led)"><polygon class="lt" data-b="0" points="14,8 18,4 46,4 50,8 46,12 18,12"/><polygon class="lt" data-b="1" points="56,14 60,18 60,50 56,54 52,50 52,18"/><polygon class="lt" data-b="2" points="56,58 60,62 60,94 56,98 52,94 52,62"/><polygon class="lt" data-b="3" points="14,104 18,100 46,100 50,104 46,108 18,108"/><polygon class="lt" data-b="4" points="8,58 12,62 12,94 8,98 4,94 4,62"/><polygon class="lt" data-b="5" points="8,14 12,18 12,50 8,54 4,50 4,18"/><polygon class="lt" data-b="6" points="14,56 18,52 46,52 50,56 46,60 18,60"/><circle class="lt" data-b="7" cx="69" cy="104" r="4"/></g></svg></div><p class="cap" id="segTxt" style="text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace"></p></div>
+<div id="scene2" hidden style="margin-top:10px"><svg viewBox="0 0 320 210" role="img" aria-label="Elevator shaft with three floors"><rect x="36" y="6" width="84" height="198" fill="var(--road)"/><g stroke="var(--surface)" stroke-width="2" stroke-dasharray="8 6"><line x1="36" y1="72" x2="120" y2="72"/><line x1="36" y1="138" x2="120" y2="138"/></g><g font-size="12" fill="var(--muted)"><text x="14" y="44">3</text><text x="14" y="110">2</text><text x="14" y="176">1</text></g><rect class="lt" data-b="2" x="44" y="12" width="68" height="54" rx="4" style="fill:var(--y)"/><rect class="dr" data-b="2" data-a="5" x="50" y="20" width="28" height="42" style="fill:var(--surface)"/><rect class="dr" data-b="2" data-a="5" x="78" y="20" width="28" height="42" style="fill:var(--surface)"/><rect class="dr" data-b="2" data-a="6" x="50" y="20" width="7" height="42" style="fill:var(--surface)"/><rect class="dr" data-b="2" data-a="6" x="99" y="20" width="7" height="42" style="fill:var(--surface)"/><rect class="lt" data-b="1" x="44" y="78" width="68" height="54" rx="4" style="fill:var(--y)"/><rect class="dr" data-b="1" data-a="5" x="50" y="86" width="28" height="42" style="fill:var(--surface)"/><rect class="dr" data-b="1" data-a="5" x="78" y="86" width="28" height="42" style="fill:var(--surface)"/><rect class="dr" data-b="1" data-a="6" x="50" y="86" width="7" height="42" style="fill:var(--surface)"/><rect class="dr" data-b="1" data-a="6" x="99" y="86" width="7" height="42" style="fill:var(--surface)"/><rect class="lt" data-b="0" x="44" y="144" width="68" height="54" rx="4" style="fill:var(--y)"/><rect class="dr" data-b="0" data-a="5" x="50" y="152" width="28" height="42" style="fill:var(--surface)"/><rect class="dr" data-b="0" data-a="5" x="78" y="152" width="28" height="42" style="fill:var(--surface)"/><rect class="dr" data-b="0" data-a="6" x="50" y="152" width="7" height="42" style="fill:var(--surface)"/><rect class="dr" data-b="0" data-a="6" x="99" y="152" width="7" height="42" style="fill:var(--surface)"/><polygon class="lt" data-b="3" points="170,22 186,46 154,46" style="fill:var(--g)"/><polygon class="lt" data-b="4" points="154,62 186,62 170,86" style="fill:var(--g)"/><circle class="lt" data-b="6" cx="170" cy="118" r="8" style="fill:var(--g)"/><circle class="lt" data-b="7" cx="170" cy="154" r="8" style="fill:var(--r)"/><g font-size="10" fill="var(--muted)"><text x="200" y="38">UP</text><text x="200" y="78">DOWN</text><text x="200" y="122">DOORS OPEN</text><text x="200" y="158">E-STOP</text></g></svg></div>
+<div class="row" style="margin-top:12px"><div style="flex:1;min-width:140px"><button id="btn">BTN · ui_in[0] (hold / Space)</button></div>
+<label><input type="checkbox" data-b="5"> ui_in[5]</label><label><input type="checkbox" data-b="6"> ui_in[6]</label><label><input type="checkbox" data-b="7"> ui_in[7]</label></div>
+<p class="cap">ui_in[0] feeds the rising-edge detector (address 8). ui_in[7:5] are read at addresses D/E/F, one clock late. ui_in[4:1] are not connected to the core.</p></section>
+<section class="panel"><h2>Program source (assembler)</h2><textarea id="src" spellcheck="false"></textarea><p id="err"></p>
+<p class="cap">Mnemonics: NOP LD LDC AND ANDC OR ORC XNOR STO STOC IEN OEN JMP SKZ NOPE NOPF. Operands: 0–15 or R0–R7, EDGE(8), SLOW(9), ZERO(A), OUT(C), IN5/IN6/IN7(D/E/F). Padded with NOP to 64 bytes. <code>rst_n</code> also clears program RAM, so Assemble &amp; run does reset → program mode writes → run.</p></section>
+</div><div class="stack">
+<section class="panel"><h2>State</h2><pre id="regs"></pre></section>
+<section class="panel"><h2>Program RAM (PC highlighted)</h2><div id="list"></div></section></div></div>
+<footer style="text-align:center;font-size:12px;color:var(--muted);margin-top:4px">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5)</footer></div>
+<script>
+/*CORE*/
+const S={};
+function reset(){Object.assign(S,{mem:new Uint8Array(64),ram:new Uint8Array(8),ul:0,pc:0,done:0,skip:0,rr:0,oen:1,ien:1,u0:0,edge:0,cnt:0,slow:0,out:0,ui:S.ui||0,wr:0,cyc:0})}
+function clk(prog,pa,pd){const s=S,op=s.mem[s.pc]>>4,a=s.mem[s.pc]&15;let d=0;
+ if(a<8)d=s.ram[a];else if(a==8)d=s.edge;else if(a==9)d=s.slow;else if(a==12)d=s.out&1;else if(a>12)d=(s.ul>>(a-13))&1;
+ const ad=d&s.ien,wen=(!prog&&!s.skip&&s.oen&&(op==8||op==9))?1:0,ewd=op==9?1-s.rr:s.rr;s.wr=wen;
+ let ne=s.edge,nsl=s.slow,no=s.out,nrr=s.rr,nien=s.ien,noen=s.oen,nsk=s.skip,npc=s.pc,nd=s.done,nul=s.ul;
+ if((s.ui&1)&&!s.u0)ne=1;else if(!s.done&&wen&&a==8&&ewd)ne=0;
+ if(!s.done&&wen&&a==9)nsl=ewd;
+ if(!s.done&&wen&&a==12)no=((s.out<<1)|ewd)&255;
+ const step=s.slow?s.cnt==0:1;
+ if(prog){npc=0;nd=0;s.mem[pa]=pd}else{
+  if(!s.done){if(s.skip)nsk=0;else switch(op){case 1:nrr=ad;break;case 2:nrr=1-ad;break;case 3:nrr=s.rr&ad;break;case 4:nrr=s.rr&(1-ad);break;
+   case 5:nrr=s.rr|ad;break;case 6:nrr=s.rr|(1-ad);break;case 7:nrr=1-(s.rr^ad);break;case 10:nien=ad;break;case 11:noen=ad;break;case 13:nsk=1-s.rr;break}
+   if(wen&&a<8)s.ram[a]=ewd;nd=1}
+  if(step){npc=(s.pc+1)&63;nul=(s.ui>>5)&7;nd=0}}
+ s.edge=ne;s.slow=nsl;s.out=no;s.rr=nrr;s.ien=nien;s.oen=noen;s.skip=nsk;s.pc=npc;s.done=nd;s.ul=nul;s.u0=s.ui&1;s.cnt=(s.cnt+1)&4095;s.cyc++}
+function loadProg(p){reset();for(let i=0;i<64;i++)clk(1,i,p[i]);S.cyc=0}
+const M=['NOP','LD','LDC','AND','ANDC','OR','ORC','XNOR','STO','STOC','IEN','OEN','JMP','SKZ','NOPE','NOPF'];
+const SYM={ZERO:10,EDGE:8,SLOW:9,OUT:12,IN5:13,IN6:14,IN7:15};for(let i=0;i<8;i++)SYM['R'+i]=i;
+function asm(t){const o=[];for(let ln of t.split('\n')){ln=ln.split(';')[0].trim();if(!ln)continue;const p=ln.split(/[\s,]+/),op=M.indexOf(p[0].toUpperCase());
+ if(op<0)throw 'Unknown mnemonic in "'+ln+'"';let a=0;if(p[1]!==undefined){const k=p[1].toUpperCase();a=k in SYM?SYM[k]:Number(k);if(!(a>=0&&a<16))throw 'Bad operand in "'+ln+'"'}o.push(op<<4|a)}
+ if(o.length>64)throw 'Program is '+o.length+' words; limit is 64';while(o.length<64)o.push(0);return o}
+/*EXAMPLES*/
+const wrap=b=>['LD ZERO','STO SLOW',...b,'LDC ZERO','STO SLOW'];
+const emit=f=>{const b=[];for(let i=7;i>=0;i--)b.push(...f(i),'STO OUT');return b};
+function killBit(){const b=['LD EDGE','XNOR R0','STOC R0','LD EDGE','STO EDGE','LD R7','STO OUT'];
+ for(let i=6;i>=0;i--)b.push('LD R'+i,'STO R'+(i+1));b.push('LD OUT','STO R0');
+ for(let i=7;i>=0;i--)b.push('LD R'+i,'STO OUT');
+ b.push('LDC R0');for(let i=1;i<8;i++)b.push('ANDC R'+i);b.push('SKZ','STO R6');return wrap(b)}
+function traffic(){let j=[0,0,0,0,0,0];const St=[];for(let s=0;s<12;s++){St.push(j.slice());j=[1-j[5],j[0],j[1],j[2],j[3],j[4]]}
+ const L=[];for(let i=0;i<6;i++)for(const n of[0,1])L.push({i,n,m:St.map(x=>x[i]^n)});
+ const dec=set=>{for(const p of L)for(const q of L)if(St.every((_,s)=>(p.m[s]&q.m[s])==(set.includes(s)?1:0)))return[(p.n?'LDC R':'LD R')+p.i,(q.n?'ANDC R':'AND R')+q.i];throw 'nodec'};
+ const rg=(a,b)=>{const r=[];for(let s=a;s<=b;s++)r.push(s);return r};
+ const b=['LD R5','STOC OUT'];for(let i=4;i>=0;i--)b.push('LD R'+i,'STO R'+(i+1));b.push('LD OUT','STO R0');
+ b.push('LD EDGE','OR R6','STO R6','LD EDGE','STO EDGE',...dec([6]),'SKZ','STOC R6');
+ b.push(...dec([5]),'AND R6','ANDC IN7','STO OUT','LD R6','ANDC OUT','STO OUT');
+ for(const [s,inv] of [[rg(6,10),1],[[10],0],[rg(6,9),0],[rg(0,4),1],[[4],0],[rg(0,3),0]])b.push(...dec(s),'ANDC IN7',inv?'STOC OUT':'STO OUT');
+ return wrap(b)}
+const gates=()=>wrap([...[['LD IN5','XNOR IN6','STO OUT'],['LDC IN5','ANDC IN6','STO OUT'],['LD IN5','AND IN6','STOC OUT'],['LD IN5','ANDC IN6','STO OUT'],['LDC IN5','STO OUT'],['LD IN5','XNOR IN6','STOC OUT'],['LD IN5','OR IN6','STO OUT'],['LD IN5','AND IN6','STO OUT']].flat()]);
+const blink=()=>wrap(['LDC R0','STO R0',...emit(i=>[i&1?'LD R0':'LDC R0'])]);
+const toggle=()=>wrap(['LD EDGE','XNOR R0','STOC R0','LD EDGE','STO EDGE','LD R0',...Array(8).fill('STO OUT')]);
+// 3-floor elevator: 64 words, no jumps. R0/R1 = cab thermometer (>=2, =3), R2/R3 = target thermometer,
+// R4 = UP, R5 = DOWN, R6 = E-STOP, R7 = "started" (set at the end of frame 1).
+function elevator(){
+ const b=['LD EDGE','STO EDGE','AND R7','XNOR R6','STOC R6',          // BTN toggles E-STOP; ignored in frame 1 (R7=0) so the stale edge flag is just cleared
+  'LD R3','ANDC IN5','ANDC IN6','OR IN7','STO R3',                    // target >= 3  (set by IN7, cleared by a lower floor)
+  'LD R2','ANDC IN5','OR IN6','OR IN7','STO R2',                      // target >= 2
+  'LD R3','ANDC R1','STO R4','LD R2','ANDC R0','OR R4','ANDC R6','STO R4',   // UP   = target above cab (unless E-STOP)
+  'LD R1','ANDC R3','STO R5','LD R0','ANDC R2','OR R5','ANDC R6','STO R5',   // DOWN = target below cab (unless E-STOP)
+  'LD R6','STO OUT',                                                  // uo7 E-STOP
+  'OR R4','OR R5','STOC OUT','STO OUT',                               // uo6 DOORS OPEN, uo5 BUSY
+  'LD R5','STO OUT','LD R4','STO OUT',                                // uo4 DOWN, uo3 UP
+  'LD R1','STO OUT','LD R0','ANDC R1','STO OUT','LDC R0','STO OUT',   // uo2..uo0 floor 3, 2, 1
+  'LDC ZERO','STO SLOW','STO R7',                                     // slow clock = the tick; R7 = started
+  'OEN R4','LD R0','STO R1','LDC ZERO','STO R0',                      // if UP:   cab one floor up
+  'OEN R5','LD R1','STO R0','LD ZERO','STO R1',                       // if DOWN: cab one floor down
+  'OEN SLOW'];                                                        // SLOW is 1 here: re-enable stores
+ return ['LD ZERO','STO SLOW',...b]}
+// 7-segment displays on a Johnson counter. pats[p] = 7-bit pattern (bit0..6 = segments a..g) shown at counter position p.
+// The counter is k = pats.length/2 bits R0..R(k-1) (a Johnson counter has 2k states). Each segment is a boolean function of the
+// counter bits; an exhaustive breadth-first search over truth tables finds the SHORTEST chain of LD/AND/OR/XNOR... instructions
+// for it (same idea as the decoder search in traffic()). One frame = draw, park on the slow clock, advance the counter.
+function johnsonDisplay(pats,nops,dpFromLatch){
+ const n=pats.length,k=n/2,F=(1<<n)-1,st=[];let j=new Array(k).fill(0);
+ for(let p=0;p<n;p++){st.push(j.slice());j=[1-j[k-1],...j.slice(0,k-1)]}
+ const lit=[];for(let i=0;i<k;i++)lit.push(['R'+i,st.reduce((a,x,p)=>a|x[i]<<p,0)]);lit.push(['ZERO',0]);
+ const par=new Int32Array(F+1).fill(-1),ins=new Array(F+1),q=[];
+ const seed=(v,t)=>{if(par[v]==-1){par[v]=-2;ins[v]=t;q.push(v)}};
+ for(const [nm,l] of lit){seed(l,'LD '+nm);seed(~l&F,'LDC '+nm)}
+ for(let h=0;h<q.length;h++){const t=q[h];for(const [nm,l] of lit)
+  for(const [op,v] of [['AND',t&l],['ANDC',t&~l&F],['OR',t|l],['ORC',(t|~l)&F],['XNOR',~(t^l)&F]])if(par[v]==-1){par[v]=t;ins[v]=op+' '+nm;q.push(v)}}
+ const chain=f=>{const c=[];for(let v=f;v!=-2;v=par[v]){c.unshift(ins[v]);if(par[v]==-2)break}return c};
+ const b=[];
+ for(let s=dpFromLatch?6:7;s>=0;s--){let f=0;for(let p=0;p<n;p++)f|=((pats[p]>>s)&1)<<p;b.push(...chain(f),'STO OUT')}
+ b.push('LDC ZERO','STO SLOW',...Array(nops).fill('NOP'),'STOC SLOW');   // park on the slow clock (display is stable), then back to full speed
+ b.push('LD R'+(k-1),'STOC OUT');for(let i=k-2;i>=0;i--)b.push('LD R'+i,'STO R'+(i+1));b.push('LD OUT','STO R0');   // advance: R0 <= NOT R(k-1); OUT bit is the temp
+ return b}
+// 5-bit feedback shift register display (used by the 7-segment text example).
+// State R0..R4 shifts up every frame; the new R0 is f = (R0 OR NOT R2) XOR R4, which makes a 16-state cycle from the all-zero reset state.
+// Each output bit (dp, g..a) is a boolean function of the 16 states; a breadth-first search over truth tables finds the shortest LD/AND/OR/XNOR chain,
+// and may start from the value already in RR (the previous segment) instead of reloading.
+function fsrDisplay(pats,nops){
+ const n=pats.length,F=(1<<n)-1,K=5,st=[];let s=new Array(K).fill(0);
+ for(let p=0;p<n;p++){st.push(s);s=[(s[0]|1-s[2])^s[4],...s.slice(0,K-1)]}
+ const lit=[];for(let i=0;i<K;i++)lit.push(['R'+i,st.reduce((a,x,p)=>a|x[i]<<p,0)]);lit.push(['ZERO',0]);
+ const run=seeds=>{const par=new Int32Array(F+1).fill(-1),ins=new Array(F+1),q=[];
+  for(const [v,t] of seeds)if(par[v]==-1){par[v]=-2;ins[v]=t;q.push(v)}
+  for(let h=0;h<q.length;h++){const t=q[h];for(const [nm,l] of lit)
+   for(const [op,v] of [['AND',t&l],['ANDC',t&~l&F],['OR',t|l],['ORC',(t|~l)&F],['XNOR',~(t^l)&F]])if(par[v]==-1){par[v]=t;ins[v]=op+' '+nm;q.push(v)}}
+  return f=>{if(par[f]==-1)return null;const c=[];for(let v=f;;v=par[v]){if(par[v]==-2){if(ins[v])c.unshift(ins[v]);break}c.unshift(ins[v])}return c}};
+ const loads=[];for(const [nm,l] of lit){loads.push([l,'LD '+nm]);loads.push([~l&F,'LDC '+nm])}
+ const fromLoad=run(loads),b=[];let prev=lit[0][1];   // RR at the start of a frame = R0 (the bit the advance step loaded last)
+ for(let s=7;s>=0;s--){let f=0;for(let p=0;p<n;p++)f|=((pats[p]>>s)&1)<<p;
+  let c=fromLoad(f);const r=run([[prev,'']])(f);if(r&&(!c||r.length<c.length))c=r;
+  if(!c)throw 'no chain for output bit '+s;b.push(...c,'STO OUT');prev=f}
+ b.push('LDC ZERO','STO SLOW',...Array(nops).fill('NOP'),'STOC SLOW');
+ b.push('LD R0','ORC R2','XNOR R4','STOC OUT');                      // f -> output latch bit 0 (used as the temporary; the next 8 shifts push it out)
+ for(let i=K-2;i>=0;i--)b.push('LD R'+i,'STO R'+(i+1));b.push('LD OUT','STO R0');
+ return b}
+const FONT={P:0x73,I:0x30,L:0x38,N:0x37,A:0x77,S:0x6D,E:0x79};
+const DIGITS=[0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7D,0x07,0x7F,0x6F];
+const sevenSeg=()=>fsrDisplay([...'PILIPINASLASALLE'].map((c,i)=>FONT[c]|(i&1?0x80:0)),1);   // decimal point (bit 7) on every second letter
+const counter09=()=>johnsonDisplay(DIGITS,2,false);
+const EX={
+ kill:{n:'Kill the Bit (Altair classic)',f:killBit,hz:250000,t:'A bit orbits the 8 LEDs. Press BTN just as it reaches LED0 to kill it. Press at the wrong moment and BTN XORs a new bit into LED0. When you kill the bit, all LEDs go dark for a step. Like the real board, the chip cannot halt itself: an external monitor (the RP2040) watches only uo_out and the PC, and stops the chip clock after 3 dark polls in the slow tail. The KILLED light comes on; Restart resets and reloads the program. Rotation uses the output latch bit as a temporary because all 8 scratch bits hold the pattern.'},
+ traffic:{n:'Traffic light (2-way + pedestrian)',f:traffic,hz:50000,t:'6-bit Johnson counter in R0–R5 gives 12 ticks: NS green 4, yellow 1, all-red 1, then EW likewise. BTN requests a pedestrian crossing (R6 latches the edge flag); WALK lights in the all-red tick after NS. Tick ui_in[7] for emergency all-red.'},
+ elevator:{n:'Elevator (3 floors, E-stop)',f:elevator,hz:100000,t:'Three-floor elevator that uses all 64 words. Tick ui_in[5], [6], [7] to call floor 1, 2, 3: the target is latched, so the car keeps going after you untick (while a switch stays ticked it keeps asking for its floor, and if several are ticked the highest wins). The car moves one floor per tick, and the doors are open whenever it is parked. BTN toggles E-STOP: the car freezes with its doors shut. Registers: cab and target are 2-bit thermometer codes (R0/R1 and R2/R3), R4 UP, R5 DOWN, R6 E-STOP, R7 marks that frame 1 is done, so the stale edge flag that programming leaves behind (the real RTL does set it) is cleared and ignored. Pins: uo7 E-STOP, uo6 doors open, uo5 busy, uo4 down, uo3 up, uo2..uo0 floor 3..1. The lamps show the cab at the start of each tick, one tick before it moves.'},
+ gates:{n:'Boolean gates on switches',f:gates,hz:100000,t:'Tick ui_in[5] (A) and ui_in[6] (B). uo0 AND, uo1 OR, uo2 XOR, uo3 NOT A, uo4 A·¬B, uo5 NAND, uo6 NOR, uo7 XNOR.'},
+ toggle:{n:'Button toggle (edge detector)',f:toggle,hz:100000,t:'Each BTN press flips all LEDs: XOR with the sticky edge flag at address 8, which the program clears by storing 1 back.'},
+ seg7:{n:'7-segment display: PILIPINASLASALLE in a loop',f:sevenSeg,hz:5000,t:'Spells P I L I P I N A S L A S A L L E, one letter per frame, on a 7-segment display (uo0..uo6 = segments a..g, uo7 = decimal point, a 1 lights a segment). The decimal point blinks alternately: it is off for P, on for the I, off for L, on for the next I, and so on, flipping every letter. Sixteen letters need sixteen states, so R0..R4 form a 5-bit feedback shift register: each frame everything moves up one place and the new R0 is (R0 OR NOT R2) XOR R4, which walks through exactly 16 states before repeating. Each of the 8 output bits (decimal point and segments g..a) is a boolean function of those 5 bits, and the assembler below was generated by an exhaustive search for the shortest instruction chain per output; a chain may also continue from the value already in RR, which is how the whole program fits in 62 of 64 words. The program parks on the slow clock after drawing (one 4096-clock wait: about 0.8 s per letter at 5 kHz, 0.4 s at 10 kHz, 4 s at 1 kHz), so the letter stays steady; the 8-bit latch is rewritten in a few clocks each frame. Letters use the usual 7-segment shapes (N is the arch shape).'},
+ count:{n:'7-segment 0-9 counter',f:counter09,hz:10000,t:'Counts 0 1 2 ... 9 and wraps to 0 on a 7-segment display (uo0..uo6 = segments a..g, uo7 = decimal point, off). R0..R4 are a 5-bit Johnson counter, which has exactly 10 states, one per digit, and no carry logic is needed: each frame it advances one step (R0 <= NOT R4, the rest shift up; the output-latch bit is the temporary). Each segment is a boolean function of the 5 counter bits; the assembler below was generated by an exhaustive search for the shortest chain. Then the program parks on the slow clock twice (2 x 4096 clocks, about 0.8 s at 10 kHz) so each digit is held steady.'},
+ blink:{n:'Blink (clock divider)',f:blink,hz:100000,t:'Alternating LED pattern flips once per frame. STO 1 to SLOW parks each instruction for 4096 clocks, giving a visible delay; the fast section runs at one instruction per clock.'}};
+/*UI*/
+const $=id=>document.getElementById(id);let running=true,hz=250000,acc=0,last=0,duty=new Array(8).fill(0),rows=[],lastpc=-1;
+for(const k in EX)$('ex').add(new Option(EX[k].n,k));
+const leds=$('leds');for(let i=7;i>=0;i--)leds.insertAdjacentHTML('beforeend','<div><div class="led"><i id="l'+i+'"></i></div><small>uo'+i+'</small></div>');
+const T=[[2,'r',40,'NS'],[1,'y',40],[0,'g',40]];const tl=$('tl');let h='';
+[[2,'--r',208,12],[1,'--y',208,32],[0,'--g',208,52],[5,'--r',20,150],[4,'--y',42,150],[3,'--g',64,150],[6,'--y',236,176],[7,'--g',262,176]].forEach(([b,c,x,y])=>h+='<circle class="lt" data-b="'+b+'" cx="'+(x+8)+'" cy="'+(y+8)+'" r="8" style="fill:var('+c+')"/>');tl.innerHTML=h;
+function buildList(){const L=$('list');L.innerHTML='';rows=[];prog.forEach((v,i)=>{const d=document.createElement('div'),a=v&15,nm=Object.keys(SYM).find(k=>SYM[k]==a&&k[0]!='R'&&k!='ZERO'||0);d.innerHTML='<span>'+i.toString(16).padStart(2,'0')+'</span><span>'+v.toString(16).padStart(2,'0')+'</span><span>'+M[v>>4]+' 0x'+a.toString(16).toUpperCase()+'</span>';L.append(d);rows.push(d)});lastpc=-1}
+let prog=[],mon={armed:false,dark:0};
+/* External monitor, same rule as the RP2040 firmware (kill_monitor.py): it sees only the pins uo_out and PC (uio[5:0]).
+   Poll every 500 clocks; ignore dark LEDs unless PC>=54 (slow tail, LEDs stable); arm after any LED has been lit; 3 dark polls = killed. */
+const MON_POLL=500,MON_TAIL=54,MON_NEED=3;
+function monPoll(){if(S.out){mon.armed=true;mon.dark=0;return false}if(mon.armed&&S.pc>=MON_TAIL){return ++mon.dark>=MON_NEED}mon.dark=0;return false}
+function setKilled(k){$('killed').hidden=!k;$('led-k').style.opacity=k?1:0}
+function load(){try{prog=asm($('src').value)}catch(e){$('err').textContent=e;return}$('err').textContent='';mon.armed=false;mon.dark=0;setKilled(false);$('note').textContent=EX[$('ex').value].t;loadProg(prog);buildList();acc=0}
+function pick(){const e=EX[$('ex').value];$('src').value=e.f().join('\n');$('note').textContent=e.t;$('hz').value=e.hz;hz=e.hz;$('scene').hidden=$('ex').value!='traffic';$('scene2').hidden=$('ex').value!='elevator';$('scene3').hidden=!['seg7','count'].includes($('ex').value);load()}
+$('ex').onchange=pick;$('go').onclick=()=>{running=true;$('pause').textContent='Pause';load()};
+$('hz').onchange=()=>hz=+$('hz').value;
+$('rst').onclick=()=>{running=true;$('pause').textContent='Pause';load()};
+$('pause').onclick=()=>{if(!running){mon.armed=false;mon.dark=0;setKilled(false)}running=!running;$('pause').textContent=running?'Pause':'Resume'};
+$('step').onclick=()=>{running=false;$('pause').textContent='Resume';const p=S.pc;for(let i=0;i<5000&&S.pc==p;i++)clk(0)};
+const press=v=>{S.ui=v?S.ui|1:S.ui&~1;$('btn').classList.toggle('on',v)};
+$('btn').onpointerdown=e=>{e.preventDefault();press(1)};['pointerup','pointerleave','pointercancel'].forEach(t=>$('btn')['on'+t]=()=>press(0));
+addEventListener('keydown',e=>{if(e.code=='Space'&&e.target.tagName!='TEXTAREA'&&e.target.tagName!='BUTTON'){e.preventDefault();press(1)}});
+addEventListener('keyup',e=>{if(e.code=='Space')press(0)});
+document.querySelectorAll('input[data-b]').forEach(c=>c.onchange=()=>{const b=+c.dataset.b;S.ui=c.checked?S.ui|1<<b:S.ui&~(1<<b)});
+$('theme').onclick=()=>{const r=document.documentElement,d=r.dataset.theme=='dark'||(!r.dataset.theme&&matchMedia('(prefers-color-scheme:dark)').matches);r.dataset.theme=d?'light':'dark'};
+const CHLET=Object.fromEntries(Object.entries(FONT).map(([c,v])=>[v,c])),CHDIG=Object.fromEntries(DIGITS.map((v,i)=>[v,''+i]));
+const hx=(v,n)=>v.toString(16).toUpperCase().padStart(n,'0');
+function frame(t){const dt=Math.min((t-last)/1000,.05);last=t;
+ if(running){acc+=hz*dt;let n=Math.min(acc|0,600000);acc=n==600000?0:acc-n;if(n>0){const c=new Array(8).fill(0),ks=$('ex').value=='kill';let m=0,dead=false;for(let k=0;k<n;k++){clk(0);m++;const o=S.out;for(let b=0;b<8;b++)c[b]+=(o>>b)&1;if(ks&&S.cyc%MON_POLL==0&&monPoll()){dead=true;break}}
+  duty=c.map(x=>x/m);if(dead){running=false;$('pause').textContent='Resume';setKilled(true)}}}
+ else duty=[0,1,2,3,4,5,6,7].map(b=>(S.out>>b)&1);
+ for(let b=0;b<8;b++)$('l'+b).style.opacity=duty[b];
+ if(!$('scene3').hidden){const v=duty.reduce((a,d,i)=>a|(d>.5?1<<i:0),0);$('segTxt').textContent='uo_out = 0x'+hx(v,2)+'   '+((($('ex').value=='count'?CHDIG:CHLET)[v&0x7F]||'')+(v&0x80?'  (dp on)':''))}
+ document.querySelectorAll('.lt').forEach(e=>e.style.fillOpacity=.14+.86*duty[+e.dataset.b]);
+ document.querySelectorAll('.dr').forEach(e=>e.style.fillOpacity=duty[+e.dataset.b]*duty[+e.dataset.a]);
+ if(S.pc!=lastpc){if(rows[lastpc])rows[lastpc].classList.remove('pc');const r=rows[S.pc];if(r){r.classList.add('pc');const L=$('list');if(r.offsetTop<L.scrollTop||r.offsetTop>L.scrollTop+L.clientHeight-20)L.scrollTop=r.offsetTop-40}lastpc=S.pc}
+ $('regs').textContent='PC  '+hx(S.pc,2)+'   instr '+hx(S.mem[S.pc],2)+'\nRR  '+S.rr+'   IEN '+S.ien+'  OEN '+S.oen+'  skip '+S.skip+'\nR7..R0  '+[...S.ram].reverse().join('')+'\nuo_out  '+S.out.toString(2).padStart(8,'0')+'\nedge '+S.edge+'  slow '+S.slow+'  div '+hx(S.cnt,3)+'\nui_in   '+S.ui.toString(2).padStart(8,'0')+'  taps[F:D] '+S.ul.toString(2).padStart(3,'0')+'\nwrite pulse '+S.wr+'\nclocks '+S.cyc.toLocaleString();
+ requestAnimationFrame(frame)}
+reset();pick();requestAnimationFrame(t=>{last=t;frame(t)});
+</script></body></html>
