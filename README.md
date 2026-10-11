@@ -12,8 +12,8 @@ Personal site with browser simulators for my chip projects. Each simulator is on
 
 ## AgilA32 browser simulator
 
-The chip's Verilog (RV32I CPU and the two-state-machine PIO) compiled to WebAssembly and run in the browser:
-`agila32/index.html` (also kept at `docs/sim/index.html` and `sim/index.html`) is one self-contained page with the WebAssembly embedded.
+The chip's Verilog (RV32I CPU and the two-state-machine PIO) compiled to WebAssembly and runs in the browser:
+`agila32/index.html` (also available at `docs/sim/index.html` and `sim/index.html`) is a self-contained page with WebAssembly embedded.
 
 Scenarios: a 7-segment display looping "AGILA32" (the default, source in `agila_7seg.S`), boot ROM demo, boot ROM without a QSPI Pmod, the PIO signature test, the PIO smoke test, and your own program over the GPIO bootloader.
 
@@ -24,7 +24,7 @@ Rebuild: `tools/build_wasm_sim.sh` (yosys CXXRTL, then `zig c++` to wasm32-wasi)
 
 ## MC14500B browser simulator
 
-`mc14500b/index.html` is a hand-written JavaScript model of `tt_um_mc14500b_soc_extended` (the 1-bit MC14500B-style SoC): 16-opcode ISA, 64-byte program RAM, free-running 6-bit PC, 8 scratch bits, edge detector (address 8), clock divider (address 9), 8-bit output shift latch (address C) and the input taps (D/E/F). It follows `docs/ISA.md` of the MC14500B_IHP repository, including its single-execution-per-instruction timing under the clock divider. There is no WebAssembly step: the page is plain HTML and JavaScript with no build.
+`mc14500b/index.html` is a hand-written JavaScript model of `tt_um_mc14500b_soc_extended` (the 1-bit MC14500B-style SoC): 16-opcode ISA, 64-byte program RAM, free-running 6-bit PC, 8 scratch bits, edge detector (address 8), clock divider (address 9), 8-bit output shift latch (address C), and the input taps (D/E/F). It follows `docs/ISA.md` of the MC14500B_IHP repository, including its single-execution-per-instruction timing under the clock divider. There is no WebAssembly step: the page is plain HTML and JavaScript with no build.
 
 Examples (each one has an editable assembler listing, a chip clock menu and a program RAM view with the PC highlighted):
 
