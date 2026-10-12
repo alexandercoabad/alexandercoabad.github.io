@@ -5,6 +5,7 @@ w=open(S+'sim/agila.wasm','rb').read(); b64=base64.b64encode(gzip.compress(w,9))
 rd=lambda f:" ".join(open(R+f).read().split())
 data={"sig":rd('pio_gl_sig_flash_image.hex'),"smoke":rd('pio_gl_smoke_flash_image.hex'),"stub":[int(x,16) for x in open(R+'flash_handoff_stub.hex').read().split()],"led":open(S+'sim/led_counter.hex').read().strip(),
       "agila":open('agila_7seg.hex').read().strip(),"agilaAsm":open('agila_7seg.S').read().split("\n",2)[2].strip(),
+      "pa":open('pilipinas_agila.hex').read().strip(),"paAsm":"\n".join(l for l in open('pilipinas_agila.S').read().split("\n") if not l.strip().startswith((".section",".globl"))).strip(),
       "pili":open('pilipinas.hex').read().strip(),"piliAsm":"\n".join(l for l in open('pilipinas.S').read().split("\n") if not l.strip().startswith((".section",".globl"))).strip()}
 import re
 C={}

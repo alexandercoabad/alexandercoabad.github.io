@@ -364,6 +364,16 @@ const SCENARIOS = [
     let m = 0; if (s >= 0) while (s + m < all.length && all[s + m] === P[m % 7]) m++;
     return [{ok:m >= 7, wait:m < 7, t:`Display shows A G I L A 3 2 in order (${Math.min(m, 7)} of 7 characters)`},
             {ok:m >= 14, wait:m < 14, t:`Sequence repeats from the start (${Math.floor(m / 7)} full passes so far)`}]; }},
+ {id:"pa", name:"7-segment display: PILIPINAS AGILA32",
+  desc:"A 7-instruction RV32I program plus a 16-byte pattern table: exactly 44 bytes, the whole program RAM, sent over the GPIO bootloader. The display spells PILIPINAS AGILA32 (16 characters). A free-running counter in a register picks the character, so there is no delay loop and no end marker. The decimal point is set on every second character. Segment order is the usual one: uo0-uo6 = a-g, uo7 = dp. To slow it down for real hardware, change the shift amount 12 to 18 (the srli instruction, about 0.45 s per character at 24 MHz).",
+  ui:0, flash:null, pins:true, custom:true, code:DATA.pa, asm:DATA.paAsm, steps:()=>{ const b = bytesOf($("custom").value).slice(0, 44); return [{run:15000}, ...bootSteps(Array.from(b), 0)]; },
+  check:()=>{
+    const P = [0x73,0xB0,0x38,0xB0,0x73,0xB0,0x37,0xF7,0x6D,0xF7,0x3D,0xB0,0x38,0xF7,0x4F,0xDB];   // P I L I P I N A S A G I L A 3 2, dp on odd characters
+    const all = uoSeq(0);
+    let s = -1; for (let i = 0; i < all.length - 1; i++) if (all[i] === P[0] && all[i + 1] === P[1]) { s = i; break; }
+    let m = 0; if (s >= 0) while (s + m < all.length && all[s + m] === P[m % 16]) m++;
+    return [{ok:m >= 16, wait:m < 16, t:`Display shows P I L I P I N A S A G I L A 3 2 in order (${Math.min(m, 16)} of 16 characters)`},
+            {ok:m >= 32, wait:m < 32, t:`Text repeats from the start (${Math.floor(m / 16)} full passes so far)`}]; }},
  {id:"pili", name:"7-segment display: PILIPINAS LASALLE",
   desc:"A 7-instruction RV32I program plus a 16-byte pattern table: exactly 44 bytes, the whole program RAM, sent over the GPIO bootloader. A free-running counter in a register picks the character, so there is no delay loop and no end marker. The decimal point is set on every second character so the double L in LASALLE is still seen as two characters. Segment order is the usual one: uo0-uo6 = a-g, uo7 = dp. To slow it down for real hardware, change the shift amount 12 to 18 (the srli instruction, about 0.45 s per character at 24 MHz).",
   ui:0, flash:null, pins:true, custom:true, code:DATA.pili, asm:DATA.piliAsm, steps:()=>{ const b = bytesOf($("custom").value).slice(0, 44); return [{run:15000}, ...bootSteps(Array.from(b), 0)]; },
@@ -504,7 +514,7 @@ const BD = {};
   [[0, 150, "ui_in[7:0]", "reg 0xF4 and PIO"], [160, 180, "uo_out[7:0]", "LED reg, PWM, PIO pins 0-7"], [350, 120, "uio[4], uio[5]", "PIO pins 8-9"], [480, 139, "uio[0:3,6,7]", "QSPI: flash, PSRAM, CS2"]]
     .forEach(([x, w, a, b], i) => box("pad" + i, x, 0, w, 28, a, b));
   el("rect", {x: 0, y: 36, width: 619, height: 230, rx: 5, class: "frame"});
-  txt(8, 50, "tt_um_agila32 (24 MHz, 6x4 tiles)", "bs");
+  txt(8, 50, "tt_um_agila32 (24 MHz, 8x4 tiles)", "bs");
   box("cpu", 14, 62, 120, 58, "rv32i_core", "RV32I, 7 clocks / instruction");
   box("rom", 14, 130, 120, 52, "Boot ROM", "0x00-0xAF, 176 B");
   box("ram", 14, 192, 120, 66, "RAM + registers", "RAM B0-DF, regs F0-FD");
@@ -698,7 +708,7 @@ async function boot(){
     const buf = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
     const {instance} = await WebAssembly.instantiate(buf, {wasi_snapshot_preview1: {fd_close: () => 0, fd_seek: () => 0, fd_write: () => 0}});
     E = instance.exports; E._initialize();
-    $("scn").value = "pili"; $("speed").value = "4000"; showDesc(); startScenario("pili");
+    $("scn").value = "pa"; $("speed").value = "4000"; showDesc(); startScenario("pa");
     lastT = performance.now(); requestAnimationFrame(frame);
   } catch (e) { $("stState").textContent = "failed"; $("errBox").textContent = "Could not start the simulator: " + e.message; }
 }

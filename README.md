@@ -15,7 +15,7 @@ Personal site with browser simulators for my chip projects. Each simulator is on
 The chip's Verilog (RV32I CPU and the two-state-machine PIO) compiled to WebAssembly and runs in the browser:
 `agila32/index.html` (also available at `docs/sim/index.html` and `sim/index.html`) is a self-contained page with WebAssembly embedded.
 
-Scenarios: a 7-segment display looping "AGILA32" (the default, source in `agila_7seg.S`), boot ROM demo, boot ROM without a QSPI Pmod, the PIO signature test, the PIO smoke test, and your own program over the GPIO bootloader.
+Scenarios: a 7-segment display spelling "PILIPINAS AGILA32" (the default, source in `pilipinas_agila.S`, 7 instructions plus a 16-byte table), the same program with "PILIPINAS LASALLE" (`pilipinas.S`), a 7-segment display looping "AGILA32" (`agila_7seg.S`), boot ROM demo, boot ROM without a QSPI Pmod, the PIO signature test, the PIO smoke test, and your own program over the GPIO bootloader.
 
 Verification: the signature scenario reproduces all 20 golden `uo_out` values and the pad sequence of `test/test_pio_gl_sig.py`;
 the smoke scenario passes the same checks as `test/test_pio_gl.py`.
