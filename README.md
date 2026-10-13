@@ -20,6 +20,8 @@ Scenarios: a 7-segment display spelling "PILIPINAS AGILA32" (the default, source
 Verification: the signature scenario reproduces all 20 golden `uo_out` values and the pad sequence of `test/test_pio_gl_sig.py`;
 the smoke scenario passes the same checks as `test/test_pio_gl.py`.
 
+Note: the PIO block is an independent implementation of the RP2040 PIO instruction set, not affiliated with or endorsed by Raspberry Pi Ltd; Raspberry Pi, RP2040 and Pico are Raspberry Pi's trademarks. The Pico SDK programs used by the AgilA32 repository are listed in its `NOTICE.md`.
+
 Rebuild: `tools/build_wasm_sim.sh` (yosys CXXRTL, then `zig c++` to wasm32-wasi). `sim.cpp` is the wrapper (clock stepping, flash and PSRAM models, trace); `template.html` is the page source. Sources are also collected in `sources/agila32-simulator/`.
 
 ## MC14500B browser simulator
