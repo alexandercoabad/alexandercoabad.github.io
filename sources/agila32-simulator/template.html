@@ -76,8 +76,9 @@ canvas{display:block;width:100%;background:var(--surface);border-radius:4px;touc
 .hint{color:var(--muted);font-size:12px}
 .err{color:var(--bad);font-family:var(--font-mono);font-size:12px;white-space:pre-wrap}
 .themebtn{padding:3px 9px;font-size:12px}
-.sevenseg{display:flex;align-items:center;gap:14px}
-.sevenseg svg{width:96px;height:auto;flex:none;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px}
+.sevenseg{display:flex;flex-direction:column;align-items:center;gap:8px}
+.sevenseg svg{width:150px;max-width:100%;height:auto;flex:none;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px}
+.sevenseg .hint{text-align:center}
 .seg{fill:var(--led-off);transition:fill .05s}
 .seg.on{fill:var(--led-on);filter:drop-shadow(0 0 3px color-mix(in srgb,var(--led-on) 70%,transparent))}
 #cBox:not([hidden]){display:flex;flex-direction:column;gap:6px}
@@ -483,6 +484,8 @@ function renderChecks(res){
   for (const r of res) { const li = document.createElement("li"); const st = r.ok ? "pass" : r.wait ? "wait" : "fail";
     li.innerHTML = `<span class="badge ${st}">${r.ok ? "PASS" : r.wait ? "waiting" : "FAIL"}</span><span></span>`; li.lastChild.textContent = r.t; ul.appendChild(li); }
 }
+// segment patterns (bit0 = a ... bit6 = g) of the characters the example programs spell
+const SEG_CHARS = {0x73:"P", 0x30:"I", 0x38:"L", 0x37:"N", 0x77:"A", 0x6D:"S", 0x79:"E", 0x3D:"G", 0x4F:"3", 0x5B:"2"};
 function updateBoard(){
   const uo = E.sim_get_uo(), uio = E.sim_get_uio_out(), oe = E.sim_get_uio_oe(), ui = E.sim_get_ui();
   for (let i = 0; i < 8; i++) {
@@ -491,7 +494,7 @@ function updateBoard(){
     const p = $("uio" + i); const drv = (oe >> i) & 1; const hi = drv ? (uio >> i) & 1 : (i === 4 || i === 5 ? 1 : (i === 2 ? 0 : 0));
     p.classList.toggle("hi", !!hi); p.classList.toggle("drv", !!drv);
   }
-  $("segTxt").textContent = "uo_out = 0x" + hex(uo, 2);
+  $("segTxt").textContent = "uo_out = 0x" + hex(uo, 2) + "   " + ((SEG_CHARS[uo & 0x7F] || "") + (uo & 0x80 ? "  (dp on)" : ""));
   if (qi < queue.length) document.querySelectorAll(".sw").forEach(b => b.setAttribute("aria-pressed", String(((ui >> +b.dataset.bit) & 1) === 1)));
 }
 function updateStatus(){
