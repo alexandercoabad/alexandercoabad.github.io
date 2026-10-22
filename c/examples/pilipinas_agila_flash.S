@@ -8,7 +8,7 @@ main:
     sb    zero, 0xFB(zero)  # QSPI_CTRL = 0: fastest QSPI clock (the reset value, sys_clk/128, is too slow to run from)
 loop:
     addi  gp, gp, 1         # counter (gp = 1 on entry from the boot ROM)
-    srli  t0, gp, 18        # character number (SHIFT: 18 for about 0.45 s per character on hardware; 12 for the simulator)
+    srli  t0, gp, 14        # character number (SHIFT: 14 for about 0.6 s per character at 24 MHz; each loop takes about 900 clocks from flash; 12 for quick checks)
     andi  t0, t0, 15        # 16 characters
     lbu   t1, 0xD0(t0)      # pattern = table[t0]  (flash byte 28 appears at address 0xB4 + 28 = 0xD0)
     sb    t1, 0xF0(zero)    # LED_OUT = pattern

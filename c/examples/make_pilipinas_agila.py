@@ -2,7 +2,7 @@
 """Builds the PILIPINAS AGILA32 7-segment examples (44 bytes each, the size of the program window).
 
   pilipinas_agila.hex / pilipinas_agila_hardware.hex   for the GPIO bootloader (shift 12 for the simulator, 18 for hardware)
-  pilipinas_agila_flash.bin / _flash_shift12.bin       for a flash chip on the QSPI Pmod: the boot ROM runs it by itself
+  pilipinas_agila_flash.bin / _flash_shift12.bin       for a flash chip on the QSPI Pmod: the boot ROM runs it by itself (shift 14: every instruction is fetched from flash, about 900 clocks per loop)
                                                        after its boot timeout, with no bootload (see c/README.md)
 
 Run:  python3 make_pilipinas_agila.py        (no toolchain needed; the encodings are checked against the committed pilipinas.hex)
@@ -47,6 +47,6 @@ open("pilipinas_agila.hex", "w").write(hexs(program(12, MV_GP_ZERO)))
 open("pilipinas_agila_hardware.hex", "w").write(hexs(program(18, MV_GP_ZERO)))
 # Flash version: at the boot timeout the boot ROM leaves x3 (gp) = 1 and jumps to flash byte 0, so the counter does not need
 # its own initialisation and byte 0 can set the QSPI clock instead.
-open("pilipinas_agila_flash.bin", "wb").write(program(18, SET_FAST_QSPI))
+open("pilipinas_agila_flash.bin", "wb").write(program(14, SET_FAST_QSPI))
 open("pilipinas_agila_flash_shift12.bin", "wb").write(program(12, SET_FAST_QSPI))
 print("ok")

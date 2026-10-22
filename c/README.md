@@ -36,10 +36,10 @@ Timing uses a free-running counter, `(c++ >> SLOW)`; `SLOW` is 18 in `agila32.h`
 
 If the QSPI Pmod carries a flash chip and nothing drives `ui_in`, the boot ROM stops waiting for a bootload after a short timeout
 (`TIMEOUT_SHIFT` in `tools/build_boot_rom.py`, about 1 ms at 24 MHz), sets `FLASH_MODE` and runs flash byte 0. Program
-`examples/pilipinas_agila_flash.bin` (44 bytes, shift 18, about 0.45 s per character) at flash address 0 and the 7-segment display
+`examples/pilipinas_agila_flash.bin` (44 bytes, shift 14, about 0.6 s per character at 24 MHz) at flash address 0 and the 7-segment display
 spells PILIPINAS AGILA32 by itself after power-up or reset. The program's first instruction sets the QSPI clock to the fastest
 divider (the reset value, sys_clk/128, is too slow to run from), and the boot ROM leaves `gp` = 1, so the counter starts at the
-first character. `pilipinas_agila_flash_shift12.bin` uses shift 12 (about 7 ms per character) for quick checks. In the browser
+first character. `pilipinas_agila_flash_shift12.bin` uses shift 12 (about 0.15 s per character) for quick checks; running from flash costs about 900 clocks per loop, so the flash images use smaller shifts than the RAM ones. In the browser
 simulator (QSPI forced-fast box unticked) the first character appears about 2.3 million clocks, roughly 0.1 s at 24 MHz, after
 reset, because the first flash reads run at the slow reset divider.
 
