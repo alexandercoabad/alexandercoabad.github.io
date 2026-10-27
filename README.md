@@ -1,6 +1,6 @@
 # alexandercoabad.github.io
 
-Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5)
+Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5).
 
 Personal site with browser simulators for my chip projects. Each simulator is one self-contained page, so nothing needs to be installed and it also works when opened locally.
 
