@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ReRAM Crossbar Simulator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: control rail on the left, live crossbar and results on the right; stacks on phones. */
+:root{
+  --bg:#EBEFF2; --panel:#F8FAFB; --ink:#15212B; --mute:#587080; --line:#C7D1D8;
+  --volt:#1D63C9; --curr:#C2620A; --cell:#22313D; --cellText:#F8FAFB; --err:#B3261E; --ok:#1E7B4A;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+    --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --cellText:#0E1318; --err:#FF8A80; --ok:#6FD6A0;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+  --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --cellText:#0E1318; --err:#FF8A80; --ok:#6FD6A0;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+:root{color-scheme:light}
+html{padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header h1{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,4vw,34px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;max-width:68ch;color:var(--mute)}
+.eq{font-family:var(--f-mono);color:var(--ink)}
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0}
+.rail{display:flex;flex-direction:column;gap:14px;min-width:0}
+.main{display:flex;flex-direction:column;gap:14px;min-width:0}
+h2{font-family:var(--f-display);font-size:15px;font-weight:600;margin:0 0 10px;letter-spacing:.01em}
+.cap{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--mute);font-weight:600}
+.row{display:flex;align-items:center;gap:10px;margin:7px 0}
+.row label{flex:0 0 108px;font-size:13px}
+.row input[type=range]{flex:1;min-width:0;accent-color:var(--volt)}
+.row output{flex:0 0 74px;text-align:right;font-family:var(--f-mono);font-size:12px}
+select,button,input[type=number]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:5px 8px}
+button{cursor:pointer}
+button:hover{border-color:var(--volt)}
+button.on{background:var(--volt);border-color:var(--volt);color:var(--bg)}
+:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.wgrid{display:grid;gap:4px;margin-top:6px}
+.wgrid input{width:100%;min-width:0;padding:4px 2px;text-align:center;font-family:var(--f-mono);font-size:12px}
+.sizes{display:flex;gap:12px;flex-wrap:wrap}
+.sizes label{display:flex;gap:6px;align-items:center;font-size:13px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--mute);margin-bottom:8px}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:6px;border-radius:2px}
+.steps{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+.stepnote{font-size:13px;margin:0 0 10px;min-height:2.9em;max-width:80ch}
+.xbar{overflow-x:auto}
+.xbar svg{display:block;width:100%;min-width:520px;height:auto}
+svg text{font-family:var(--f-mono)}
+.wire-r{stroke:var(--volt);stroke-width:2;fill:none}
+.wire-c{stroke:var(--curr);stroke-width:2;fill:none}
+.flow{stroke-dasharray:7 6;animation:dash .7s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-13}}
+@media (prefers-reduced-motion:reduce){.flow{animation:none}}
+.fade{transition:opacity .25s}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:1100px){.two{grid-template-columns:minmax(0,1fr)}}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums}
+th,td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-family:var(--f-body);font-weight:600;color:var(--mute);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+th:first-child,td:first-child{text-align:left}
+tfoot td{font-weight:500;border-bottom:0}
+.bad{color:var(--err)} .good{color:var(--ok)}
+.stats{display:flex;gap:22px;flex-wrap:wrap;margin-top:10px;font-size:13px}
+.stats b{font-family:var(--f-mono);font-weight:500}
+.chart{width:100%;height:auto;display:block}
+.note{font-size:12px;color:var(--mute);margin:8px 0 0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:12px 0}
+.tile{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg)}
+.tile .big{font-family:var(--f-display);font-weight:700;font-size:28px;line-height:1.1;letter-spacing:-.01em}
+.tile .sub{font-size:12px;color:var(--mute);margin-top:3px}
+.effctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:0 28px}
+.effctl .row label{flex-basis:120px}
+.credit{font-size:12px;color:var(--mute);text-align:center;padding-top:6px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ReRAM Crossbar Simulator</h1>
+    <p>Weights are stored as conductances in a resistive-RAM crossbar. Input voltages on the word lines produce bit-line currents that already equal the matrix product, <span class="eq">Iⱼ = Σᵢ Vᵢ·Gᵢⱼ</span>, so the multiply and the sum both happen inside the array.</p>
+    <p>This is a generic, textbook model of analog ReRAM compute-in-memory: a passive crossbar with differential conductance pairs, a quantized DAC and ADC, Gaussian device variation and wire IR drop. It is meant for learning and quick experiments, not as a novel architecture or a model of any specific chip.</p>
+  </header>
+
+    <section class="panel">
+      <h2>Array size</h2>
+      <div class="sizes">
+        <label>Inputs (rows) <select id="selM"></select></label>
+        <label>Outputs (cols) <select id="selN"></select></label>
+      </div>
+      <p class="note">Each output uses two bit lines (G⁺ and G⁻), so signed weights map to non-negative conductances.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Crossbar</h2>
+      <div class="steps" id="steps"></div>
+      <p class="stepnote" id="stepnote"></p>
+      <div class="legend">
+        <span><i style="background:var(--volt)"></i>Word-line voltage</span>
+        <span><i style="background:var(--curr)"></i>Bit-line current</span>
+        <span><i style="background:var(--cell)"></i>Cell conductance (darker is higher G)</span>
+        <span>Cell label <select id="selShow"><option value="g">Conductance µS</option><option value="i">Current µA</option><option value="n">None</option></select></span>
+      </div>
+      <div class="xbar"><svg id="xsvg" role="img" aria-label="ReRAM crossbar array with word lines, bit lines and ADCs"></svg></div>
+    </section>
+
+  <div class="grid">
+    <aside class="rail">
+      <section class="panel">
+        <h2>Input vector x <span class="cap">0 to 1</span></h2>
+        <div id="xs"></div>
+      </section>
+      <section class="panel">
+        <h2>Weight matrix W <span class="cap">−1 to 1</span></h2>
+        <div id="wg" class="wgrid"></div>
+        <div class="btns">
+          <button id="bRand">Randomize weights</button>
+          <button id="bReset">Reset example</button>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Device and circuit</h2>
+        <div id="settings"></div>
+        <div class="btns"><button id="bSeed">Resample device variation</button></div>
+      </section>
+    </aside>
+
+    <main class="main">
+
+      <div class="two">
+        <section class="panel">
+          <h2>Result y = xᵀW</h2>
+          <div class="tw"><table id="res"></table></div>
+          <div class="stats" id="stats"></div>
+          <svg id="chart" class="chart" viewBox="0 0 420 210" role="img" aria-label="Bar chart comparing ideal and ReRAM outputs"></svg>
+        </section>
+        <section class="panel">
+          <h2>Trace one output</h2>
+          <div class="row"><label for="colsel" style="flex-basis:auto">Column</label><select id="colsel"></select></div>
+          <div class="tw"><table id="trace"></table></div>
+          <p class="note">Each cell current is Vᵢ·Gᵢⱼ (Ohm). The bit line adds them (Kirchhoff). The two bit lines of a pair are subtracted, then scaled by Vread·(Gmax−Gmin) to recover the weighted sum.</p>
+        </section>
+      </div>
+
+      <section class="panel" id="eff">
+        <h2>Efficiency versus digital multiply-accumulate</h2>
+        <p class="note" style="margin:0 0 10px;font-size:13px">A conventional processor fetches every weight from memory and performs the M×N multiply-adds one batch at a time. The crossbar keeps the weights where they are and finishes all of them in a single read. The figures come from an illustrative energy and timing model, so adjust the assumptions to match a design you care about.</p>
+        <div class="effctl">
+          <div class="row"><label for="eMem">Digital weight source</label><select id="eMem"><option value="sram">On-chip SRAM</option><option value="dram">Off-chip DRAM</option></select></div>
+          <div class="row"><label for="eLanes">Parallel MAC lanes</label><input type="range" id="eLanes" min="1" max="256" step="1" value="8"><output id="eLanesO">8</output></div>
+          <div class="row"><label for="eClk">Digital clock</label><input type="range" id="eClk" min="0.5" max="3" step="0.1" value="1"><output id="eClkO">1.0 GHz</output></div>
+          <div class="row"><label for="eRead">ReRAM read pulse</label><input type="range" id="eRead" min="2" max="100" step="1" value="10"><output id="eReadO">10 ns</output></div>
+          <div class="row"><label for="eAdc">ADC conversion</label><input type="range" id="eAdc" min="2" max="100" step="1" value="10"><output id="eAdcO">10 ns</output></div>
+        </div>
+        <div class="tiles" id="tiles"></div>
+        <div class="tw"><table id="effT"></table></div>
+        <div class="two" style="margin-top:12px">
+          <svg id="chLat" class="chart" viewBox="0 0 420 230" role="img" aria-label="Latency versus array size, digital and ReRAM"></svg>
+          <svg id="chEn" class="chart" viewBox="0 0 420 230" role="img" aria-label="Energy versus array size, digital and ReRAM"></svg>
+        </div>
+        <p class="note" id="effNote"></p>
+      </section>
+    </main>
+  </div>
+  <footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5).</footer>
+</div>
+
+<script>
+(function(){
+var W0=[[0.8,-0.4,0.2,0.6,-0.7,0.3],[-0.5,0.9,0.1,-0.3,0.4,-0.8],[0.3,0.2,-0.9,0.5,0.6,-0.1],[0.7,-0.6,0.4,-0.2,-0.5,0.9],[-0.3,0.5,0.7,0.1,-0.9,0.2],[0.6,-0.1,-0.4,0.8,0.3,-0.6]];
+var X0=[0.8,0.3,0.6,1.0,0.5,0.2];
+var S={M:4,N:4,dacBits:4,gBits:4,adcBits:8,adcRange:100,vread:0.2,gmin:5,gmax:100,sigma:3,rw:0,seed:7,show:'g',phase:5,col:0};
+var W=W0.map(function(r){return r.slice()}), X=X0.slice(), Z=[];
+var SUB=['₁','₂','₃','₄','₅','₆'];
+var timer=null;
+function $(id){return document.getElementById(id)}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function f(v,d){return (v<0?'−':'')+Math.abs(v).toFixed(d)}
+
+function rng(seed){var a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function makeZ(){var r=rng(S.seed*9973+11);Z=[];for(var i=0;i<6;i++){Z[i]=[];for(var k=0;k<12;k++){var u=r()||1e-9,v=r();Z[i][k]=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}}}
+
+/* Crossbar solve. G in siemens, Vin in volts. Returns bit-line currents (A) and per-cell currents (A). */
+function solve(Vin,G,rw){
+  var M=Vin.length,C=G[0].length,i,j,it;
+  var Ic=[],cell=[];
+  for(i=0;i<M;i++){cell[i]=[]}
+  if(rw<=0){
+    for(j=0;j<C;j++){var s=0;for(i=0;i<M;i++){cell[i][j]=Vin[i]*G[i][j];s+=cell[i][j]}Ic[j]=s}
+    return {Ic:Ic,cell:cell};
+  }
+  var gw=1/rw,Vr=[],Vc=[];
+  for(i=0;i<M;i++){Vr[i]=[];Vc[i]=[];for(j=0;j<C;j++){Vr[i][j]=Vin[i];Vc[i][j]=0}}
+  for(it=0;it<800;it++){
+    var md=0;
+    for(i=0;i<M;i++)for(j=0;j<C;j++){
+      var g=G[i][j],num=g*Vc[i][j]+gw*(j===0?Vin[i]:Vr[i][j-1]),den=g+gw;
+      if(j<C-1){num+=gw*Vr[i][j+1];den+=gw}
+      var nv=num/den;md=Math.max(md,Math.abs(nv-Vr[i][j]));Vr[i][j]=nv;
+    }
+    for(i=0;i<M;i++)for(j=0;j<C;j++){
+      var g2=G[i][j],n2=g2*Vr[i][j]+gw*(i===M-1?0:Vc[i+1][j]),d2=g2+gw;
+      if(i>0){n2+=gw*Vc[i-1][j];d2+=gw}
+      var nv2=n2/d2;md=Math.max(md,Math.abs(nv2-Vc[i][j]));Vc[i][j]=nv2;
+    }
+    if(md<1e-11)break;
+  }
+  for(j=0;j<C;j++){Ic[j]=gw*Vc[M-1][j];for(i=0;i<M;i++)cell[i][j]=G[i][j]*(Vr[i][j]-Vc[i][j])}
+  return {Ic:Ic,cell:cell};
+}
+
+function compute(){
+  var M=S.M,N=S.N,C=2*N,i,j,k;
+  var span=S.gmax-S.gmin,Lv=Math.pow(2,S.gBits)-1,dl=Math.pow(2,S.dacBits)-1;
+  var xq=[],Vin=[];
+  for(i=0;i<M;i++){xq[i]=Math.round(X[i]*dl)/dl;Vin[i]=xq[i]*S.vread}
+  var Ga=[],GaS=[];
+  for(i=0;i<M;i++){Ga[i]=[];GaS[i]=[];
+    for(j=0;j<N;j++){
+      var w=W[i][j];
+      for(var s=0;s<2;s++){
+        var mag=s===0?Math.max(w,0):Math.max(-w,0);
+        var t=Math.round(mag*Lv)/Lv;
+        k=2*j+s;
+        var g=S.gmin+t*span;
+        g=Math.max(0.05,g*(1+S.sigma/100*Z[i][k]));
+        Ga[i][k]=g;GaS[i][k]=g*1e-6;
+      }
+    }
+  }
+  var sol=solve(Vin,GaS,S.rw);
+  var Ic=sol.Ic.map(function(a){return a*1e6});
+  var cellI=sol.cell.map(function(r){return r.map(function(a){return a*1e6})});
+  var raw=[],ideal=[],code=[],out=[],err=[];
+  var R=M*S.adcRange/100,lv=Math.pow(2,S.adcBits-1)-1;
+  for(j=0;j<N;j++){
+    raw[j]=(Ic[2*j]-Ic[2*j+1])/(S.vread*span);
+    var id=0;for(i=0;i<M;i++)id+=X[i]*W[i][j];ideal[j]=id;
+    code[j]=clamp(Math.round(raw[j]/R*lv),-lv,lv);
+    out[j]=code[j]*R/lv;err[j]=out[j]-id;
+  }
+  var rms=Math.sqrt(err.reduce(function(a,e){return a+e*e},0)/N);
+  var maxAbs=ideal.reduce(function(a,v){return Math.max(a,Math.abs(v))},0)||1;
+  return {xq:xq,Vin:Vin,Ga:Ga,Ic:Ic,cellI:cellI,raw:raw,ideal:ideal,code:code,out:out,err:err,rms:rms,rel:rms/maxAbs,R:R,span:span};
+}
+
+/* ---------- rendering ---------- */
+function renderSVG(d){
+  var M=S.M,N=S.N,C=2*N,P=60,L=124,T=36,gw=C*P,gh=M*P,ph=S.phase;
+  var Wd=L+gw+26,H=T+gh+164;
+  function op(n){return ph>=n?1:0.14}
+  var o='';
+  var rowFlow=(ph===2||ph===3)?' flow':'',colFlow=(ph===4)?' flow':'';
+  var i,j,k;
+  // headers
+  o+='<g class="fade" opacity="'+op(1)+'">';
+  for(k=0;k<C;k++){var xx=L+k*P+P/2;o+='<text x="'+xx+'" y="'+(T-12)+'" text-anchor="middle" font-size="12" fill="var(--mute)">'+(k%2===0?'G⁺':'G⁻')+'</text>'}
+  o+='</g>';
+  // rows
+  o+='<g class="fade" opacity="'+op(2)+'">';
+  for(i=0;i<M;i++){
+    var y=T+i*P+P/2;
+    o+='<line class="wire-r'+rowFlow+'" x1="'+(L-14)+'" y1="'+y+'" x2="'+(L+gw-6)+'" y2="'+y+'"/>';
+    o+='<text x="'+(L-22)+'" y="'+(y-3)+'" text-anchor="end" font-size="11" fill="var(--mute)">x'+SUB[i]+' '+X[i].toFixed(2)+'→'+d.xq[i].toFixed(2)+'</text>';
+    o+='<text x="'+(L-22)+'" y="'+(y+11)+'" text-anchor="end" font-size="12" font-weight="500" fill="var(--volt)">V'+SUB[i]+' '+(d.Vin[i]*1000).toFixed(0)+' mV</text>';
+  }
+  o+='</g>';
+  // columns
+  o+='<g class="fade" opacity="'+op(4)+'">';
+  var y0=T+gh+34;
+  for(k=0;k<C;k++){
+    var cx=L+k*P+P/2;
+    o+='<line class="wire-c'+colFlow+'" x1="'+cx+'" y1="'+(T+6)+'" x2="'+cx+'" y2="'+y0+'"/>';
+    o+='<text x="'+cx+'" y="'+(y0+15)+'" text-anchor="middle" font-size="10.5" fill="var(--curr)">'+d.Ic[k].toFixed(1)+'µA</text>';
+  }
+  o+='</g>';
+  // cells
+  o+='<g class="fade" opacity="'+op(1)+'">';
+  for(i=0;i<M;i++)for(k=0;k<C;k++){
+    var cx2=L+k*P+P/2,cy=T+i*P+P/2;
+    var t=clamp((d.Ga[i][k]-S.gmin)/d.span,0,1),a=0.1+0.9*t;
+    o+='<rect x="'+(cx2-15)+'" y="'+(cy-15)+'" width="30" height="30" rx="3" fill="var(--cell)" fill-opacity="'+a.toFixed(3)+'" stroke="var(--cell)" stroke-opacity=".5"><title>Cell ['+(i+1)+','+(k+1)+'] G='+d.Ga[i][k].toFixed(1)+' µS, I='+d.cellI[i][k].toFixed(2)+' µA</title></rect>';
+    if(S.show!=='n'){
+      var lab=S.show==='g'?d.Ga[i][k].toFixed(0):d.cellI[i][k].toFixed(1);
+      var dim=(S.show==='i'&&ph<3)?0.15:1;
+      o+='<text x="'+cx2+'" y="'+(cy+4)+'" text-anchor="middle" font-size="11" fill="'+(a>0.55?'var(--cellText)':'var(--ink)')+'" opacity="'+dim+'">'+lab+'</text>';
+    }
+  }
+  o+='</g>';
+  // pair merge + ADC
+  o+='<g class="fade" opacity="'+op(5)+'">';
+  for(j=0;j<N;j++){
+    var xp=L+(2*j)*P+P/2,xm=L+(2*j+1)*P+P/2,mid=(xp+xm)/2,yt=y0+22,yb=y0+42;
+    o+='<path d="M'+xp+' '+yt+' V'+yb+' H'+xm+' V'+yt+' M'+mid+' '+yb+' V'+(yb+12)+'" fill="none" stroke="var(--curr)" stroke-width="2"/>';
+    o+='<text x="'+(mid-17)+'" y="'+(yb-4)+'" text-anchor="middle" font-size="11" fill="var(--curr)">+</text>';
+    o+='<text x="'+(mid+17)+'" y="'+(yb-4)+'" text-anchor="middle" font-size="11" fill="var(--curr)">−</text>';
+    o+='<rect x="'+(mid-38)+'" y="'+(yb+12)+'" width="76" height="26" rx="4" fill="none" stroke="var(--ink)" stroke-width="1.5"/>';
+    o+='<text x="'+mid+'" y="'+(yb+29)+'" text-anchor="middle" font-size="11" fill="var(--ink)">ADC '+S.adcBits+'b</text>';
+    o+='<text x="'+mid+'" y="'+(yb+56)+'" text-anchor="middle" font-size="14" font-weight="500" fill="var(--ink)">y'+SUB[j]+' = '+f(d.out[j],2)+'</text>';
+    o+='<text x="'+mid+'" y="'+(yb+71)+'" text-anchor="middle" font-size="10.5" fill="var(--mute)">ideal '+f(d.ideal[j],2)+'</text>';
+  }
+  o+='</g>';
+  var svg=$('xsvg');
+  svg.setAttribute('viewBox','0 0 '+Wd+' '+H);
+  svg.style.minWidth=Math.min(Wd,820)+'px';
+  svg.innerHTML=o;
+}
+
+function renderTables(d){
+  var N=S.N,M=S.M,j,i,h='<thead><tr><th>Out</th><th>Ideal</th><th>Analog</th><th>Code</th><th>Digital</th><th>Error</th></tr></thead><tbody>';
+  for(j=0;j<N;j++){
+    var big=Math.abs(d.err[j])>0.05*Math.max(1,Math.abs(d.ideal[j]));
+    h+='<tr><td>y'+SUB[j]+'</td><td>'+f(d.ideal[j],3)+'</td><td>'+f(d.raw[j],3)+'</td><td>'+d.code[j]+'</td><td>'+f(d.out[j],3)+'</td><td class="'+(big?'bad':'good')+'">'+f(d.err[j],3)+'</td></tr>';
+  }
+  $('res').innerHTML=h+'</tbody>';
+  $('stats').innerHTML='<span>RMS error <b>'+d.rms.toFixed(3)+'</b></span><span>Relative to largest output <b>'+(d.rel*100).toFixed(1)+'%</b></span><span>ADC full scale <b>±'+d.R.toFixed(2)+'</b></span>';
+  var c=S.col;if(c>=N)c=S.col=0;
+  var t='<thead><tr><th>Row</th><th>Vᵢ mV</th><th>G⁺ µS</th><th>I⁺ µA</th><th>G⁻ µS</th><th>I⁻ µA</th></tr></thead><tbody>';
+  for(i=0;i<M;i++){
+    t+='<tr><td>'+(i+1)+'</td><td>'+(d.Vin[i]*1000).toFixed(0)+'</td><td>'+d.Ga[i][2*c].toFixed(1)+'</td><td>'+d.cellI[i][2*c].toFixed(2)+'</td><td>'+d.Ga[i][2*c+1].toFixed(1)+'</td><td>'+d.cellI[i][2*c+1].toFixed(2)+'</td></tr>';
+  }
+  t+='</tbody><tfoot><tr><td>Sum</td><td></td><td></td><td>'+d.Ic[2*c].toFixed(2)+'</td><td></td><td>'+d.Ic[2*c+1].toFixed(2)+'</td></tr>';
+  t+='<tr><td>I⁺ − I⁻</td><td></td><td></td><td colspan="3">'+f(d.Ic[2*c]-d.Ic[2*c+1],2)+' µA → y = '+f(d.raw[c],3)+'</td></tr></tfoot>';
+  $('trace').innerHTML=t;
+}
+
+function renderChart(d){
+  var N=S.N,j,vals=d.ideal.concat(d.out),m=Math.max(0.5,Math.ceil(Math.max.apply(null,vals.map(Math.abs))*2)/2);
+  var x0=38,x1=410,y0=14,y1=180,yz=(y0+y1)/2,sc=(y1-y0)/2/m;
+  var o='';
+  [-m,-m/2,0,m/2,m].forEach(function(v){
+    var y=yz-v*sc;
+    o+='<line x1="'+x0+'" x2="'+x1+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)" stroke-width="'+(v===0?1.5:1)+'"/>';
+    o+='<text x="'+(x0-6)+'" y="'+(y+4)+'" text-anchor="end" font-size="10" fill="var(--mute)">'+(v<0?'−':'')+Math.abs(v).toFixed(1)+'</text>';
+  });
+  var gw=(x1-x0)/N,bw=Math.min(22,gw/3);
+  for(j=0;j<N;j++){
+    var cx=x0+gw*j+gw/2;
+    var hi=d.ideal[j]*sc,ho=d.out[j]*sc;
+    o+='<rect x="'+(cx-bw-2)+'" y="'+(hi>=0?yz-hi:yz)+'" width="'+bw+'" height="'+Math.abs(hi)+'" fill="none" stroke="var(--ink)" stroke-width="1.5"/>';
+    o+='<rect x="'+(cx+2)+'" y="'+(ho>=0?yz-ho:yz)+'" width="'+bw+'" height="'+Math.abs(ho)+'" fill="var(--curr)"/>';
+    o+='<text x="'+cx+'" y="'+(y1+16)+'" text-anchor="middle" font-size="11" fill="var(--mute)">y'+SUB[j]+'</text>';
+  }
+  o+='<rect x="'+(x0)+'" y="196" width="10" height="8" fill="none" stroke="var(--ink)" stroke-width="1.5"/><text x="'+(x0+15)+'" y="204" font-size="10" fill="var(--mute)">Ideal (float)</text>';
+  o+='<rect x="'+(x0+100)+'" y="196" width="10" height="8" fill="var(--curr)"/><text x="'+(x0+115)+'" y="204" font-size="10" fill="var(--mute)">ReRAM digital output</text>';
+  $('chart').innerHTML=o;
+}
+
+function renderSteps(d){
+  var names=['1 Program','2 Drive rows','3 Ohm\'s law','4 Sum columns','5 Digitize'];
+  var h='<button id="bPlay">'+(timer?'Stop':'Play')+'</button>';
+  names.forEach(function(n,i){h+='<button data-ph="'+(i+1)+'" class="'+(S.phase===i+1?'on':'')+'">'+n+'</button>'});
+  $('steps').innerHTML=h;
+  var c=S.col,txt={
+    1:'Each weight is split into G⁺ and G⁻ and programmed to one of '+Math.pow(2,S.gBits)+' conductance levels between '+S.gmin+' and '+S.gmax+' µS. Device variation of '+S.sigma+'% shifts the actual values.',
+    2:'A '+S.dacBits+'-bit DAC turns each input xᵢ into a read voltage Vᵢ = xᵢ·'+S.vread+' V on its word line. All rows are driven at the same time.',
+    3:'Every cell passes a current Iᵢⱼ = Vᵢ·Gᵢⱼ. Cell labels switch to current in this step if you choose that label.',
+    4:'Each bit line collects the currents of all its cells by Kirchhoff\'s law. Column '+(c+1)+' G⁺ carries '+d.Ic[2*c].toFixed(2)+' µA and G⁻ carries '+d.Ic[2*c+1].toFixed(2)+' µA.',
+    5:'The pair is subtracted and a '+S.adcBits+'-bit ADC digitizes it. Output y'+SUB[c]+' reads '+f(d.out[c],3)+' against an ideal '+f(d.ideal[c],3)+'.'
+  };
+  $('stepnote').textContent=txt[S.phase];
+}
+
+
+/* ---------- efficiency model (illustrative) ---------- */
+var EF={lanes:8,clk:1,mem:'sram',tread:10,tadc:10};
+var EMAC=0.3,EMEM={sram:1.3,dram:160};
+function eModel(macs,rows,cols,arrE){
+  var dig={lat:Math.ceil(macs/EF.lanes)/EF.clk,en:macs*(EMAC+EMEM[EF.mem])};
+  var adc=0.01*Math.pow(2,S.adcBits),dac=0.005*Math.pow(2,S.dacBits);
+  var cim={lat:EF.tread+EF.tadc,en:arrE+cols*adc+rows*dac};
+  return {dig:dig,cim:cim};
+}
+function fmtT(ns){if(ns<1e3)return ns.toFixed(ns<10?1:0)+' ns';if(ns<1e6)return (ns/1e3).toFixed(ns<1e4?1:0)+' µs';return (ns/1e6).toFixed(1)+' ms'}
+function fmtE(pj){if(pj<1e3)return pj.toFixed(pj<10?1:0)+' pJ';if(pj<1e6)return (pj/1e3).toFixed(pj<1e4?1:0)+' nJ';return (pj/1e6).toFixed(1)+' µJ'}
+function adv(dig,cim){
+  var r=dig/cim;
+  if(r>=1)return {t:(r>=100?r.toFixed(0):r.toFixed(1))+'×',good:true,sub:'ReRAM lower'};
+  var q=1/r;return {t:(q>=100?q.toFixed(0):q.toFixed(1))+'×',good:false,sub:'digital lower'};
+}
+function logChart(id,title,key,fmt,ns,vals){
+  var x0=58,x1=406,y0=26,y1=172,all=[];
+  vals.forEach(function(v){all.push(v.dig[key],v.cim[key])});
+  var lo=Math.floor(Math.log10(Math.min.apply(null,all))),hi=Math.ceil(Math.log10(Math.max.apply(null,all)));
+  if(hi===lo)hi=lo+1;
+  function X(i){return x0+(x1-x0)*i/(ns.length-1)}
+  function Y(v){return y1-(Math.log10(v)-lo)/(hi-lo)*(y1-y0)}
+  var o='<text x="'+x0+'" y="14" font-size="11" font-weight="500" fill="var(--ink)">'+title+'</text>';
+  var step=Math.max(1,Math.ceil((hi-lo)/5));
+  for(var e=lo;e<=hi;e+=step){var y=Y(Math.pow(10,e));o+='<line x1="'+x0+'" x2="'+x1+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)"/><text x="'+(x0-6)+'" y="'+(y+3.5)+'" text-anchor="end" font-size="9.5" fill="var(--mute)">'+fmt(Math.pow(10,e))+'</text>'}
+  ns.forEach(function(n,i){o+='<text x="'+X(i)+'" y="'+(y1+14)+'" text-anchor="middle" font-size="10" fill="var(--mute)">'+n+'</text>'});
+  o+='<text x="'+((x0+x1)/2)+'" y="'+(y1+28)+'" text-anchor="middle" font-size="10" fill="var(--mute)">array size n (n × n cells)</text>';
+  function line(k,col,dash){
+    var pts=vals.map(function(v,i){return X(i).toFixed(1)+','+Y(v[k][key]).toFixed(1)}).join(' ');
+    var r='<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="2"'+(dash?' stroke-dasharray="5 4"':'')+'/>';
+    vals.forEach(function(v,i){r+='<circle cx="'+X(i)+'" cy="'+Y(v[k][key])+'" r="2.5" fill="'+col+'"/>'});
+    return r;
+  }
+  o+=line('dig','var(--ink)',true)+line('cim','var(--curr)',false);
+  o+='<line x1="'+(x0)+'" x2="'+(x0+18)+'" y1="222" y2="222" stroke="var(--ink)" stroke-width="2" stroke-dasharray="5 4"/><text x="'+(x0+24)+'" y="225" font-size="10" fill="var(--mute)">Digital MAC</text>';
+  o+='<line x1="'+(x0+110)+'" x2="'+(x0+128)+'" y1="222" y2="222" stroke="var(--curr)" stroke-width="2"/><text x="'+(x0+134)+'" y="225" font-size="10" fill="var(--mute)">ReRAM crossbar</text>';
+  $(id).innerHTML=o;
+}
+function renderEff(d){
+  var M=S.M,N=S.N,C=2*N,i,k,sumVI=0;
+  for(i=0;i<M;i++)for(k=0;k<C;k++)sumVI+=d.Vin[i]*d.cellI[i][k];
+  var arrE=sumVI*EF.tread/1000;           /* µW × ns = fJ, /1000 = pJ */
+  var ecell=arrE/(M*C);
+  var cur=eModel(M*N,M,N,arrE);
+  var big=eModel(256*256,256,256,2*256*256*ecell);
+  var aL=adv(cur.dig.lat,cur.cim.lat),aE=adv(cur.dig.en,cur.cim.en),bL=adv(big.dig.lat,big.cim.lat),bE=adv(big.dig.en,big.cim.en);
+  function tile(a,label,note){return '<div class="tile"><div class="big '+(a.good?'good':'bad')+'">'+a.t+'</div><div class="sub"><b style="font-weight:600;color:var(--ink)">'+label+'</b><br>'+a.sub+' · '+note+'</div></div>'}
+  $('tiles').innerHTML=tile(bL,'Latency','256 × 256')+tile(bE,'Energy','256 × 256')+tile(aL,'Latency',M+' × '+N+' (current)')+tile(aE,'Energy',M+' × '+N+' (current)');
+  function row(name,a,b,fm,ad){return '<tr><td>'+name+'</td><td>'+fm(a)+'</td><td>'+fm(b)+'</td><td class="'+(ad.good?'good':'bad')+'">'+ad.t+' '+ad.sub+'</td></tr>'}
+  var t='<thead><tr><th>Case</th><th>Digital MAC</th><th>ReRAM crossbar</th><th>Advantage</th></tr></thead><tbody>';
+  t+=row('Latency, '+M+' × '+N,cur.dig.lat,cur.cim.lat,fmtT,aL)+row('Energy, '+M+' × '+N,cur.dig.en,cur.cim.en,fmtE,aE);
+  t+=row('Latency, 256 × 256',big.dig.lat,big.cim.lat,fmtT,bL)+row('Energy, 256 × 256',big.dig.en,big.cim.en,fmtE,bE);
+  t+='</tbody><tfoot><tr><td>Weight fetches</td><td>'+(M*N)+' per product</td><td>0 (stay in array)</td><td></td></tr></tfoot>';
+  $('effT').innerHTML=t;
+  var ns=[4,8,16,32,64,128,256,512],vals=ns.map(function(n){return eModel(n*n,n,n,2*n*n*ecell)});
+  logChart('chLat','Latency per matrix-vector product','lat',fmtT,ns,vals);
+  logChart('chEn','Energy per matrix-vector product','en',fmtE,ns,vals);
+  var cl=null,ce=null;
+  ns.forEach(function(n,j){if(cl===null&&vals[j].cim.lat<vals[j].dig.lat)cl=n;if(ce===null&&vals[j].cim.en<vals[j].dig.en)ce=n});
+  var cross='Crossover: ReRAM is faster from '+(cl?cl+' × '+cl:'beyond 512 × 512')+' and uses less energy from '+(ce?ce+' × '+ce:'beyond 512 × 512')+' on these settings. Small arrays favor digital because the ADC and fixed read time dominate. ';
+  $('effNote').textContent=cross+'Assumptions: digital uses '+EMAC+' pJ per 8-bit MAC plus '+EMEM[EF.mem]+' pJ per weight byte fetched from '+(EF.mem==='sram'?'SRAM':'DRAM')+', '+EF.lanes+' lanes at '+EF.clk.toFixed(1)+' GHz. ReRAM array energy is taken from the simulated currents (V·I·read pulse), plus '+(0.005*Math.pow(2,S.dacBits)).toFixed(2)+' pJ per DAC input and '+(0.01*Math.pow(2,S.adcBits)).toFixed(2)+' pJ per ADC conversion; latency is read pulse plus ADC time. The model leaves out one-time weight programming, routing and digital post-processing. Latency stays flat only for a single tile, and large arrays run into IR drop and ADC precision limits (raise wire resistance above to see accuracy fall). These are ballpark values, not measurements of any real chip.';
+}
+
+function update(){
+  var d=compute();
+  renderSVG(d);renderTables(d);renderChart(d);renderSteps(d);renderEff(d);
+}
+
+/* ---------- controls ---------- */
+function buildX(){
+  var h='';
+  for(var i=0;i<S.M;i++){
+    h+='<div class="row"><label for="x'+i+'" style="flex-basis:40px">x'+SUB[i]+'</label><input type="range" id="x'+i+'" min="0" max="1" step="0.01" value="'+X[i]+'"><output id="xo'+i+'">'+X[i].toFixed(2)+'</output></div>';
+  }
+  $('xs').innerHTML=h;
+  for(var j=0;j<S.M;j++)(function(i){
+    $('x'+i).addEventListener('input',function(e){X[i]=parseFloat(e.target.value);$('xo'+i).textContent=X[i].toFixed(2);update()});
+  })(j);
+}
+function buildW(){
+  var g=$('wg');g.style.gridTemplateColumns='repeat('+S.N+',minmax(0,1fr))';
+  var h='';
+  for(var i=0;i<S.M;i++)for(var j=0;j<S.N;j++){
+    h+='<input type="number" id="w_'+i+'_'+j+'" min="-1" max="1" step="0.05" value="'+W[i][j]+'" aria-label="Weight row '+(i+1)+' column '+(j+1)+'">';
+  }
+  g.innerHTML=h;
+  for(var a=0;a<S.M;a++)for(var b=0;b<S.N;b++)(function(i,j){
+    $('w_'+i+'_'+j).addEventListener('input',function(e){var v=parseFloat(e.target.value);if(isNaN(v))return;W[i][j]=clamp(v,-1,1);update()});
+  })(a,b);
+}
+function syncW(){for(var i=0;i<S.M;i++)for(var j=0;j<S.N;j++)$('w_'+i+'_'+j).value=W[i][j]}
+function buildCols(){
+  var h='';for(var j=0;j<S.N;j++)h+='<option value="'+j+'">y'+SUB[j]+'</option>';
+  $('colsel').innerHTML=h;$('colsel').value=Math.min(S.col,S.N-1);
+}
+var DEFS=[
+ ['dacBits','Input DAC',1,8,1,' bit',0],['gBits','Weight levels',1,8,1,' bit',0],
+ ['adcBits','Output ADC',3,12,1,' bit',0],['adcRange','ADC range',20,100,5,'%',0],
+ ['vread','Read voltage',0.05,0.3,0.01,' V',2],['gmin','Gmin (HRS)',1,20,1,' µS',0],
+ ['gmax','Gmax (LRS)',40,200,5,' µS',0],['sigma','Variation σ',0,25,0.5,'%',1],
+ ['rw','Wire R / segment',0,300,5,' Ω',0]
+];
+function buildSettings(){
+  var h='';
+  DEFS.forEach(function(q){h+='<div class="row"><label for="s_'+q[0]+'">'+q[1]+'</label><input type="range" id="s_'+q[0]+'" min="'+q[2]+'" max="'+q[3]+'" step="'+q[4]+'" value="'+S[q[0]]+'"><output id="so_'+q[0]+'">'+S[q[0]].toFixed(q[6])+q[5]+'</output></div>'});
+  $('settings').innerHTML=h;
+  DEFS.forEach(function(q){$('s_'+q[0]).addEventListener('input',function(e){S[q[0]]=parseFloat(e.target.value);$('so_'+q[0]).textContent=S[q[0]].toFixed(q[6])+q[5];update()})});
+}
+function fillSel(id,lo,hi,val){var h='';for(var v=lo;v<=hi;v++)h+='<option value="'+v+'"'+(v===val?' selected':'')+'>'+v+'</option>';$('sel'+id).innerHTML=h}
+function resize(){buildX();buildW();buildCols();update()}
+
+$('selM').addEventListener('change',function(e){S.M=parseInt(e.target.value,10);resize()});
+$('selN').addEventListener('change',function(e){S.N=parseInt(e.target.value,10);resize()});
+$('selShow').addEventListener('change',function(e){S.show=e.target.value;update()});
+$('colsel').addEventListener('change',function(e){S.col=parseInt(e.target.value,10);update()});
+$('bRand').addEventListener('click',function(){
+  for(var i=0;i<6;i++)for(var j=0;j<6;j++)W[i][j]=Math.round((Math.random()*2-1)*20)/20;
+  syncW();update();
+});
+$('bReset').addEventListener('click',function(){
+  W=W0.map(function(r){return r.slice()});X=X0.slice();syncW();buildX();update();
+});
+$('bSeed').addEventListener('click',function(){S.seed=Math.floor(Math.random()*100000);makeZ();update()});
+$('steps').addEventListener('click',function(e){
+  var t=e.target;
+  if(t.id==='bPlay'){
+    if(timer){clearInterval(timer);timer=null;update();return}
+    S.phase=1;update();
+    timer=setInterval(function(){
+      if(S.phase>=5){clearInterval(timer);timer=null;update();return}
+      S.phase++;update();
+    },1500);
+    update();
+    return;
+  }
+  var p=t.getAttribute('data-ph');
+  if(p){if(timer){clearInterval(timer);timer=null}S.phase=parseInt(p,10);update()}
+});
+
+[['eLanes','lanes',0,''],['eClk','clk',1,' GHz'],['eRead','tread',0,' ns'],['eAdc','tadc',0,' ns']].forEach(function(q){
+  $(q[0]).addEventListener('input',function(e){EF[q[1]]=parseFloat(e.target.value);$(q[0]+'O').textContent=EF[q[1]].toFixed(q[2])+q[3];update()});
+});
+$('eMem').addEventListener('change',function(e){EF.mem=e.target.value;update()});
+fillSel('M',2,6,S.M);fillSel('N',2,6,S.N);
+makeZ();buildSettings();buildX();buildW();buildCols();update();
+})();
+</script>
+</body>
+</html>

@@ -9,6 +9,7 @@ Personal site with browser simulators for my chip projects. Each simulator is on
 | `index.html` | Landing page linking to all projects |
 | `agila32/index.html` | AgilA32 simulator (RV32I CPU with RP2040-style PIO) |
 | `mc14500b/index.html` | MC14500B simulator (1-bit SoC) |
+| `reram/index.html` | ReRAM crossbar compute-in-memory simulator |
 
 ## AgilA32 browser simulator
 
@@ -42,6 +43,16 @@ Examples (each one has an editable assembler listing, a chip clock menu and a pr
 Controls: BTN is `ui_in[0]` (hold, or press Space), and the checkboxes are `ui_in[5]`, `ui_in[6]` and `ui_in[7]`. The 7-segment programs were produced with a search for the shortest instruction chain per segment; the generator code is in the page source (`johnsonDisplay`, `fsrDisplay`).
 
 Not verified against the Verilog in a simulator: the page was checked by running the examples and comparing their output sequences, not by co-simulation with `project.v`.
+
+## ReRAM crossbar simulator
+
+`reram/index.html` is a generic, textbook model of analog ReRAM compute-in-memory. It is plain HTML and JavaScript with no build. Weights are stored as differential conductance pairs (G+ and G-) in a passive crossbar, inputs are applied as word-line voltages, and each bit line sums its cell currents (Ohm's law per cell, Kirchhoff's current law per column). The pair is subtracted and digitized by an ADC, then compared with the ideal floating-point product.
+
+Controls: array size (2 to 6 rows and columns), input vector, weight matrix, DAC, weight-level and ADC bit depths, ADC range, read voltage, Gmin and Gmax, Gaussian device variation and wire resistance. Wire resistance is solved as a full resistive network (Gauss-Seidel), so IR drop appears in the outputs. A five-step walkthrough (program, drive rows, Ohm's law, sum columns, digitize) animates the crossbar, and one output column can be traced cell by cell.
+
+The efficiency panel compares the crossbar with a digital multiply-accumulate (MAC) processor for latency and energy at the current size, at 256 x 256, and across array sizes from 4 x 4 to 512 x 512. Array energy comes from the simulated currents (V x I x read pulse). The digital MAC energy, memory fetch energy, DAC and ADC energies and timings are illustrative ballpark values that you can edit, not measurements of any chip. The model leaves out weight programming, sneak paths, routing and digital post-processing, so small arrays can favor digital.
+
+This is a teaching model, not a novel architecture and not a model of a specific chip. It has not been compared against measured ReRAM hardware or a circuit simulator such as SPICE.
 
 ## Adding another project
 
