@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ReRAM vs an Ordinary Resistor</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#EBEFF2; --panel:#F8FAFB; --ink:#15212B; --mute:#587080; --line:#C7D1D8;
+  --volt:#1D63C9; --curr:#C2620A; --cell:#22313D; --err:#B3261E; --ok:#1E7B4A; --hl:#FBE9D2;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+    --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+  --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+:root{color-scheme:light}
+html{padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+a{color:var(--volt)}
+header h1{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,4vw,34px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;max-width:72ch;color:var(--mute)}
+.crumb{font-size:13px;margin:0 0 8px}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.toc a{border:1px solid var(--line);border-radius:999px;padding:3px 12px;text-decoration:none;color:var(--ink);background:var(--panel);font-size:13px}
+.toc a:hover{border-color:var(--volt)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+h2{font-family:var(--f-display);font-size:18px;font-weight:600;margin:0 0 8px;letter-spacing:.01em}
+.cap{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--mute);font-weight:600}
+.lead{margin:0 0 12px;max-width:78ch;font-size:14px}
+.note{font-size:12px;color:var(--mute);margin:8px 0 0}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+.card{border:1px solid var(--line);border-radius:6px;padding:12px;background:var(--bg);min-width:0}
+.card h3{font-family:var(--f-display);font-size:15px;margin:0 0 4px}
+.row{display:flex;align-items:center;gap:10px;margin:7px 0}
+.row label{flex:0 0 130px;font-size:13px}
+.row input[type=range]{flex:1;min-width:0;accent-color:var(--volt)}
+.row output{flex:0 0 96px;text-align:right;font-family:var(--f-mono);font-size:12px}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 10px}
+button{cursor:pointer}
+button:hover:not(:disabled){border-color:var(--volt)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.set{border-color:var(--curr);color:var(--curr);font-weight:600}
+button.reset{border-color:var(--volt);color:var(--volt);font-weight:600}
+button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-mono)}
+.read{font-family:var(--f-mono);font-size:13px;margin:6px 0}
+.read b{font-weight:500}
+.big{font-family:var(--f-display);font-weight:700;font-size:26px;line-height:1.15}
+.status{min-height:2.9em;font-size:13px;margin:6px 0}
+.good{color:var(--ok)} .bad{color:var(--err)}
+.analogy{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:10px 0 0}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute)}
+td:first-child{font-weight:600;white-space:nowrap}
+.tw{overflow-x:auto}
+.mapgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.mapgrid .card p{margin:4px 0 0;font-size:13px}
+details.q{border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0;background:var(--bg)}
+details.q summary{cursor:pointer;font-weight:600}
+details.q p{margin:8px 0 2px}
+.verdict{font-family:var(--f-display);font-size:18px;font-weight:600;margin:8px 0 2px}
+.credit{font-size:12px;color:var(--mute);text-align:center;padding-top:6px;border-top:1px solid var(--line)}
+.flow{stroke-dasharray:6 5;animation:dash .7s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-11}}
+@media (prefers-reduced-motion:reduce){.flow{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="crumb"><span class="cap">Step 1 of 2</span> &nbsp;·&nbsp; ReRAM basics &nbsp;·&nbsp; <a href="../">Next: the crossbar simulator &rarr;</a></p>
+    <h1>ReRAM vs an ordinary resistor</h1>
+    <p>An ordinary resistor has a fixed value. A ReRAM cell is a resistor whose value you can change with electrical pulses, and which then keeps that value with the power off. Everything in the crossbar simulator follows from that one difference. This page lets you poke at it before you meet the array.</p>
+    <nav class="toc" aria-label="On this page">
+      <a href="#cell">1. Write a cell</a>
+      <a href="#iv">2. The I-V loop</a>
+      <a href="#flaws">3. Why it is not perfect</a>
+      <a href="#table">4. Side by side</a>
+      <a href="#sim">5. In the simulator</a>
+      <a href="#check">6. Check yourself</a>
+    </nav>
+  </header>
+
+  <section class="panel" id="what">
+    <h2>What a ReRAM cell is</h2>
+    <p class="lead">A thin metal-oxide layer (for example HfOx) sits between two electrodes. A <b>SET</b> pulse builds a conductive filament of oxygen vacancies through the oxide, which lowers the resistance. A <b>RESET</b> pulse of opposite polarity or different amplitude breaks the filament, which raises it. A read at low voltage does not disturb the state, so within that read range the cell behaves like a resistor with whatever value was last written. That is the assumption behind the crossbar math in the simulator.</p>
+    <div class="analogy">
+      <div class="card"><h3>Think of a water pipe</h3><p class="note" style="margin:0;font-size:13px;color:var(--ink)">A resistor is a pipe of fixed width: it passes a fixed amount of water for a given pressure. A ReRAM cell is a pipe whose width you can change with a strong push, and which stays at the new width after you let go.</p></div>
+      <div class="card"><h3>Think of a lamp</h3><p class="note" style="margin:0;font-size:13px;color:var(--ink)">A resistor is a fixed bulb. A ReRAM cell is a dimmer whose knob you turn with write pulses. It stays where you left it, even when the house power is cut.</p></div>
+      <div class="card"><h3>Why computing cares</h3><p class="note" style="margin:0;font-size:13px;color:var(--ink)">Conductance is the weight. Voltage is the input. Ohm's law (I = V·G) does the multiply, and the wire does the add. The weight is the physical state of the device, so it never has to be fetched.</p></div>
+    </div>
+  </section>
+
+  <section class="panel" id="cell">
+    <h2>1. Write a cell</h2>
+    <p class="lead">Both cells below start at about the same value. Send the same pulses to both. The resistor ignores them. The ReRAM cell changes, one step per pulse, and then holds the new value. Try cutting the power.</p>
+    <div class="two">
+      <div class="card">
+        <h3>ReRAM cell</h3>
+        <svg id="cellSvg" viewBox="0 0 330 210" role="img" aria-label="Cross section of a ReRAM cell with a filament that grows and shrinks"></svg>
+        <div class="read" id="cellRead"></div>
+        <svg id="gauge" viewBox="0 0 330 46" role="img" aria-label="Conductance gauge"></svg>
+      </div>
+      <div class="card">
+        <h3>Ordinary resistor</h3>
+        <svg id="resSvg" viewBox="0 0 330 100" role="img" aria-label="An ordinary resistor of fixed value"></svg>
+        <div class="read" id="resRead"></div>
+        <svg id="gauge2" viewBox="0 0 330 46" role="img" aria-label="Conductance gauge for the resistor"></svg>
+        <div class="status" id="resMsg" style="color:var(--mute)"></div>
+      </div>
+    </div>
+    <div class="row"><label for="cAmp">Pulse amplitude</label><input type="range" id="cAmp" min="0.5" max="2.4" step="0.05" value="1.6"><output id="cAmpO">1.60 V</output></div>
+    <div class="row"><label for="cRd">Read voltage</label><input type="range" id="cRd" min="0.05" max="1.4" step="0.05" value="0.2"><output id="cRdO">0.20 V</output></div>
+    <div class="btns">
+      <button class="set" id="bSet">SET pulse (lower R)</button>
+      <button class="reset" id="bReset">RESET pulse (raise R)</button>
+      <button id="bRead">Read</button>
+      <button id="bPower" aria-pressed="false">Cut the power</button>
+      <button id="bErase">Erase to high R</button>
+    </div>
+    <p class="status" id="cellMsg" aria-live="polite"></p>
+    <p class="note">Pulses below about 0.8 V do nothing (below the switching threshold). Stronger pulses move the filament further. Reading above about 0.8 V starts to behave like a weak SET pulse, which is called read disturb. The step size model is the same illustrative one the write panel in the simulator uses.</p>
+  </section>
+
+  <section class="panel" id="iv">
+    <h2>2. The I-V loop</h2>
+    <p class="lead">A resistor draws a straight line: double the voltage, double the current, in both directions. A ReRAM cell draws a loop. Start in the high-resistance state, sweep the voltage up past the SET threshold, and the cell jumps to a low-resistance state and stays there on the way back. A negative sweep past the RESET threshold flips it back. The shaded band is the read range, where the cell is close to an ordinary resistor.</p>
+    <div class="two">
+      <div>
+        <svg id="ivSvg" viewBox="0 0 460 320" role="img" aria-label="Current versus voltage: a straight line for a resistor and a hysteresis loop for a ReRAM cell"></svg>
+        <div class="row"><label for="ivV">Voltage</label><input type="range" id="ivV" min="-2" max="2" step="0.02" value="0"><output id="ivVO">0.00 V</output></div>
+        <div class="btns"><button id="ivPlay">Sweep once</button><button id="ivClear">Reset cell and clear</button></div>
+      </div>
+      <div>
+        <div class="read" id="ivRead"></div>
+        <p class="status" id="ivMsg" aria-live="polite"></p>
+        <p class="note">Drag the slider yourself and notice the order matters: the same voltage gives a different current depending on where you came from. That path dependence is the memory. Current is I = G(V)·V, with a small non-linearity added at higher voltage, so the cell is only roughly a resistor at low voltage.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="flaws">
+    <h2>3. Why it is not perfect</h2>
+    <p class="lead">Sixteen cells were written to the same target. A resistor array would land within about 1% of the target. ReRAM cells scatter (variation), relax towards the middle as time passes (drift), and lose their separation after many write cycles (endurance). Move the sliders.</p>
+    <div class="two">
+      <div>
+        <svg id="flSvg" viewBox="0 0 460 250" role="img" aria-label="Strip chart of conductance for ordinary resistors and for ReRAM cells in the low and high resistance states"></svg>
+      </div>
+      <div>
+        <div class="row"><label for="fSig">Variation σ</label><input type="range" id="fSig" min="0" max="25" step="0.5" value="10"><output id="fSigO">10.0%</output></div>
+        <div class="row"><label for="fT">Time since write</label><input type="range" id="fT" min="0" max="8" step="0.25" value="0"><output id="fTO">0 s</output></div>
+        <div class="row"><label for="fC">Write cycles</label><input type="range" id="fC" min="0" max="10" step="0.25" value="0"><output id="fCO">1</output></div>
+        <div class="btns"><button id="fSeed">Resample cells</button></div>
+        <p class="verdict" id="fVerdict"></p>
+        <p class="status" id="fLevels"></p>
+      </div>
+    </div>
+    <p class="note">Illustrative numbers, not measurements of a specific device. Drift pulls both states towards the middle (up to about a third of the way over the time range shown), and wear above about a million cycles shrinks the gap between the states. The point is the shape of each effect, not the exact values.</p>
+  </section>
+
+  <section class="panel" id="table">
+    <h2>4. Side by side</h2>
+    <div class="tw">
+    <table>
+      <thead><tr><th></th><th>Ordinary resistor</th><th>ReRAM cell</th></tr></thead>
+      <tbody>
+        <tr><td>Value</td><td>Set once by layout or manufacture</td><td>Rewritable with SET and RESET pulses</td></tr>
+        <tr><td>Memory</td><td>None, it is just fixed</td><td>Non-volatile, keeps its state without power</td></tr>
+        <tr><td>I-V curve</td><td>Linear at all voltages</td><td>Roughly linear only at small read voltages, and switches or disturbs at higher ones</td></tr>
+        <tr><td>Accuracy</td><td>Very predictable, around 1% matching</td><td>Noticeable device-to-device and pulse-to-pulse variation</td></tr>
+        <tr><td>Stability</td><td>Stable</td><td>State can drift or relax over time</td></tr>
+        <tr><td>Wear</td><td>None</td><td>Limited write endurance</td></tr>
+        <tr><td>Size</td><td>Large for kΩ to hundreds of kΩ</td><td>Very small cell, which is the density advantage</td></tr>
+        <tr><td>Extra steps</td><td>None</td><td>Needs an initial forming step, write circuitry and verify reads</td></tr>
+        <tr><td>Availability</td><td>Any CMOS process</td><td>Needs a foundry with an RRAM layer in the back-end</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section class="panel" id="sim">
+    <h2>5. What you will meet in the simulator</h2>
+    <p class="lead">Step 2 is the crossbar simulator. Each difference above explains one of its controls, so here is a preview of what to look for there.</p>
+    <div class="mapgrid">
+      <div class="card"><h3>The write panel</h3><p>Erase, SET and RESET pulses, program-and-verify and the pulse-count map exist only because ReRAM must be programmed. A resistor array would skip all of it. <a href="../#prog">Open the write panel</a>.</p></div>
+      <div class="card"><h3>The variation σ slider</h3><p>The σ slider and the write-noise model represent ReRAM's imprecision (section 3 above). A resistor array would mainly have small, static mismatch. <a href="../#prog">See it in the write map</a>.</p></div>
+      <div class="card"><h3>Gmin and Gmax</h3><p>They represent the high-resistance and low-resistance states. A real resistor has one value, not two states, so a resistor array has no such range.</p></div>
+      <div class="card"><h3>Weight levels</h3><p>A ReRAM cell has to be written to one of several conductance levels in between its two extremes. A resistor array would need a different resistor value for every weight, fixed at manufacture.</p></div>
+      <div class="card"><h3>Read voltage</h3><p>The read voltage is kept small (0.2 V by default) so that the cell stays inside the band where it acts like a plain resistor and the crossbar math holds (section 2).</p></div>
+      <div class="card"><h3>Efficiency panel</h3><p>The weights never move: they are the devices. That is where the energy saving over a digital multiply-accumulate comes from. <a href="../#eff">Open the efficiency panel</a>.</p></div>
+    </div>
+  </section>
+
+  <section class="panel" id="check">
+    <h2>6. Check yourself</h2>
+    <details class="q"><summary>Why can the simulator treat each cell as an ordinary resistor when computing?</summary><p>Because the read voltage is small. In that range the read does not change the state and the I-V curve is close to linear, so each cell passes I = V·G with the G that was last written.</p></details>
+    <details class="q"><summary>You power the chip off for a week and back on. What happens to the stored weights?</summary><p>They are still there, because the filament state is physical and non-volatile. They may have drifted slightly (section 3), so a long-lived system may need to refresh or re-verify its weights.</p></details>
+    <details class="q"><summary>Why does the simulator read back after every write pulse?</summary><p>Pulse-to-pulse and device-to-device variation mean the same pulse moves different cells by different amounts. Reading the value back and adjusting is how the controller gets each cell within tolerance of its target.</p></details>
+    <details class="q"><summary>A designer wants 6 bits per weight in one cell. Which slider in section 3 is the problem, and why?</summary><p>Variation σ. Sixty-four levels packed between the two extremes are very close together, so cell-to-cell scatter makes neighbouring levels overlap. Fewer levels per cell tolerate more variation.</p></details>
+  </section>
+
+  <section class="panel" id="next" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
+    <div><span class="cap">Step 2 of 2</span><h2 style="margin:2px 0 0">Ready for the crossbar?</h2><p class="note" style="margin:4px 0 0;font-size:13px;max-width:60ch">Now that a cell is a resistor you can program, put thousands of them in a grid: voltages in, Ohm's law per cell, currents add on the bit lines, and the multiply-accumulate is done.</p></div>
+    <a href="../" style="text-decoration:none"><button class="set" type="button" style="padding:10px 18px;font-size:15px">Open the crossbar simulator &rarr;</button></a>
+  </section>
+
+  <footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>
+</div>
+
+<script>
+(function(){
+var GMIN=5,GMAX=100,VTH=0.8,VMAX=2.4,A=0.45,GRES=50;
+function $(id){return document.getElementById(id)}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function sg(v,d){return (v<0?'−':'')+Math.abs(v).toFixed(d)}
+function fmtR(g){var k=1000/g;return k>=1000?(k/1000).toFixed(1)+' MΩ':(k<10?k.toFixed(1):k.toFixed(0))+' kΩ'}
+function gOf(s){return GMIN+s*(GMAX-GMIN)}
+function stateName(s){return s<0.15?'high resistance (HRS, "0")':s>0.85?'low resistance (LRS, "1")':'in between (analog level)'}
+function rng(seed){var a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){var u=r()||1e-9,v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+
+/* ---------- 1. write a cell ---------- */
+var C={s:0.12,power:true,msg:'Start by pressing SET a few times.'};
+var DOTS=[[60,70],[90,110],[130,60],[170,120],[210,75],[250,105],[280,65],[100,95],[240,130],[150,95],[200,55],[270,115],[75,125],[185,100]];
+function drawCell(){
+  var s=C.s,top=46,bot=156,H=bot-top,yt=bot-s*H,wb=8+22*s,wt=4+12*s,cx=130,o='';
+  o+='<rect x="30" y="16" width="200" height="30" rx="3" fill="var(--mute)" opacity=".55"/><text x="130" y="35" text-anchor="middle" font-size="11" fill="var(--ink)">top electrode</text>';
+  o+='<rect x="30" y="'+top+'" width="200" height="'+H+'" fill="var(--line)" opacity=".7"/>';
+  DOTS.forEach(function(d){o+='<circle cx="'+d[0]+'" cy="'+(top+8+(d[1]-55)*1.35)+'" r="2.2" fill="var(--mute)" opacity=".5"/>'});
+  o+='<polygon points="'+(cx-wb/2)+','+bot+' '+(cx+wb/2)+','+bot+' '+(cx+wt/2)+','+yt.toFixed(1)+' '+(cx-wt/2)+','+yt.toFixed(1)+'" fill="var(--curr)" opacity="'+(0.25+0.75*s).toFixed(2)+'"/>';
+  o+='<rect x="30" y="'+bot+'" width="200" height="30" rx="3" fill="var(--mute)" opacity=".55"/><text x="130" y="'+(bot+19)+'" text-anchor="middle" font-size="11" fill="var(--ink)">bottom electrode</text>';
+  o+='<text x="240" y="'+(top+14)+'" font-size="11" fill="var(--ink)">metal oxide</text><text x="240" y="'+(top+28)+'" font-size="10" fill="var(--mute)">(e.g. HfOx)</text>';
+  o+='<text x="'+(cx+wb/2+8)+'" y="'+(Math.max(yt+12,top+52))+'" font-size="10" fill="var(--curr)">filament</text>';
+  if(s<0.97)o+='<text x="'+(cx+16)+'" y="'+((top+yt)/2+4)+'" font-size="10" fill="var(--mute)">gap</text>';
+  if(!C.power)o+='<rect x="0" y="0" width="330" height="210" fill="var(--bg)" opacity=".55"/><text x="165" y="104" text-anchor="middle" font-size="15" fill="var(--ink)">power off, filament still there</text>';
+  $('cellSvg').innerHTML=o;
+}
+function gaugeSvg(id,g,label,col){
+  var x0=14,x1=316,X=function(v){return x0+(x1-x0)*(v-GMIN)/(GMAX-GMIN)};
+  var o='<line x1="'+x0+'" x2="'+x1+'" y1="20" y2="20" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/>';
+  o+='<circle cx="'+X(clamp(g,GMIN,GMAX))+'" cy="20" r="8" fill="'+col+'"/>';
+  o+='<text x="'+x0+'" y="42" font-size="10" fill="var(--mute)">Gmin '+GMIN+' µS (HRS)</text><text x="'+x1+'" y="42" text-anchor="end" font-size="10" fill="var(--mute)">Gmax '+GMAX+' µS (LRS)</text>';
+  $(id).innerHTML=o;
+}
+function renderCell(){
+  drawCell();
+  var g=gOf(C.s);
+  $('cellRead').innerHTML=C.power?'<span class="big">'+fmtR(g)+'</span><br>G = <b>'+g.toFixed(1)+' µS</b> · '+stateName(C.s):'<span class="big">—</span><br>nothing is being measured';
+  gaugeSvg('gauge',g,'',C.power?'var(--curr)':'var(--mute)');
+  var z='';
+  z+='<polyline points="20,50 50,50 62,28 82,72 102,28 122,72 142,28 162,72 182,28 202,72 214,50 310,50" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round"/>';
+  z+='<text x="165" y="94" text-anchor="middle" font-size="11" fill="var(--mute)">fixed by layout</text>';
+  $('resSvg').innerHTML=z;
+  $('resRead').innerHTML='<span class="big">'+fmtR(GRES)+'</span><br>G = <b>'+GRES.toFixed(1)+' µS</b> · same value always';
+  gaugeSvg('gauge2',GRES,'','var(--ink)');
+  $('cellMsg').textContent=C.msg;
+  $('bSet').disabled=$('bReset').disabled=$('bRead').disabled=$('bErase').disabled=!C.power;
+  $('bPower').textContent=C.power?'Cut the power':'Power back on';
+  $('bPower').setAttribute('aria-pressed',C.power?'false':'true');
+}
+function drive(v){return clamp((v-VTH)/(VMAX-VTH),0,1)}
+function setRes(m){$('resMsg').textContent=m}
+$('cAmp').addEventListener('input',function(e){$('cAmpO').textContent=parseFloat(e.target.value).toFixed(2)+' V'});
+$('cRd').addEventListener('input',function(e){$('cRdO').textContent=parseFloat(e.target.value).toFixed(2)+' V'});
+$('bSet').addEventListener('click',function(){
+  var v=parseFloat($('cAmp').value),d=drive(v);
+  if(d===0){C.msg='A '+v.toFixed(2)+' V pulse is below the switching threshold ('+VTH+' V), so the filament does not move.'}
+  else{var before=gOf(C.s);C.s=clamp(C.s+A*d*(1-C.s),0,1);C.msg='SET at '+v.toFixed(2)+' V: the filament grows, G went from '+before.toFixed(1)+' to '+gOf(C.s).toFixed(1)+' µS. Press again for another step.'}
+  setRes('Same pulse sent: no change.');renderCell();
+});
+$('bReset').addEventListener('click',function(){
+  var v=parseFloat($('cAmp').value),d=drive(v);
+  if(d===0){C.msg='A '+v.toFixed(2)+' V pulse is below the switching threshold ('+VTH+' V), so the filament does not move.'}
+  else{var before=gOf(C.s);C.s=clamp(C.s-A*d*C.s,0,1);C.msg='RESET at −'+v.toFixed(2)+' V: the filament partly dissolves, G went from '+before.toFixed(1)+' to '+gOf(C.s).toFixed(1)+' µS.'}
+  setRes('Same pulse sent: no change.');renderCell();
+});
+$('bErase').addEventListener('click',function(){C.s=0;C.msg='Block erase: the filament is fully broken. This is what the simulator does to the whole array before it writes any weights.';setRes('');renderCell()});
+$('bRead').addEventListener('click',function(){
+  var v=parseFloat($('cRd').value),g=gOf(C.s),I=g*v;
+  var m='Read at '+v.toFixed(2)+' V: I = V·G = '+I.toFixed(1)+' µA.';
+  if(v>VTH){var d=drive(v),b=g;C.s=clamp(C.s+0.1*d*(1-C.s),0,1);m+=' That is above the threshold, so the read disturbed the cell and nudged G from '+b.toFixed(1)+' to '+gOf(C.s).toFixed(1)+' µS.'}
+  else if(v>0.5){m+=' Getting close to the switching threshold; real devices already show some disturb here.'}
+  else{m+=' Low voltage, so the state is untouched and the cell acts like a plain resistor.'}
+  C.msg=m;setRes('Read at the same voltage: '+(GRES*v).toFixed(1)+' µA, every time.');renderCell();
+});
+$('bPower').addEventListener('click',function(){
+  C.power=!C.power;
+  C.msg=C.power?'Power is back. The value is the one you left, because the filament is a physical structure. A volatile memory would have lost it.':'Power is off. Nothing can be read or written, but the filament is not going anywhere.';
+  renderCell();
+});
+
+/* ---------- 2. I-V loop ---------- */
+var IV={s:0,v:0,pts:[],timer:null};
+var IMAX=300;
+function ivI(s,v){return gOf(s)*v*(1+0.15*v*v)}
+function ivStep(v){
+  var n=Math.max(1,Math.ceil(Math.abs(v-IV.v)/0.02)),a=IV.v,i,vv;
+  for(i=1;i<=n;i++){
+    vv=a+(v-a)*i/n;
+    if(vv>1.0)IV.s+=(1-IV.s)*clamp((vv-1.0)/0.5,0,1)*0.25;
+    if(vv<-0.8)IV.s-=IV.s*clamp((-vv-0.8)/0.5,0,1)*0.25;
+    IV.s=clamp(IV.s,0,1);
+    IV.pts.push([vv,ivI(IV.s,vv)]);
+  }
+  IV.v=v;
+  if(IV.pts.length>1500)IV.pts.splice(0,IV.pts.length-1500);
+}
+function renderIV(){
+  var x0=48,x1=444,y0=14,y1=292,xm=(x0+x1)/2,ym=(y0+y1)/2;
+  function X(v){return xm+v/2*(x1-x0)/2}
+  function Y(i){return ym-i/IMAX*(y1-y0)/2}
+  var o='<rect x="'+X(-0.5)+'" y="'+y0+'" width="'+(X(0.5)-X(-0.5))+'" height="'+(y1-y0)+'" fill="var(--volt)" opacity=".12"/><text x="'+xm+'" y="'+(y0+10)+'" text-anchor="middle" font-size="9.5" fill="var(--mute)">read range</text>';
+  [-2,-1,0,1,2].forEach(function(v){o+='<line x1="'+X(v)+'" x2="'+X(v)+'" y1="'+y0+'" y2="'+y1+'" stroke="var(--line)" stroke-width="'+(v===0?1.5:1)+'"/><text x="'+X(v)+'" y="'+(y1+14)+'" text-anchor="middle" font-size="10" fill="var(--mute)">'+sg(v,0)+'</text>'});
+  [-300,-150,0,150,300].forEach(function(i){o+='<line x1="'+x0+'" x2="'+x1+'" y1="'+Y(i)+'" y2="'+Y(i)+'" stroke="var(--line)" stroke-width="'+(i===0?1.5:1)+'"/><text x="'+(x0-6)+'" y="'+(Y(i)+3.5)+'" text-anchor="end" font-size="10" fill="var(--mute)">'+sg(i,0)+'</text>'});
+  o+='<text x="'+x1+'" y="'+(y1+28)+'" text-anchor="end" font-size="10" fill="var(--mute)">voltage (V)</text><text x="'+x0+'" y="10" font-size="10" fill="var(--mute)">current (µA)</text>';
+  o+='<line x1="'+X(-2)+'" y1="'+Y(-GRES*2)+'" x2="'+X(2)+'" y2="'+Y(GRES*2)+'" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="5 4"/>';
+  if(IV.pts.length>1)o+='<polyline fill="none" stroke="var(--curr)" stroke-width="2" stroke-linejoin="round" points="'+IV.pts.map(function(p){return X(p[0]).toFixed(1)+','+Y(clamp(p[1],-IMAX,IMAX)).toFixed(1)}).join(' ')+'"/>';
+  o+='<circle cx="'+X(IV.v)+'" cy="'+Y(clamp(ivI(IV.s,IV.v),-IMAX,IMAX))+'" r="5" fill="var(--curr)" stroke="var(--bg)" stroke-width="1.5"/>';
+  o+='<line x1="'+(x0+8)+'" x2="'+(x0+26)+'" y1="'+(y1-30)+'" y2="'+(y1-30)+'" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="'+(x0+32)+'" y="'+(y1-27)+'" font-size="10" fill="var(--mute)">resistor, '+fmtR(GRES)+'</text>';
+  o+='<line x1="'+(x0+8)+'" x2="'+(x0+26)+'" y1="'+(y1-14)+'" y2="'+(y1-14)+'" stroke="var(--curr)" stroke-width="2"/><text x="'+(x0+32)+'" y="'+(y1-11)+'" font-size="10" fill="var(--mute)">ReRAM cell</text>';
+  $('ivSvg').innerHTML=o;
+  var g=gOf(IV.s),I=ivI(IV.s,IV.v);
+  $('ivV').value=IV.v;$('ivVO').textContent=sg(IV.v,2)+' V';
+  $('ivRead').innerHTML='V = <b>'+sg(IV.v,2)+' V</b> · I = <b>'+sg(I,1)+' µA</b><br>Cell is in '+stateName(IV.s)+', G ≈ <b>'+g.toFixed(1)+' µS</b> ('+fmtR(g)+')<br>A '+fmtR(GRES)+' resistor would draw <b>'+sg(GRES*IV.v,1)+' µA</b>';
+  var m;
+  if(Math.abs(IV.v)<=0.5)m='In the read range the cell acts like a resistor with its stored value.';
+  else if(IV.v>1.0&&IV.s<0.95)m='Past the SET threshold: the filament is forming and the current jumps.';
+  else if(IV.v<-0.8&&IV.s>0.05)m='Past the RESET threshold: the filament is dissolving and the current collapses.';
+  else if(Math.abs(IV.v)>0.5)m='Outside the read range the curve bends away from a straight line.';
+  $('ivMsg').textContent=m;
+}
+function ivStop(){if(IV.timer){clearInterval(IV.timer);IV.timer=null}$('ivPlay').textContent='Sweep once'}
+$('ivV').addEventListener('input',function(e){ivStop();ivStep(parseFloat(e.target.value));renderIV()});
+$('ivClear').addEventListener('click',function(){ivStop();IV.s=0;IV.v=0;IV.pts=[];renderIV()});
+$('ivPlay').addEventListener('click',function(){
+  if(IV.timer){ivStop();return}
+  var path=[],v;
+  for(v=0;v<=1.8001;v+=0.04)path.push(v);
+  for(v=1.8;v>=-1.8001;v-=0.04)path.push(v);
+  for(v=-1.8;v<=0.0001;v+=0.04)path.push(v);
+  var k=0;IV.v=0;IV.pts=[];IV.pts.push([0,0]);
+  $('ivPlay').textContent='Stop';
+  IV.timer=setInterval(function(){
+    if(k>=path.length){ivStop();renderIV();return}
+    ivStep(path[k++]);renderIV();
+  },30);
+});
+
+/* ---------- 3. imperfections ---------- */
+var F={seed:3,Z:[]};
+function makeF(){
+  var r=rng(F.seed*7919+1);F.Z=[];
+  for(var g=0;g<3;g++){F.Z[g]=[];for(var i=0;i<16;i++)F.Z[g][i]={z:gauss(r),j:r()}}
+}
+function fmtTime(e){
+  var t=Math.pow(10,e)-1;if(e===0)return '0 s';
+  if(t<60)return t.toFixed(0)+' s';if(t<3600)return (t/60).toFixed(0)+' min';if(t<86400)return (t/3600).toFixed(0)+' h';
+  if(t<86400*365)return (t/86400).toFixed(0)+' days';return (t/86400/365).toFixed(1)+' years';
+}
+function fmtCyc(e){if(e<3)return Math.round(Math.pow(10,e)).toString();return '10^'+(e%1===0?e:e.toFixed(2))}
+function renderFlaws(){
+  var sig=parseFloat($('fSig').value)/100,te=parseFloat($('fT').value),ce=parseFloat($('fC').value);
+  $('fSigO').textContent=(sig*100).toFixed(1)+'%';$('fTO').textContent=fmtTime(te);$('fCO').textContent=fmtCyc(ce);
+  var fr=clamp(te/8,0,1);
+  var w=clamp((ce-6)/4,0,1),q=clamp(0.3*fr+0.9*w,0,0.97),mid=(GMAX+GMIN)/2;
+  var Lnom=GMAX-q*(GMAX-mid),Hnom=GMIN+q*(mid-GMIN);
+  var x0=104,x1=446,lo=0,hi=Math.log10(300);
+  function X(g){return x0+(x1-x0)*(Math.log10(clamp(g,1,300))-lo)/(hi-lo)}
+  var rows=[{y:56,lab:['Ordinary resistors','(about 1%)'],nom:GRES,sg:0.01,col:'var(--ink)'},{y:132,lab:['ReRAM cells','low R state'],nom:Lnom,sg:sig,col:'var(--curr)'},{y:208,lab:['ReRAM cells','high R state'],nom:Hnom,sg:sig,col:'var(--volt)'}];
+  var o='';
+  [1,3,10,30,100,300].forEach(function(g){o+='<line x1="'+X(g)+'" x2="'+X(g)+'" y1="14" y2="226" stroke="var(--line)"/><text x="'+X(g)+'" y="242" text-anchor="middle" font-size="10" fill="var(--mute)">'+g+'</text>'});
+  o+='<text x="'+x1+'" y="10" text-anchor="end" font-size="10" fill="var(--mute)">conductance (µS, log scale)</text>';
+  var minL=1e9,maxH=0,i;
+  rows.forEach(function(r,ri){
+    r.lab.forEach(function(t,k){o+='<text x="4" y="'+(r.y+k*13-2)+'" font-size="'+(k?9.5:11)+'" fill="'+(k?'var(--mute)':'var(--ink)')+'">'+t+'</text>'});
+    o+='<line x1="'+x0+'" x2="'+x1+'" y1="'+r.y+'" y2="'+r.y+'" stroke="var(--line)" stroke-dasharray="2 4"/>';
+    for(i=0;i<16;i++){
+      var c=F.Z[ri][i],g=Math.max(0.5,r.nom*(1+r.sg*c.z));
+      if(ri===1)minL=Math.min(minL,g);if(ri===2)maxH=Math.max(maxH,g);
+      o+='<circle cx="'+X(g).toFixed(1)+'" cy="'+(r.y-18+c.j*36).toFixed(1)+'" r="3.4" fill="'+r.col+'" fill-opacity=".8"/>';
+    }
+  });
+  $('flSvg').innerHTML=o;
+  var ratio=minL/maxH,ok=ratio>1.2;
+  $('fVerdict').innerHTML='<span class="'+(ok?'good':'bad')+'">'+(ok?'A stored 0 and 1 can still be told apart':'The 0 and 1 populations now overlap: reads fail')+'</span>';
+  var sp=(Lnom-Hnom)/15,spread=sig*Lnom;
+  $('fLevels').innerHTML='Window: weakest "1" is <b>'+minL.toFixed(0)+' µS</b>, strongest "0" is <b>'+maxH.toFixed(0)+' µS</b> ('+(ratio>=10?ratio.toFixed(0):ratio.toFixed(1))+'× apart).<br>If you split the range into 16 analog levels (4 bits), neighbouring levels are only <b>'+Math.max(sp,0).toFixed(1)+' µS</b> apart, but one standard deviation of scatter at the top level is <b>'+spread.toFixed(1)+' µS</b>. '+(spread<sp/2?'<span class="good">The levels stay separate.</span>':'<span class="bad">Neighbouring levels overlap, so 4-bit weights are hard to hold.</span>');
+}
+['fSig','fT','fC'].forEach(function(id){$(id).addEventListener('input',renderFlaws)});
+$('fSeed').addEventListener('click',function(){F.seed=Math.floor(Math.random()*100000);makeF();renderFlaws()});
+
+renderCell();renderIV();makeF();renderFlaws();
+})();
+</script>
+</body>
+</html>

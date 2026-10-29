@@ -98,11 +98,53 @@ tfoot td{font-weight:500;border-bottom:0}
 .sub2{margin:14px 0 6px}
 .chk{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:13px}
 .credit{font-size:12px;color:var(--mute);text-align:center;padding-top:6px;border-top:1px solid var(--line)}
+.exgrid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:760px){.exgrid{grid-template-columns:minmax(0,1fr)}}
+.expix{display:grid;grid-template-columns:repeat(2,68px);grid-auto-rows:68px;gap:6px;margin:8px 0 10px}
+.expix button{font-family:var(--f-mono);font-size:18px;padding:0;border-radius:6px}
+.expix button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+#exT td,#exT th{text-align:left;white-space:normal;vertical-align:middle}
+#exT tr.win td{background:var(--hl)}
+.mini{display:inline-grid;grid-template-columns:repeat(2,20px);gap:4px;padding:2px}
+.mini b{display:block;height:20px;line-height:20px;text-align:center;font-size:13px;font-weight:600;border-radius:3px;color:var(--bg)}
+.mini .p{background:var(--volt)} .mini .n{background:var(--curr)} .mini .z{background:var(--line);color:var(--ink)}
+.mini .lit{outline:2px solid var(--ink);outline-offset:1px}
+.exbar{position:relative;display:inline-block;width:110px;height:10px;border:1px solid var(--line);background:var(--bg);vertical-align:middle;margin-left:8px}
+.exbar i{position:absolute;top:0;bottom:0}
+.exbar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--mute)}
+.exverdict{font-family:var(--f-display);font-size:18px;font-weight:600;margin:10px 0 2px}
+.xorflow{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:12px 0}
+#xCards{display:contents}
+.xcard{flex:1 1 190px;border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg);min-width:0}
+.xcard .cap{display:block;margin-bottom:6px}
+.xarrow{flex:0 0 auto;align-self:center;color:var(--mute);font-size:20px}
+@media (max-width:760px){.xarrow{display:none}}
+.xin{display:flex;gap:8px;margin:2px 0 8px}
+.xin button{font-family:var(--f-mono);font-size:15px;min-width:64px;padding:8px 6px}
+.xin button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.xg{display:grid;gap:3px;align-items:center;font-family:var(--f-mono);font-size:11px;margin:4px 0 8px}
+.xg .gc{display:block;height:24px;border-radius:3px;background:var(--cell)}
+.xg .lab{color:var(--mute);text-align:right;padding-right:4px;white-space:nowrap}
+.xg .hd{color:var(--mute);text-align:center}
+.xline{font-family:var(--f-mono);font-size:12px;margin:4px 0}
+.xbit{display:inline-block;min-width:1.7em;text-align:center;border-radius:4px;padding:0 5px;font-weight:600;background:var(--ink);color:var(--bg)}
+.xbit.z{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+.xbig{font-family:var(--f-display);font-weight:700;font-size:38px;line-height:1.1}
+#xorT td,#xorT th{text-align:center;white-space:nowrap}
+#xorT tr.sel td{background:var(--hl)}
+.xwed{display:flex;flex-wrap:wrap;gap:22px;margin:6px 0}
+.xwg{display:grid;gap:4px;align-items:center;font-family:var(--f-mono);font-size:12px;margin-top:4px}
+.xwg input{width:100%;min-width:0;padding:4px 2px;text-align:center;font-family:var(--f-mono);font-size:12px}
+.xwg .hd{color:var(--mute);text-align:center}
+.xwg .lab{color:var(--mute);text-align:right;padding-right:4px}
+#xor summary{cursor:pointer;font-weight:600;margin:14px 0 6px}
+.xscore{font-family:var(--f-display);font-size:18px;font-weight:600;margin:8px 0 2px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
+    <p style="margin:0 0 6px;font-size:13px"><span class="cap">Step 2 of 2</span> &nbsp;·&nbsp; <a href="basics/">&larr; Step 1: ReRAM vs an ordinary resistor (read this first)</a></p>
     <h1>ReRAM Crossbar Simulator</h1>
     <p>Weights are stored as conductances in a resistive-RAM crossbar. Input voltages on the word lines produce bit-line currents that already equal the matrix product, <span class="eq">Iⱼ = Σᵢ Vᵢ·Gᵢⱼ</span>, so the multiply and the sum both happen inside the array.</p>
     <p>This is a generic, textbook model of analog ReRAM compute-in-memory: a passive crossbar with differential conductance pairs, a quantized DAC and ADC, Gaussian device variation, wire IR drop and a pulse-and-verify model of how the weights are written. It is meant for learning and quick experiments, not as a novel architecture or a model of any specific chip.</p>
@@ -120,6 +162,7 @@ tfoot td{font-weight:500;border-bottom:0}
 
     <section class="panel">
       <h2>Crossbar</h2>
+      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:80ch">A crossbar is a grid of ReRAM cells. Each word line (a row) carries an input voltage, each bit line (a column) collects current, and a cell sits at every crossing with its stored conductance G. Press Play to watch the five stages: write the weights, drive the rows, let each cell apply Ohm&rsquo;s law, let each column sum its currents, then digitize the result. Use the controls further down to change the inputs, weights and device settings.</p>
       <div class="steps" id="steps"></div>
       <p class="stepnote" id="stepnote"></p>
       <div class="legend">
@@ -129,6 +172,60 @@ tfoot td{font-weight:500;border-bottom:0}
         <span>Cell label <select id="selShow"><option value="g">Conductance µS</option><option value="i">Current µA</option><option value="n">None</option></select></span>
       </div>
       <div class="xbar"><svg id="xsvg" role="img" aria-label="ReRAM crossbar array with word lines, bit lines and ADCs"></svg></div>
+    </section>
+
+    <section class="panel" id="ex">
+      <h2>Example 1: which side of the picture is lit? <span class="cap">tiny example</span></h2>
+      <p class="note" style="margin:0 0 12px;font-size:13px;max-width:80ch">Pick a 2×2 picture (4 pixels) or a 3×3 patch (9 pixels). The array stores four <b>templates</b>: Left, Right, Top and Bottom. Each template is a column of weights: +1 for &ldquo;I want this pixel lit&rdquo;, −1 for &ldquo;I want it dark&rdquo;, and 0 for &ldquo;I don&rsquo;t care&rdquo; (3×3 only). The picture goes in as voltages, every cell adds its current to its bit line, and the template that overlaps the picture most collects the most current. In the 3×3 case the templates are edge-detecting kernels like those used in image processing, so this is one step of a convolution. It is a one-layer neural network, computed in a single read.</p>
+      <div class="row"><label for="exSize">Picture size</label><select id="exSize"><option value="2">2×2 picture (4 pixels)</option><option value="3">3×3 patch (9 pixels, edge kernels)</option></select></div>
+      <div class="exgrid">
+        <div>
+          <div class="cap">1. Draw the picture (tap pixels)</div>
+          <div class="expix" id="exPix"></div>
+          <div class="cap">Or try a preset</div>
+          <div class="btns" id="exPre"></div>
+        </div>
+        <div>
+          <div class="cap">2. Templates (weights) and 3. what each bit line adds up</div>
+          <div class="tw"><table id="exT"></table></div>
+          <p class="exverdict" id="exV"></p>
+          <p class="note" id="exMode" style="margin-top:2px"></p>
+        </div>
+      </div>
+      <div class="btns">
+        <button type="button" id="exLoad">Load this example into the simulator</button>
+        <button type="button" id="exPlay">Watch the crossbar compute it</button>
+      </div>
+      <p class="note" id="exNote2"></p>
+    </section>
+
+    <section class="panel" id="xor">
+      <h2>Example 2: why XOR needs two crossbars</h2>
+      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:80ch">XOR is 1 when exactly one of the two inputs is on. One crossbar can only draw a single straight line through the four cases, and no line separates XOR&rsquo;s 0s from its 1s. With two crossbars and a comparator in between it works: A asks &ldquo;is any input on?&rdquo; (h₁) and &ldquo;are both on?&rdquo; (h₂), and B answers &ldquo;any, but not both&rdquo;.</p>
+      <div class="row"><label for="xMode">Network</label><select id="xMode"><option value="two">Two crossbars with a hidden layer</option><option value="one">One crossbar only</option></select></div>
+      <div class="xorflow">
+        <div class="xcard" style="flex-basis:150px">
+          <span class="cap">Inputs (tap to flip)</span>
+          <div class="xin" id="xIn"><button type="button" data-i="0"></button><button type="button" data-i="1"></button></div>
+          <div class="xline" style="color:var(--mute)">bias = 1 (always on)</div>
+        </div>
+        <div id="xCards"></div>
+      </div>
+      <p class="xscore" id="xScore"></p>
+      <div class="tw"><table id="xorT"></table></div>
+      <p class="note" id="xNote"></p>
+      <details>
+        <summary>Experiment: edit the weights, add noise</summary>
+        <div class="effctl">
+          <div class="row"><label for="xSig">Variation σ</label><input type="range" id="xSig" min="0" max="25" step="0.5" value="10"><output id="xSigO">10.0%</output></div>
+          <div class="row"><label for="xRw">Wire R / segment</label><input type="range" id="xRw" min="0" max="300" step="5" value="0"><output id="xRwO">0 Ω</output></div>
+        </div>
+        <div class="xwed">
+          <div id="xwA"></div><div id="xwB"></div><div id="xw1"></div>
+        </div>
+        <div class="btns"><button type="button" id="xReset">Restore the XOR solution</button><button type="button" id="xSeed">Resample device variation</button></div>
+        <p class="note">Weights go from −1 to 1. Push σ toward 20 to 25% and press Resample a few times: a ✗ appears when noise on one cell pushes a sum across 0. The other device settings come from the Device and circuit panel below, and weights are written ideally with no programming model.</p>
+      </details>
     </section>
 
   <div class="grid">
@@ -232,11 +329,12 @@ tfoot td{font-weight:500;border-bottom:0}
 
 <script>
 (function(){
-var W0=[[0.8,-0.4,0.2,0.6,-0.7,0.3],[-0.5,0.9,0.1,-0.3,0.4,-0.8],[0.3,0.2,-0.9,0.5,0.6,-0.1],[0.7,-0.6,0.4,-0.2,-0.5,0.9],[-0.3,0.5,0.7,0.1,-0.9,0.2],[0.6,-0.1,-0.4,0.8,0.3,-0.6]];
-var X0=[0.8,0.3,0.6,1.0,0.5,0.2];
+var W0=[[0.8,-0.4,0.2,0.6,-0.7,0.3],[-0.5,0.9,0.1,-0.3,0.4,-0.8],[0.3,0.2,-0.9,0.5,0.6,-0.1],[0.7,-0.6,0.4,-0.2,-0.5,0.9],[-0.3,0.5,0.7,0.1,-0.9,0.2],[0.6,-0.1,-0.4,0.8,0.3,-0.6],
+  [0.2,-0.7,0.5,0.1,0.8,-0.4],[-0.6,0.3,0.9,-0.8,0.2,0.5],[0.4,0.6,-0.3,0.7,-0.1,-0.9]];
+var X0=[0.8,0.3,0.6,1.0,0.5,0.2,0.7,0.1,0.9];
 var S={arch:'diff',M:4,N:4,dacBits:4,gBits:4,adcBits:8,adcRange:100,vread:0.2,gmin:5,gmax:100,sigma:10,rw:0,seed:7,show:'g',phase:5,col:0,wmode:'verify',v0:1.0,dv:0.1,tol:2,maxp:30,tp:50,icc:50,par:1,erase:1,pr:0,pc:0};
 var W=W0.map(function(r){return r.slice()}), X=X0.slice(), Z=[];
-var SUB=['₁','₂','₃','₄','₅','₆'];
+var SUB=['₁','₂','₃','₄','₅','₆','₇','₈','₉'];
 var timer=null;
 function $(id){return document.getElementById(id)}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -257,8 +355,8 @@ function colDesc(k){
 }
 
 function rng(seed){var a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-function makeZ(){var r=rng(S.seed*9973+11);Z=[];for(var i=0;i<6;i++){Z[i]=[];for(var k=0;k<12;k++){var u=r()||1e-9,v=r();Z[i][k]=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}}
-  var r2=rng(S.seed*9973+977);for(i=0;i<6;i++)for(k=12;k<96;k++){var u2=r2()||1e-9,v2=r2();Z[i][k]=Math.sqrt(-2*Math.log(u2))*Math.cos(2*Math.PI*v2)}}
+function makeZ(){var r=rng(S.seed*9973+11);Z=[];for(var i=0;i<9;i++){Z[i]=[];for(var k=0;k<12;k++){var u=r()||1e-9,v=r();Z[i][k]=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}}
+  var r2=rng(S.seed*9973+977);for(i=0;i<9;i++)for(k=12;k<96;k++){var u2=r2()||1e-9,v2=r2();Z[i][k]=Math.sqrt(-2*Math.log(u2))*Math.cos(2*Math.PI*v2)}}
 
 /* Crossbar solve. G in siemens, Vin in volts. Returns bit-line currents (A) and per-cell currents (A). */
 function solve(Vin,G,rw){
@@ -627,7 +725,6 @@ function renderProg(d){
     :mode==='single'
     ?'Open loop: the pulse train was calibrated on a nominal device and is replayed with no read-back. Device variation (σ) goes straight into the stored weights, but there are no verify reads.'
     :'Program-and-verify: after every pulse the cell is read back. SET pulses start at the start amplitude and rise by ΔV each time; if a pulse overshoots, RESET pulses pull it back. Variation (σ) changes how strongly each pulse acts on a given cell.';
-  if(d.bin)$('pNote').textContent+=' Binary weighted: every cell has only two targets, Gmin (bit 0, left at its erased value) or Gmax (bit 1), so a single SET pulse with a wide tolerance, or no verify at all, is often enough in practice. The same write circuitry and loop are used; the loop simply ends sooner.';
   var avg=st.pulsed?st.pulses/st.pulsed:0;
   function tile(big,label,sub,bad){return '<div class="tile"><div class="big'+(bad?' bad':'')+'" style="font-size:22px">'+big+'</div><div class="sub"><b style="font-weight:600;color:var(--ink)">'+label+'</b><br>'+sub+'</div></div>'}
   $('ptiles').innerHTML=
@@ -774,9 +871,10 @@ function renderEff(d){
   $('effNote').textContent=cross+'Assumptions: digital uses '+EMAC+' pJ per 8-bit MAC plus '+EMEM[EF.mem]+' pJ per weight byte fetched from '+(EF.mem==='sram'?'SRAM':'DRAM')+', '+EF.lanes+' lanes at '+EF.clk.toFixed(1)+' GHz. ReRAM array energy is taken from the simulated currents (V·I·read pulse), plus '+(0.005*Math.pow(2,S.dacBits)).toFixed(2)+' pJ per DAC input and '+(0.01*Math.pow(2,S.adcBits)).toFixed(2)+' pJ per ADC conversion; latency is read pulse plus ADC time. The first two table rows treat programming as a one-time cost spread over the number of products computed with the same weights (the write model above supplies it); the digital side assumes its weights already sit in memory. The model leaves out routing and digital post-processing. Latency stays flat only for a single tile, and large arrays run into IR drop and ADC precision limits (raise wire resistance above to see accuracy fall). These are ballpark values, not measurements of any real chip.'+(d.bin?' Binary weighted mode uses '+pl+' bit planes per output, so it has '+pl+' times as many cells and ADC conversions as the analog multi-level layout.':'');
 }
 
+var LAST=null;
 function update(){
-  archNote();var d=compute();
-  renderSVG(d);renderTables(d);renderChart(d);renderSteps(d);renderEff(d);renderProg(d);
+  archNote();var d=compute();LAST=d;
+  renderSVG(d);renderTables(d);renderChart(d);renderSteps(d);renderEff(d);renderProg(d);renderEx(d);renderXor();
 }
 
 /* ---------- controls ---------- */
@@ -833,7 +931,7 @@ $('selArch').addEventListener('change',function(e){S.arch=e.target.value;resize(
 $('selShow').addEventListener('change',function(e){S.show=e.target.value;update()});
 $('colsel').addEventListener('change',function(e){S.col=parseInt(e.target.value,10);update()});
 $('bRand').addEventListener('click',function(){
-  for(var i=0;i<6;i++)for(var j=0;j<6;j++)W[i][j]=Math.round((Math.random()*2-1)*20)/20;
+  for(var i=0;i<9;i++)for(var j=0;j<6;j++)W[i][j]=Math.round((Math.random()*2-1)*20)/20;
   syncW();update();
 });
 $('bReset').addEventListener('click',function(){
@@ -887,7 +985,217 @@ $('bPA').addEventListener('click',function(){
 });
 $('eReuse').addEventListener('input',function(e){EF.reuse=parseFloat(e.target.value);$('eReuseO').textContent=Math.pow(10,EF.reuse).toLocaleString('en-US')+'×';update()});
 $('eMem').addEventListener('change',function(e){EF.mem=e.target.value;update()});
-fillSel('M',2,6,S.M);fillSel('N',2,6,S.N);
+/* ---------- starter example: which side of a picture patch is lit? (2x2 or 3x3) ---------- */
+var EXN=['Left','Right','Top','Bottom'];
+var EXD={
+  2:{names:['TL','TR','BL','BR'],
+     T:[[1,-1,1,-1],[-1,1,-1,1],[1,1,-1,-1],[-1,-1,1,1]], /* T[output][pixel], pixels in reading order */
+     pre:[['Left','1,0,1,0'],['Right','0,1,0,1'],['Top','1,1,0,0'],['Bottom','0,0,1,1'],['One corner','1,0,0,0'],['Diagonal','1,0,0,1'],['Clear','0,0,0,0']]},
+  3:{names:['TL','T','TR','L','C','R','BL','B','BR'],
+     T:[[1,0,-1,1,0,-1,1,0,-1],[-1,0,1,-1,0,1,-1,0,1],[1,1,1,0,0,0,-1,-1,-1],[-1,-1,-1,0,0,0,1,1,1]],
+     pre:[['Left','1,0,0,1,0,0,1,0,0'],['Right','0,0,1,0,0,1,0,0,1'],['Top','1,1,1,0,0,0,0,0,0'],['Bottom','0,0,0,0,0,0,1,1,1'],['One corner','1,0,0,0,0,0,0,0,0'],['Diagonal','1,0,0,0,1,0,0,0,1'],['Centre dot','0,0,0,0,1,0,0,0,0'],['Clear','0,0,0,0,0,0,0,0,0']]}
+};
+var EZ=2,EP=[1,0,1,0],PN=EXD[2].names,EXT=EXD[2].T,EXP=4;
+function exSize(n){EZ=n;PN=EXD[n].names;EXT=EXD[n].T;EXP=n*n}
+function fmtN(v){return (Math.round(v*100)/100).toString().replace('-','−')}
+function exActive(){ /* true when the simulator holds exactly this example's weights at this size */
+  if(S.M!==EXP||S.N!==4)return false;
+  for(var i=0;i<EXP;i++)for(var j=0;j<4;j++)if(W[i][j]!==EXT[j][i])return false;
+  return true;
+}
+function exBuildPix(){
+  var n=EZ,px=n===2?68:56,h='',i,pe=$('exPix');
+  pe.style.gridTemplateColumns='repeat('+n+','+px+'px)';pe.style.gridAutoRows=px+'px';
+  for(i=0;i<EXP;i++)h+='<button type="button" data-p="'+i+'"></button>';
+  pe.innerHTML=h;
+  h='';EXD[n].pre.forEach(function(q){h+='<button type="button" data-v="'+q[1]+'">'+q[0]+'</button>'});
+  $('exPre').innerHTML=h;
+  $('exNote2').textContent='Pixels are numbered x₁ to x'+SUB[EXP-1]+' in reading order ('+(n===2?'top-left, top-right, bottom-left, bottom-right':'left to right, top to bottom')
+    +') and the four outputs are y₁ to y₄ (Left, Right, Top, Bottom). Outlined squares are the lit pixels, and blue (+), orange (−) or grey (0) is the weight a template stores for that pixel. Once loaded, open Trace one output below to see one column’s sum as real currents. Then raise the variation σ or the wire resistance and see how much noise it takes to change the winner. A corner ties two templates and a diagonal matches none: why?';
+}
+function renderEx(d){
+  var act=exActive(),i,j;
+  if(act)for(i=0;i<EXP;i++)EP[i]=X[i];
+  var pb=$('exPix').children;
+  for(i=0;i<EXP;i++){pb[i].textContent=fmtN(EP[i]);pb[i].setAttribute('aria-pressed',EP[i]>0.5?'true':'false');pb[i].setAttribute('aria-label','Pixel '+PN[i]+', value '+fmtN(EP[i]))}
+  var vals=[],rows=[];
+  for(j=0;j<4;j++){
+    var s=0,terms=[],mini='',lit=false;
+    for(i=0;i<EXP;i++){
+      var w=EXT[j][i],x=EP[i];s+=x*w;
+      if(x>0){lit=true;if(w!==0)terms.push(PN[i]+' '+(x===1?'':fmtN(x)+'×')+(w>0?'+1':'−1'))}
+      mini+='<b class="'+(w>0?'p':w<0?'n':'z')+(x>0.5?' lit':'')+'">'+(w>0?'+':w<0?'−':'0')+'</b>';
+    }
+    vals[j]=act?d.out[j]:s;
+    rows.push({mini:mini,eq:(terms.length?terms.join(', '):(lit?'lit pixels have weight 0':'nothing lit'))+' = '+fmtN(s),v:vals[j]});
+  }
+  var mx=Math.max.apply(null,vals),win=[];
+  if(mx>=0.25)for(j=0;j<4;j++)if(vals[j]>=mx-0.15)win.push(j);
+  var t='<thead><tr><th>Template</th><th>Output</th><th>Sum over lit pixels</th><th>'+(act?'Crossbar reading':'Score')+'</th></tr></thead><tbody>';
+  for(j=0;j<4;j++){
+    var v=vals[j],fill=Math.min(Math.abs(v),EZ===2?2:3)/(EZ===2?2:3)*50;
+    var bar='<span class="exbar" aria-hidden="true"><i style="background:'+(v>=0?'var(--curr)':'var(--mute)')+';left:'+(v>=0?50:50-fill)+'%;width:'+fill+'%"></i></span>';
+    t+='<tr class="'+(win.indexOf(j)>=0?'win':'')+'"><td><span class="mini" style="grid-template-columns:repeat('+EZ+',20px)">'+rows[j].mini+'</span></td><td>y'+SUB[j]+' '+EXN[j]+'</td><td>'+rows[j].eq+'</td><td>'+(act?f(v,2):fmtN(v))+bar+'</td></tr>';
+  }
+  $('exT').innerHTML=t+'</tbody>';
+  var names=win.map(function(k){return EXN[k]});
+  $('exV').textContent=win.length===0?'No side stands out: every score is near zero or below.'
+    :win.length===1?'The lit side is: '+names[0]+'.'
+    :'Tie: '+names.join(' and ')+' match equally (like a corner).';
+  var clean=S.sigma===0&&S.rw===0&&S.wmode==='ideal';
+  $('exMode').textContent=act?(clean?'Running on the crossbar above with ideal devices (no variation, no wire resistance). The input sliders and these pixels stay in sync.'
+      :'Running on the crossbar above with your current device settings, so the readings can drift from the exact sums.')
+    :'Preview with plain arithmetic. Press \u201cLoad this example into the simulator\u201d to run it on the crossbar above.';
+}
+function exSet(v){
+  for(var i=0;i<EXP;i++)EP[i]=v[i];
+  if(exActive()){for(var k=0;k<EXP;k++)X[k]=EP[k];buildX();update()}else renderEx(LAST);
+}
+function exLoad(){
+  stopPB();stopPA();if(timer){clearInterval(timer);timer=null}
+  S.arch='diff';$('selArch').value='diff';S.M=EXP;S.N=4;S.sigma=0;S.rw=0;S.wmode='ideal';S.phase=5;S.col=0;
+  for(var i=0;i<EXP;i++){X[i]=EP[i];for(var j=0;j<4;j++)W[i][j]=EXT[j][i]}
+  fillSel('M',2,9,EXP);fillSel('N',2,6,4);$('pMode').value='ideal';
+  buildSettings();resize();
+}
+$('exSize').addEventListener('change',function(e){
+  var was=exActive();
+  exSize(parseInt(e.target.value,10));
+  EP=EXD[EZ].pre[0][1].split(',').map(Number);
+  exBuildPix();
+  if(was)exLoad();else renderEx(LAST);
+});
+$('exPix').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  var v=EP.slice(),p=parseInt(b.getAttribute('data-p'),10);v[p]=EP[p]>0.5?0:1;exSet(v);
+});
+$('exPre').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  exSet(b.getAttribute('data-v').split(',').map(Number));
+});
+$('exLoad').addEventListener('click',exLoad);
+$('exPlay').addEventListener('click',function(){
+  if(!exActive())exLoad();
+  if(timer){clearInterval(timer);timer=null;update()}
+  var rm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  $('xsvg').scrollIntoView({behavior:rm?'auto':'smooth',block:'center'});
+  $('bPlay').click();
+});
+exBuildPix();
+
+/* ---------- XOR example: two crossbars with a comparator between them ---------- */
+/* Own small crossbar model: same device settings and solve() as the main array, ideal write (no programming model). */
+var XD={A:[[0.5,0.5],[0.5,0.5],[-0.25,-0.75]],B:[[1],[-1],[-0.5]],one:[[0.5],[0.5],[-0.25]]};
+var XW=JSON.parse(JSON.stringify(XD)),XM='two',XI=[1,0];
+function xbar(Xin,Wm,zoff){
+  var R=Xin.length,C=Wm[0].length,span=S.gmax-S.gmin,Lv=Math.pow(2,S.gBits)-1,dl=Math.pow(2,S.dacBits)-1;
+  var Vin=[],G=[],Gs=[],i,j,s;
+  for(i=0;i<R;i++){
+    Vin[i]=Math.round(Xin[i]*dl)/dl*S.vread;G[i]=[];Gs[i]=[];
+    for(j=0;j<C;j++)for(s=0;s<2;s++){
+      var w=Wm[i][j],mag=s===0?Math.max(w,0):Math.max(-w,0),k=2*j+s;
+      var g=S.gmin+Math.round(mag*Lv)/Lv*span;
+      g=Math.max(0.05,g*(1+S.sigma/100*Z[zoff+i][k]));
+      G[i][k]=g;Gs[i][k]=g*1e-6;
+    }
+  }
+  var sol=solve(Vin,Gs,S.rw),Rr=R*S.adcRange/100,lv=Math.pow(2,S.adcBits-1)-1,out=[];
+  for(j=0;j<C;j++){
+    var raw=(sol.Ic[2*j]-sol.Ic[2*j+1])*1e6/(S.vread*span);
+    out[j]=clamp(Math.round(raw/Rr*lv),-lv,lv)*Rr/lv;
+  }
+  return {Vin:Vin,G:G,out:out};
+}
+function xorRun(a,b){
+  var x=[a,b,1];
+  if(XM==='one'){var r=xbar(x,XW.one,0);return {r:r,y:r.out[0]>0?1:0,sum:r.out[0]}}
+  var rA=xbar(x,XW.A,0),h=[rA.out[0]>0?1:0,rA.out[1]>0?1:0];
+  var rB=xbar([h[0],h[1],1],XW.B,3);
+  return {rA:rA,h:h,rB:rB,y:rB.out[0]>0?1:0,sum:rB.out[0]};
+}
+function xGrid(r,rowLab){
+  var R=r.G.length,C=r.G[0].length,span=S.gmax-S.gmin,i,k;
+  var h='<div class="xg" style="grid-template-columns:auto repeat('+C+',26px)"><span></span>';
+  for(k=0;k<C;k++)h+='<span class="hd">'+(k%2?'G⁻':'G⁺')+'</span>';
+  for(i=0;i<R;i++){
+    h+='<span class="lab">'+rowLab[i]+' '+Math.round(r.Vin[i]*1000)+' mV</span>';
+    for(k=0;k<C;k++){var t=clamp((r.G[i][k]-S.gmin)/span,0,1);h+='<i class="gc" style="opacity:'+(0.1+0.9*t).toFixed(2)+'" title="G = '+r.G[i][k].toFixed(1)+' µS"></i>'}
+  }
+  return h+'</div>';
+}
+function xBit(v){return '<span class="xbit'+(v?'':' z')+'">'+v+'</span>'}
+function xLine(name,sum,bit){return '<div class="xline">'+name+': Σ <b>'+f(sum,2)+'</b> → '+xBit(bit)+'</div>'}
+function renderXor(){
+  var i,j,a,b,two=XM==='two';
+  var ib=$('xIn').children;
+  for(i=0;i<2;i++){ib[i].textContent='x'+SUB[i]+' = '+XI[i];ib[i].setAttribute('aria-pressed',XI[i]?'true':'false')}
+  $('xSig').value=S.sigma;$('xSigO').textContent=S.sigma.toFixed(1)+'%';
+  $('xRw').value=S.rw;$('xRwO').textContent=S.rw.toFixed(0)+' Ω';
+  $('xwA').hidden=!two;$('xwB').hidden=!two;$('xw1').hidden=two;
+  ['xwA:A','xwB:B','xw1:one'].forEach(function(q){
+    var p=q.split(':'),inp=$(p[0]).querySelectorAll('input');
+    inp.forEach(function(el){if(document.activeElement!==el)el.value=XW[p[1]][+el.getAttribute('data-i')][+el.getAttribute('data-j')]});
+  });
+  /* diagram for the selected input */
+  var cur=xorRun(XI[0],XI[1]),exp=XI[0]^XI[1],ok=cur.y===exp,c='';
+  if(two){
+    c+='<div class="xarrow" aria-hidden="true">→</div><div class="xcard"><span class="cap">Crossbar A · hidden layer</span>'+xGrid(cur.rA,['x₁','x₂','bias'])
+      +xLine('h₁ (at least one on)',cur.rA.out[0],cur.h[0])+xLine('h₂ (both on)',cur.rA.out[1],cur.h[1])+'</div>';
+    c+='<div class="xarrow" aria-hidden="true">→</div><div class="xcard"><span class="cap">Crossbar B · output layer</span>'+xGrid(cur.rB,['h₁','h₂','bias'])
+      +xLine('y',cur.sum,cur.y)+'</div>';
+  }else{
+    c+='<div class="xarrow" aria-hidden="true">→</div><div class="xcard"><span class="cap">One crossbar</span>'+xGrid(cur.r,['x₁','x₂','bias'])+xLine('y',cur.sum,cur.y)+'</div>';
+  }
+  c+='<div class="xarrow" aria-hidden="true">→</div><div class="xcard" style="flex-basis:140px"><span class="cap">Output</span><div class="xbig">'+cur.y+'</div><div class="xline">XOR('+XI[0]+', '+XI[1]+') = '+exp+' <b class="'+(ok?'good':'bad')+'">'+(ok?'✓':'✗')+'</b></div></div>';
+  $('xCards').innerHTML=c;
+  /* truth table over all four inputs */
+  var t='<thead><tr><th>x₁</th><th>x₂</th>'+(two?'<th>h₁ sum → bit</th><th>h₂ sum → bit</th>':'')+'<th>y sum → bit</th><th>XOR</th><th></th></tr></thead><tbody>',right=0;
+  for(a=0;a<2;a++)for(b=0;b<2;b++){
+    var r=xorRun(a,b),e=a^b,good=r.y===e;if(good)right++;
+    t+='<tr class="'+(a===XI[0]&&b===XI[1]?'sel':'')+'"><td>'+a+'</td><td>'+b+'</td>'
+      +(two?'<td>'+f(r.rA.out[0],2)+' → '+r.h[0]+'</td><td>'+f(r.rA.out[1],2)+' → '+r.h[1]+'</td>':'')
+      +'<td>'+f(r.sum,2)+' → '+r.y+'</td><td>'+e+'</td><td class="'+(good?'good':'bad')+'">'+(good?'✓':'✗')+'</td></tr>';
+  }
+  $('xorT').innerHTML=t+'</tbody>';
+  $('xScore').innerHTML=right+' of 4 correct';
+  $('xScore').className='xscore '+(right===4?'good':'bad');
+  $('xNote').textContent=two
+    ?'Each comparator keeps only the sign of a sum: above 0 becomes a 1. That hard decision is what a single crossbar lacks.'
+    :'One crossbar gives y = w₁x₁ + w₂x₂ + bias. These weights make an OR gate, which gets 3 of 4. No weights can reach 4 of 4, because no straight line splits the cases. Open the experiment section to try.';
+}
+function buildXorEd(){
+  function grid(id,title,g,rows,cols){
+    var h='<div class="cap">'+title+'</div><div class="xwg" style="grid-template-columns:auto repeat('+cols.length+',64px)"><span></span>';
+    cols.forEach(function(n){h+='<span class="hd">'+n+'</span>'});
+    rows.forEach(function(rn,i){
+      h+='<span class="lab">'+rn+'</span>';
+      cols.forEach(function(cn,j){h+='<input type="number" min="-1" max="1" step="0.05" data-g="'+g+'" data-i="'+i+'" data-j="'+j+'" aria-label="'+title+', '+rn+' to '+cn+'">'});
+    });
+    $(id).innerHTML=h+'</div>';
+  }
+  grid('xwA','Crossbar A','A',['x₁','x₂','bias'],['h₁','h₂']);
+  grid('xwB','Crossbar B','B',['h₁','h₂','bias'],['y']);
+  grid('xw1','One crossbar','one',['x₁','x₂','bias'],['y']);
+  document.querySelectorAll('.xwg input').forEach(function(el){
+    el.addEventListener('input',function(){
+      var v=parseFloat(el.value);if(isNaN(v))return;
+      XW[el.getAttribute('data-g')][+el.getAttribute('data-i')][+el.getAttribute('data-j')]=clamp(v,-1,1);update();
+    });
+  });
+}
+buildXorEd();
+$('xMode').addEventListener('change',function(e){XM=e.target.value;update()});
+$('xIn').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var i=+b.getAttribute('data-i');XI[i]=XI[i]?0:1;update()});
+$('xReset').addEventListener('click',function(){XW=JSON.parse(JSON.stringify(XD));document.querySelectorAll('.xwg input').forEach(function(el){el.blur()});update()});
+$('xSeed').addEventListener('click',function(){S.seed=Math.floor(Math.random()*100000);makeZ();update()});
+$('xSig').addEventListener('input',function(e){
+  S.sigma=parseFloat(e.target.value);var sl=$('s_sigma');if(sl){sl.value=S.sigma;$('so_sigma').textContent=S.sigma.toFixed(1)+'%'}update();
+});
+$('xRw').addEventListener('input',function(e){
+  S.rw=parseFloat(e.target.value);var sl=$('s_rw');if(sl){sl.value=S.rw;$('so_rw').textContent=S.rw.toFixed(0)+' Ω'}update();
+});
+
+fillSel('M',2,9,S.M);fillSel('N',2,6,S.N);
 makeZ();buildSettings();buildX();buildW();buildCols();buildProgSel();update();
 })();
 </script>
