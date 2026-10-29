@@ -34,9 +34,11 @@ header{gap:14px 24px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:10px 0 0;padding:0}
 .chips li{font-size:12px;font-weight:500;padding:2px 9px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink)}
 .compnote{margin:8px 0 0;font-size:12px;color:var(--muted);max-width:62ch}
-.quick{flex:0 1 380px;align-self:stretch}
+.quick{flex:0 1 400px;align-self:flex-start}
 @media (max-width:600px){.logo{width:84px;height:84px}}
-.quick ol{margin:0 0 10px;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:13px}
+.quick ol{margin:0 0 10px;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:13px}
+.quick{padding-block:12px}
+.quick h2{margin-bottom:8px}
 .quick li::marker{color:var(--accent);font-weight:600}
 .quick .row{gap:8px;flex-wrap:wrap}
 header p{margin:0;color:var(--muted);max-width:62ch;text-wrap:pretty}
@@ -138,14 +140,14 @@ pre.asm{margin:6px 0 0;padding:8px 10px;background:var(--code);border-radius:6px
     <aside class="panel quick" aria-label="Quick start">
       <h2>Quick start</h2>
       <ol>
-        <li>The chip is already running <b>PILIPINAS AGILA32</b>: watch the 7-segment display and the LEDs.</li>
-        <li>This program ignores the input switches. To see them work, run the C example <b>switches</b>: the LEDs copy <span style="font-family:var(--font-mono)">ui0-ui7</span> as you click them.</li>
-        <li>Pick another scenario and press <b>Load and run</b>: the C examples and the PIO tests are in the list.</li>
+        <li>The chip is already running <b>PILIPINAS AGILA32</b>: watch the 7-segment display and LEDs.</li>
+        <li>This program ignores the input switches; try the C example <b>switches</b> to see them work.</li>
+        <li>Or pick any scenario and press <b>Load and run</b>.</li>
       </ol>
       <div class="row">
-        <button class="primary" id="qsDemo" type="button" onclick="var s=document.getElementById('scn');s.value='pa';s.dispatchEvent(new Event('change'));document.getElementById('go').click()">Restart the default demo</button>
-        <button id="qsSw" type="button" onclick="var s=document.getElementById('scn');s.value='cprog';s.dispatchEvent(new Event('change'));var c=document.getElementById('cex');c.value='switches';c.dispatchEvent(new Event('change'));document.getElementById('go').click()">Try the switches example</button>
-        <button id="qsScn" type="button" onclick="var s=document.getElementById('scn');s.scrollIntoView({block:'center'});s.focus()">Choose a scenario</button>
+        <button class="primary" id="qsDemo" type="button" onclick="var s=document.getElementById('scn');s.value='pa';s.dispatchEvent(new Event('change'));document.getElementById('go').click()">Restart demo</button>
+        <button id="qsSw" type="button" onclick="var s=document.getElementById('scn');s.value='cprog';s.dispatchEvent(new Event('change'));var c=document.getElementById('cex');c.value='switches';c.dispatchEvent(new Event('change'));document.getElementById('go').click()">Try switches</button>
+        <button id="qsScn" type="button" onclick="var s=document.getElementById('scn');s.scrollIntoView({block:'center'});s.focus()">All scenarios</button>
       </div>
     </aside>
     <button class="themebtn" id="theme" type="button" aria-label="Switch colour theme">Theme</button>
