@@ -627,6 +627,7 @@ function renderProg(d){
     :mode==='single'
     ?'Open loop: the pulse train was calibrated on a nominal device and is replayed with no read-back. Device variation (σ) goes straight into the stored weights, but there are no verify reads.'
     :'Program-and-verify: after every pulse the cell is read back. SET pulses start at the start amplitude and rise by ΔV each time; if a pulse overshoots, RESET pulses pull it back. Variation (σ) changes how strongly each pulse acts on a given cell.';
+  if(d.bin)$('pNote').textContent+=' Binary weighted: every cell has only two targets, Gmin (bit 0, left at its erased value) or Gmax (bit 1), so a single SET pulse with a wide tolerance, or no verify at all, is often enough in practice. The same write circuitry and loop are used; the loop simply ends sooner.';
   var avg=st.pulsed?st.pulses/st.pulsed:0;
   function tile(big,label,sub,bad){return '<div class="tile"><div class="big'+(bad?' bad':'')+'" style="font-size:22px">'+big+'</div><div class="sub"><b style="font-weight:600;color:var(--ink)">'+label+'</b><br>'+sub+'</div></div>'}
   $('ptiles').innerHTML=
