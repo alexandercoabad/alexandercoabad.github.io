@@ -139,11 +139,12 @@ pre.asm{margin:6px 0 0;padding:8px 10px;background:var(--code);border-radius:6px
       <h2>Quick start</h2>
       <ol>
         <li>The chip is already running <b>PILIPINAS AGILA32</b>: watch the 7-segment display and the LEDs.</li>
-        <li>Click the switches <span style="font-family:var(--font-mono)">ui0-ui7</span> to drive the input pins.</li>
+        <li>This program ignores the input switches. To see them work, run the C example <b>switches</b>: the LEDs copy <span style="font-family:var(--font-mono)">ui0-ui7</span> as you click them.</li>
         <li>Pick another scenario and press <b>Load and run</b>: the C examples and the PIO tests are in the list.</li>
       </ol>
       <div class="row">
         <button class="primary" id="qsDemo" type="button" onclick="var s=document.getElementById('scn');s.value='pa';s.dispatchEvent(new Event('change'));document.getElementById('go').click()">Restart the default demo</button>
+        <button id="qsSw" type="button" onclick="var s=document.getElementById('scn');s.value='cprog';s.dispatchEvent(new Event('change'));var c=document.getElementById('cex');c.value='switches';c.dispatchEvent(new Event('change'));document.getElementById('go').click()">Try the switches example</button>
         <button id="qsScn" type="button" onclick="var s=document.getElementById('scn');s.scrollIntoView({block:'center'});s.focus()">Choose a scenario</button>
       </div>
     </aside>
