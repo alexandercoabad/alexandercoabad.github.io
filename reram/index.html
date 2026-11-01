@@ -137,8 +137,44 @@ tfoot td{font-weight:500;border-bottom:0}
 .xwg input{width:100%;min-width:0;padding:4px 2px;text-align:center;font-family:var(--f-mono);font-size:12px}
 .xwg .hd{color:var(--mute);text-align:center}
 .xwg .lab{color:var(--mute);text-align:right;padding-right:4px}
+.vmin{display:flex;flex-wrap:wrap;gap:26px;align-items:center;margin:6px 0 10px}
+.vmin .mat{display:grid;gap:4px}
+.vmin .mat input{width:70px;text-align:center;font-family:var(--f-mono);font-size:13px;padding:6px 4px}
+.vmin .lab{font-family:var(--f-mono);font-size:12px;color:var(--mute);align-self:center}
+.vmin .cap{display:block;margin-bottom:4px}
+.vmcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px;margin:12px 0}
+.vmc{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg);min-width:0}
+.vmc h3{font-family:var(--f-display);font-size:14px;margin:0 0 4px}
+.vmc p{margin:0 0 8px;font-size:12.5px;color:var(--mute)}
+.vmc p b,.vmc p .eq{color:var(--ink)}
+.vmc table{font-size:12px}
+.vmc th,.vmc td{padding:4px 6px}
+.vmc th,#vm th{text-transform:none;letter-spacing:0;font-size:12px}
+.vmg{display:inline-block;min-width:3.6em;text-align:center;border-radius:3px;padding:2px 6px;font-family:var(--f-mono);font-size:12px;border:1px solid var(--line)}
+.vmd{font-size:11px;color:var(--mute)}
+.vmsum{font-size:13px;margin:8px 0 0}
+.vmwide{grid-column:1/-1}
 #xor summary{cursor:pointer;font-weight:600;margin:14px 0 6px}
 .xscore{font-family:var(--f-display);font-size:18px;font-weight:600;margin:8px 0 2px}
+.wrgrid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:760px){.wrgrid{grid-template-columns:minmax(0,1fr)}}
+.wrmat{display:grid;gap:4px}
+.wrmat button{font-family:var(--f-mono);font-size:12px;padding:8px 2px;min-width:0}
+.wrmat button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.wrtext{font-size:14px;line-height:1.5;min-height:5.5em;margin:4px 0 10px;max-width:64ch}
+.wrg{display:grid;grid-template-columns:64px minmax(0,1fr) 74px;gap:8px;align-items:center;margin:6px 0;font-family:var(--f-mono);font-size:12px}
+.wrg .lab{color:var(--mute)} .wrg .val{text-align:right}
+.trk{position:relative;height:18px;border:1px solid var(--line);background:var(--bg);overflow:hidden}
+.trk i{position:absolute;top:0;bottom:0}
+.trk .band{background:var(--hl)}
+.trk .fill{left:0;top:4px;bottom:4px;min-width:2px;background:var(--curr);transition:width .35s}
+.trk .tick{width:2px;margin-left:-1px;background:var(--ink)}
+@media (prefers-reduced-motion:reduce){.trk .fill{transition:none}}
+.wrscale{display:flex;justify-content:space-between;margin:0 74px 6px 72px;font-family:var(--f-mono);font-size:10.5px;color:var(--mute)}
+.refs{margin:6px 0 4px;padding-left:24px;font-size:13px;line-height:1.5;max-width:92ch}
+.refs li{margin:8px 0}
+.refs .why{display:block;color:var(--mute);font-size:12px;margin-top:2px}
+#refs a{color:var(--volt);text-underline-offset:2px;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -174,6 +210,23 @@ tfoot td{font-weight:500;border-bottom:0}
       <div class="xbar"><svg id="xsvg" role="img" aria-label="ReRAM crossbar array with word lines, bit lines and ADCs"></svg></div>
     </section>
 
+    <section class="panel" id="vm">
+      <h2>Worked example: a real 2×2 vector multiply <span class="cap">follow every number</span></h2>
+      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:82ch">Here the crossbar computes <span class="eq">y = xᵀW</span> for a 2-element input vector and a 2×2 weight matrix. The inputs from the vector <b>x</b> become voltages on the rows. The weights from the matrix <b>W</b> become conductances in the cells, two cells per weight (G⁺ and G⁻) because a conductance cannot be negative. Each column adds up its currents, and the result is compared with the exact answer. Change any number, and use the Device and circuit settings further down (DAC and weight bits, ADC bits, Gmin, Gmax, σ, wire resistance) to see where the differences come from. This example uses the analog multi-level layout.</p>
+      <div class="vmin">
+        <div><span class="cap">Input vector x (0 to 1)</span><div class="mat" style="grid-template-columns:repeat(2,70px)"><input type="number" id="vmx0" min="0" max="1" step="0.05" aria-label="Input x1"><input type="number" id="vmx1" min="0" max="1" step="0.05" aria-label="Input x2"></div></div>
+        <div><span class="cap">Weight matrix W (−1 to 1)</span><div class="mat" style="grid-template-columns:repeat(2,70px)"><input type="number" id="vmw00" min="-1" max="1" step="0.05" aria-label="Weight row 1 column 1"><input type="number" id="vmw01" min="-1" max="1" step="0.05" aria-label="Weight row 1 column 2"><input type="number" id="vmw10" min="-1" max="1" step="0.05" aria-label="Weight row 2 column 1"><input type="number" id="vmw11" min="-1" max="1" step="0.05" aria-label="Weight row 2 column 2"></div></div>
+        <div class="row" style="margin:0"><label for="vmDev" style="flex-basis:auto">Devices</label><select id="vmDev"><option value="ideal">Ideal cells and wires</option><option value="real">Use σ and wire R from the settings</option></select></div>
+      </div>
+      <div class="btns">
+        <button type="button" id="vmReset">Reset example</button>
+        <button type="button" id="vmSeed">Resample device variation</button>
+        <button type="button" id="vmLoad">Load into the crossbar above</button>
+      </div>
+      <div class="xbar"><svg id="vmDiag" role="img" aria-label="A 2 by 2 weight matrix stored as four pairs of cells, with input voltages on the rows and currents on the columns" style="min-width:520px;max-width:680px"></svg></div>
+      <div class="vmcards" id="vmCards"></div>
+    </section>
+
     <section class="panel" id="ex">
       <h2>Example 1: which side of the picture is lit? <span class="cap">tiny example</span></h2>
       <p class="note" style="margin:0 0 12px;font-size:13px;max-width:80ch">Pick a 2×2 picture (4 pixels) or a 3×3 patch (9 pixels). The array stores four <b>templates</b>: Left, Right, Top and Bottom. Each template is a column of weights: +1 for &ldquo;I want this pixel lit&rdquo;, −1 for &ldquo;I want it dark&rdquo;, and 0 for &ldquo;I don&rsquo;t care&rdquo; (3×3 only). The picture goes in as voltages, every cell adds its current to its bit line, and the template that overlaps the picture most collects the most current. In the 3×3 case the templates are edge-detecting kernels like those used in image processing, so this is one step of a convolution. It is a one-layer neural network, computed in a single read.</p>
@@ -199,8 +252,32 @@ tfoot td{font-weight:500;border-bottom:0}
       <p class="note" id="exNote2"></p>
     </section>
 
+    <section class="panel" id="wr">
+      <h2>Example 2: how does a weight get written into a cell? <span class="cap">step by step</span></h2>
+      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:80ch">A ReRAM cell can&rsquo;t be set to an exact value with one pulse, because every device responds a little differently. So each weight is written with a short loop: pulse, read the cell back, compare with the target, and repeat until it is close enough. Tap any number in the matrix (it is the matrix currently in the simulator, so load the example above to see its templates) and step through how it is stored in a pair of cells.</p>
+      <div class="wrgrid">
+        <div>
+          <div class="cap">1. Pick a weight</div>
+          <div class="wrmat" id="wrMat"></div>
+        </div>
+        <div>
+          <div class="cap" id="wrStepCap"></div>
+          <div class="wrtext" id="wrText" aria-live="polite"></div>
+          <div id="wrGauge"></div>
+          <div id="wrChart"></div>
+        </div>
+      </div>
+      <div class="btns">
+        <button type="button" id="wrBack">◀ Back</button>
+        <button type="button" id="wrNext">Next ▶</button>
+        <button type="button" id="wrPlay">Play</button>
+      </div>
+      <div class="row" style="max-width:420px"><label for="wrSig">Variation σ</label><input type="range" id="wrSig" min="0" max="25" step="0.5" value="10"><output id="wrSigO">10.0%</output></div>
+      <p class="note">This is the same write model as the Programming panel further down (with Write method set to Program-and-verify), so the same cell gets the same pulses there. Different cells need different numbers of pulses because each device responds a little differently: raise the variation σ and tap a few weights to see it. The Programming panel also shows the circuit, the pulse waveform and the cost of writing the whole array.</p>
+    </section>
+
     <section class="panel" id="xor">
-      <h2>Example 2: why XOR needs two crossbars</h2>
+      <h2>Example 3: why XOR needs two crossbars</h2>
       <p class="note" style="margin:0 0 10px;font-size:13px;max-width:80ch">XOR is 1 when exactly one of the two inputs is on. One crossbar can only draw a single straight line through the four cases, and no line separates XOR&rsquo;s 0s from its 1s. With two crossbars and a comparator in between it works: A asks &ldquo;is any input on?&rdquo; (h₁) and &ldquo;are both on?&rdquo; (h₂), and B answers &ldquo;any, but not both&rdquo;.</p>
       <div class="row"><label for="xMode">Network</label><select id="xMode"><option value="two">Two crossbars with a hidden layer</option><option value="one">One crossbar only</option></select></div>
       <div class="xorflow">
@@ -321,6 +398,63 @@ tfoot td{font-weight:500;border-bottom:0}
           <svg id="chEn" class="chart" viewBox="0 0 420 230" role="img" aria-label="Energy versus array size, digital and ReRAM"></svg>
         </div>
         <p class="note" id="effNote"></p>
+      </section>
+
+    <section class="panel" id="refs">
+        <h2>References and further reading</h2>
+        <p class="note" style="margin:0 0 6px;font-size:13px;max-width:80ch">This simulator is a teaching model. Its device behaviour (pulse response, variation, energy and timing figures) is illustrative and not fitted to any particular device, so use the sources below for real data. They are grouped by the part of the page they support. Citation details were checked against publisher or index records on 1 November 2026, and links can change, so searching the title and DOI always works.</p>
+
+        <h2 class="sub2">Memristors and ReRAM devices <span class="cap">supports the device settings and the write panels</span></h2>
+        <ol class="refs" start="1">
+          <li>Chua, L. O. Memristor — the missing circuit element. <i>IEEE Transactions on Circuit Theory</i> 18, 507–519 (1971).
+            <span class="why">Proposes the memristor as a fourth basic circuit element, in effect a resistor with memory.</span></li>
+          <li>Strukov, D. B., Snider, G. S., Stewart, D. R. &amp; Williams, R. S. The missing memristor found. <i>Nature</i> 453, 80–83 (2008). <a href="https://doi.org/10.1038/nature06932">doi:10.1038/nature06932</a>
+            <span class="why">Reports a nanoscale titanium-oxide device that behaves like a memristor. Widely cited as the paper that renewed interest in the idea.</span></li>
+          <li>Wong, H.-S. P. et al. Metal–oxide RRAM. <i>Proceedings of the IEEE</i> 100, 1951–1970 (2012). <a href="https://doi.org/10.1109/JPROC.2012.2190369">doi:10.1109/JPROC.2012.2190369</a>
+            <span class="why">A review of metal-oxide ReRAM: the switching mechanism, the materials and the electrical behaviour, with a focus on memory use.</span></li>
+        </ol>
+
+        <h2 class="sub2">Crossbars, vector-matrix multiplication and in-memory computing <span class="cap">supports the crossbar, Example 1 and the efficiency panel</span></h2>
+        <ol class="refs" start="4">
+          <li>Hu, M. et al. Dot-product engine for neuromorphic computing: programming 1T1M crossbar to accelerate matrix-vector multiplication. <i>53rd ACM/EDAC/IEEE Design Automation Conference (DAC)</i>, 1–6 (2016). <a href="https://doi.org/10.1145/2897937.2898010">doi:10.1145/2897937.2898010</a>
+            <span class="why">An analog memristor-crossbar accelerator for matrix-vector multiplication, with a method for mapping matrix values onto device conductances. The abstract reports results with only 4-bit DACs and ADCs.</span></li>
+          <li>Ielmini, D. &amp; Wong, H.-S. P. In-memory computing with resistive switching devices. <i>Nature Electronics</i> 1, 333–343 (2018). <a href="https://doi.org/10.1038/s41928-018-0092-2">doi:10.1038/s41928-018-0092-2</a>
+            <span class="why">A review of in-memory computing with resistive devices, covering digital, analogue and stochastic schemes and the challenges that remain.</span></li>
+          <li>Sebastian, A., Le Gallo, M., Khaddam-Aljameh, R. &amp; Eleftheriou, E. Memory devices and applications for in-memory computing. <i>Nature Nanotechnology</i> 15, 529–544 (2020). <a href="https://doi.org/10.1038/s41565-020-0655-z">doi:10.1038/s41565-020-0655-z</a> · <a href="https://zenodo.org/records/3969876">free version</a>
+            <span class="why">A broad overview of the memory devices used for in-memory computing and the computational primitives they enable, from signal processing to deep learning.</span></li>
+        </ol>
+
+        <h2 class="sub2">Writing the weights <span class="cap">supports Example 2 and the Programming panel</span></h2>
+        <ol class="refs" start="7">
+          <li>Alibart, F., Gao, L., Hoskins, B. D. &amp; Strukov, D. B. High precision tuning of state for memristive devices by adaptable variation-tolerant algorithm. <i>Nanotechnology</i> 23, 075201 (2012). <a href="https://doi.org/10.1088/0957-4484/23/7/075201">doi:10.1088/0957-4484/23/7/075201</a> · <a href="https://arxiv.org/abs/1110.1393">arXiv:1110.1393</a>
+            <span class="why">A feedback write algorithm that tuned the conductance of titanium-oxide devices to about 1% relative accuracy (roughly 7 bits) despite large variation in switching. The idea behind program-and-verify.</span></li>
+        </ol>
+
+        <h2 class="sub2">Neural networks on ReRAM hardware <span class="cap">supports the examples, including XOR (Example 3)</span></h2>
+        <ol class="refs" start="8">
+          <li>Prezioso, M. et al. Training and operation of an integrated neuromorphic network based on metal-oxide memristors. <i>Nature</i> 521, 61–64 (2015). <a href="https://doi.org/10.1038/nature14441">doi:10.1038/nature14441</a>
+            <span class="why">Experimental memristor crossbars with variability low enough to run a small network, a single-layer perceptron. Such a network can only classify linearly separable patterns, the limit the XOR panel demonstrates.</span></li>
+          <li>Wan, W. et al. A compute-in-memory chip based on resistive random-access memory. <i>Nature</i> 608, 504–512 (2022). <a href="https://doi.org/10.1038/s41586-022-04992-8">doi:10.1038/s41586-022-04992-8</a> · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9385482">open access</a>
+            <span class="why">NeuRRAM, a fabricated ReRAM compute-in-memory chip with 48 cores. A good look at what a complete chip around a crossbar involves.</span></li>
+        </ol>
+
+        <h2 class="sub2">ReRAM in silicon with SKY130 <span class="cap">tools and announcements, not peer-reviewed papers</span></h2>
+        <ol class="refs" start="10">
+          <li>SkyWater PDK, <code>sky130_fd_pr_reram</code>: primitives for ReRAM on SKY130 provided by SkyWater. <a href="https://foss-eda-tools.googlesource.com/skywater-pdk/libs/sky130_fd_pr_reram/">foss-eda-tools.googlesource.com</a> (mirrored at <a href="https://github.com/google/skywater-pdk-libs-sky130_fd_pr_reram">github.com/google/skywater-pdk-libs-sky130_fd_pr_reram</a>)
+            <span class="why">The open ReRAM cell with layout, SPICE and Verilog-AMS views, plus test designs. Read its documentation for the model&rsquo;s actual behaviour and limits before comparing it with this simulator.</span></li>
+          <li>open_pdks, the build system that produces the sky130A (standard) and sky130B (with the ReRAM option) kits. <a href="https://foss-eda-tools.googlesource.com/third_party/opencircuitdesign.com/open_pdks/">foss-eda-tools.googlesource.com</a>
+            <span class="why">Explains how the two variants are built and which one a shuttle service uses.</span></li>
+          <li>Weebit Nano ReRAM IP now available in SkyWater Technology&rsquo;s S130 process. Press release, 7 March 2023. <a href="https://www.skywatertechnology.com/?p=14269">skywatertechnology.com</a>
+            <span class="why">Announces a commercial ReRAM memory module in SkyWater&rsquo;s 130 nm process. It is a finished memory block, separate from the open cell above.</span></li>
+          <li>Cadence and SkyWater detail next open multi-project wafer shuttle program. <i>Electronics-Lab</i>. <a href="https://www.electronics-lab.com/cadence-and-skywater-detail-next-open-multi-project-wafer-shuttle-program/">electronics-lab.com</a>
+            <span class="why">News article on a SKY130 shuttle offering a standard process and one with embedded ReRAM. The submission window it describes has closed, so check the current shuttle schedule.</span></li>
+        </ol>
+
+        <h2 class="sub2">Splitting weights across several cells <span class="cap">supports the Binary weighted cell encoding</span></h2>
+        <ol class="refs" start="14">
+          <li>Shafiee, A. et al. ISAAC: a convolutional neural network accelerator with in-situ analog arithmetic in crossbars. <i>ACM SIGARCH Computer Architecture News</i> 44(3) (2016); presented at ISCA 2016. <a href="https://doi.org/10.1145/3007787.3001139">doi:10.1145/3007787.3001139</a> · <a href="https://users.cs.utah.edu/~rajeev/pubs/isca16.pdf">author copy</a>
+            <span class="why">A crossbar accelerator that spreads each 16-bit weight over several memristor cells in the same row (2 bits per cell in the paper) and merges the columns with shifts and adds. The Binary weighted option is the 1-bit-per-cell extreme of the same idea.</span></li>
+        </ol>
       </section>
     </main>
   </div>
@@ -874,7 +1008,7 @@ function renderEff(d){
 var LAST=null;
 function update(){
   archNote();var d=compute();LAST=d;
-  renderSVG(d);renderTables(d);renderChart(d);renderSteps(d);renderEff(d);renderProg(d);renderEx(d);renderXor();
+  renderSVG(d);renderTables(d);renderChart(d);renderSteps(d);renderEff(d);renderProg(d);renderEx(d);renderWalk();renderVM();renderXor();
 }
 
 /* ---------- controls ---------- */
@@ -1082,6 +1216,285 @@ $('exPlay').addEventListener('click',function(){
   $('bPlay').click();
 });
 exBuildPix();
+
+/* ---------- walkthrough: how one weight is written into a pair of cells ---------- */
+var WS={i:0,j:0,t:0,tm:null,sig:'',last:0};
+function wrStop(){if(WS.tm){clearInterval(WS.tm);WS.tm=null}}
+function wrSgn(w){return (w>0?'+':w<0?'−':'')+Math.abs(w).toFixed(2)}
+function wrModel(){
+  var i=WS.i,j=WS.j,w=W[i][j],span=S.gmax-S.gmin,Lv=Math.pow(2,S.gBits)-1,sg=S.sigma/100,tolG=S.tol/100*span;
+  var level=Math.round(Math.abs(w)*Lv),gT=S.gmin+level/Lv*span;
+  var Gt=[S.gmin+(w>0?level/Lv:0)*span,S.gmin+(w<0?level/Lv:0)*span];
+  var bin=isBin(),B=S.gBits,cp2=2*B,neg=w<0?1:0,planes=null,fb=0,lab=['G⁺ cell','G⁻ cell'],cells,cs;
+  if(!bin){
+    cells=[0,1].map(function(q){var k=2*j+q;return simCell(Gt[q],sg,rng(S.seed*7919+i*131+k*17+5),null)});
+    cs=(level>0&&w<0)?1:0;
+  }else{
+    /* binary weighted: every bit of |w| has its own pair of 1-bit cells; follow the cell of the highest 1-bit */
+    planes=[];
+    for(var qp=0;qp<B;qp++){
+      var bit=(level>>(B-1-qp))&1,gp=[],cp=[];
+      for(var s2=0;s2<2;s2++){
+        var on=bit&&(s2===neg),kk=j*cp2+2*qp+s2;
+        gp.push(S.gmin+(on?1:0)*span);
+        cp.push(simCell(gp[s2],sg,rng(S.seed*7919+i*131+kk*17+5),null));
+      }
+      planes.push({bit:bit,b:B-1-qp,Gt:gp,pair:cp});
+    }
+    for(fb=0;fb<B-1&&!planes[fb].bit;fb++);
+    Gt=planes[fb].Gt;cells=planes[fb].pair;cs=(level>0)?neg:0;gT=level>0?S.gmax:S.gmin;
+    lab=['bit '+planes[fb].b+', G⁺ cell','bit '+planes[fb].b+', G⁻ cell'];
+  }
+  var c=cells[cs],steps=[{k:'weight'},{k:'pair'},{k:bin?'bits':'level'}],n=0,ev=c.ev,q;
+  for(q=0;q<ev.length;q++){
+    var e=ev[q];
+    if(e.t==='erase')steps.push({k:'erase',g:S.gmin});
+    else if(e.t==='read'){var cm=ev[q+1]||{};steps.push({k:'verify',g:e.G,ok:cm.ok,err:cm.err});q++}
+    else if(e.t==='SET'||e.t==='RESET'){n++;steps.push({k:'pulse',op:e.t,V:e.V,g:e.G,n:n})}
+  }
+  steps.push({k:'done'});
+  return {i:i,j:j,w:w,span:span,Lv:Lv,level:level,gT:gT,tolG:tolG,Gt:Gt,cells:cells,cs:cs,c:c,steps:steps,bin:bin,B:B,planes:planes,fb:fb,lab:lab};
+}
+function wrGauge(label,val,tgt,showT,m){
+  var p=function(g){return clamp((g-S.gmin)/m.span*100,0,100)},h='<div class="wrg"><span class="lab">'+label+'</span><div class="trk">';
+  if(showT){
+    var tp=m.tolG/m.span*100,l=p(tgt)-tp,wd=2*tp;if(l<0){wd+=l;l=0}
+    h+='<i class="band" style="left:'+l+'%;width:'+wd+'%"></i>';
+  }
+  if(val!==null)h+='<i class="fill" style="width:'+p(val)+'%"></i>';
+  if(showT)h+='<i class="tick" style="left:'+p(tgt)+'%"></i>';
+  return h+'</div><span class="val">'+(val===null?'?':val.toFixed(1)+' µS')+'</span></div>';
+}
+function wrChartSVG(m,t){
+  var P=m.c.pulses,W0=360,H0=150,l=42,r=10,tp=10,b=28,pw=W0-l-r,ph=H0-tp-b;
+  if(P===0)return '<p class="note">This cell needs no pulses: its target is Gmin, which is where the erase leaves it.</p>';
+  var xs=function(n){return l+pw*n/P},ys=function(g){return tp+ph*(1-(g-S.gmin)/m.span)};
+  var o='<svg class="chart" viewBox="0 0 '+W0+' '+H0+'" role="img" aria-label="Conductance of the cell after each pulse, approaching the target band" style="max-width:420px">';
+  var tolP=m.tolG/m.span*ph;
+  o+='<rect x="'+l+'" y="'+(ys(m.gT)-tolP)+'" width="'+pw+'" height="'+(2*tolP)+'" fill="var(--hl)"/>';
+  o+='<line x1="'+l+'" y1="'+ys(m.gT)+'" x2="'+(l+pw)+'" y2="'+ys(m.gT)+'" stroke="var(--ink)" stroke-dasharray="4 3"/>';
+  o+='<line x1="'+l+'" y1="'+tp+'" x2="'+l+'" y2="'+(tp+ph)+'" stroke="var(--mute)"/><line x1="'+l+'" y1="'+(tp+ph)+'" x2="'+(l+pw)+'" y2="'+(tp+ph)+'" stroke="var(--mute)"/>';
+  o+='<text x="'+(l-4)+'" y="'+(tp+4)+'" text-anchor="end" font-size="10" fill="var(--mute)">'+S.gmax+'</text><text x="'+(l-4)+'" y="'+(tp+ph+3)+'" text-anchor="end" font-size="10" fill="var(--mute)">'+S.gmin+'</text>';
+  o+='<text x="'+l+'" y="'+(H0-14)+'" font-size="10" fill="var(--mute)">0</text><text x="'+(l+pw)+'" y="'+(H0-14)+'" text-anchor="end" font-size="10" fill="var(--mute)">'+P+'</text>';
+  o+='<text x="'+(l+pw/2)+'" y="'+(H0-3)+'" text-anchor="middle" font-size="10" fill="var(--mute)">pulse number</text>';
+  o+='<text x="10" y="'+(tp+ph/2)+'" font-size="10" fill="var(--mute)" text-anchor="middle" transform="rotate(-90 10 '+(tp+ph/2)+')">G (µS)</text>';
+  o+='<text x="'+(l+pw-2)+'" y="'+(ys(m.gT)-tolP-3)+'" text-anchor="end" font-size="10" fill="var(--ink)">target '+m.gT.toFixed(1)+' µS</text>';
+  var pts=[],q;
+  for(q=0;q<=t&&q<m.steps.length;q++){var st=m.steps[q];if(st.k==='erase')pts.push([0,S.gmin]);else if(st.k==='pulse')pts.push([st.n,st.g])}
+  if(pts.length>1)o+='<polyline fill="none" stroke="var(--curr)" stroke-width="2" points="'+pts.map(function(a){return xs(a[0])+','+ys(a[1])}).join(' ')+'"/>';
+  pts.forEach(function(a,ix){o+='<circle cx="'+xs(a[0])+'" cy="'+ys(a[1])+'" r="'+(ix===pts.length-1?5:3)+'" fill="var(--curr)"/>'});
+  return o+'</svg>';
+}
+function wrText(m,st,nx){
+  var i=m.i,j=m.j,c=m.c,g1=function(v){return v.toFixed(1)};
+  switch(st.k){
+    case 'weight':return 'The weight in row '+(i+1)+', column '+(j+1)+' is '+wrSgn(m.w)+'. To use it in the crossbar it has to be stored as the conductance of ReRAM cells.';
+    case 'bits':{
+      var bs=m.planes.map(function(p){return p.bit}).join('');
+      return m.level===0
+        ?'Binary weighted: '+Math.abs(m.w).toFixed(2)+' rounds to 0 of '+m.Lv+' steps, so every bit is 0 and every cell stays at Gmin.'
+        :'Binary weighted: the Weight levels setting ('+m.B+' bit) gives '+m.Lv+' steps. '+Math.abs(m.w).toFixed(2)+' rounds to '+m.level+' of '+m.Lv+', which is '+bs+' in binary. Each bit gets its own pair of cells on its own bit lines. A 1 is written to Gmax ('+S.gmax+' µS) and a 0 stays at Gmin. This walkthrough follows the cell for bit '+m.planes[m.fb].b+' (the highest 1), with a target of '+g1(m.gT)+' µS.';
+    }
+    case 'pair':if(m.bin)return m.level===0
+      ?'This weight rounds to zero, so every cell stays at its lowest conductance, Gmin.'
+      :'A conductance can’t be negative, so the sign decides which side the bits go on. '+(m.w>0?'A positive weight puts its bits in the G⁺ cell of each bit’s pair, and every G⁻ cell stays at Gmin.':'A negative weight puts its bits in the G⁻ cell of each bit’s pair, and every G⁺ cell stays at Gmin.');
+      return m.level===0
+      ?'This weight rounds to zero, so both cells of its pair simply stay at their lowest conductance, Gmin.'
+      :'A conductance can’t be negative, so each weight uses a pair of cells on neighbouring bit lines, G⁺ and G⁻, and the column reads their difference. '+(m.w>0?'A positive weight goes in the G⁺ cell and G⁻ stays at Gmin.':'A negative weight goes in the G⁻ cell and G⁺ stays at Gmin.');
+    case 'level':return 'A cell can hold only a limited number of levels (the Weight levels setting: '+S.gBits+' bit gives '+m.Lv+' steps). '+Math.abs(m.w).toFixed(2)+' rounds to level '+m.level+' of '+m.Lv+', so the target is Gmin + '+m.level+'/'+m.Lv+' × (Gmax − Gmin) = '+g1(m.gT)+' µS.';
+    case 'erase':return 'Erase: a RESET pulse takes the cells to their lowest conductance, Gmin = '+S.gmin+' µS, so every write starts from a known state.';
+    case 'verify':
+      if(st.ok)return 'Verify read: the cell measures '+g1(st.g)+' µS and the target is '+g1(m.gT)+' µS (tolerance ±'+g1(m.tolG)+' µS). That is close enough, so this cell is done.';
+      if(nx&&nx.k==='done')return 'Verify read: the cell measures '+g1(st.g)+' µS, '+g1(Math.abs(st.err))+' µS away from the target, but the limit of '+S.maxp+' pulses is used up, so the loop gives up with this error.';
+      return 'Verify read: the cell measures '+g1(st.g)+' µS and the target is '+g1(m.gT)+' µS (tolerance ±'+g1(m.tolG)+' µS). It is '+g1(Math.abs(st.err))+' µS too '+(st.err<0?'low, so apply a SET pulse to raise it.':'high, so apply a RESET pulse to lower it.');
+    case 'pulse':return st.op==='SET'
+      ?'SET pulse '+st.n+' at '+st.V.toFixed(1)+' V: the conductance rises to '+g1(st.g)+' µS.'+(st.n===1?' Pulses start gentle and get '+S.dv.toFixed(1)+' V stronger each time, so we creep up on the target instead of overshooting.':'')
+      :'RESET pulse '+st.n+' at '+st.V.toFixed(1)+' V: the conductance drops to '+g1(st.g)+' µS. The last pulse overshot, so we back off.';
+    default:{
+      if(m.bin){
+        var wb=0;m.planes.forEach(function(p){wb+=Math.pow(2,p.b)*(p.pair[0].G-p.pair[1].G)/m.span});wb/=m.Lv;
+        return 'Done'+(c.pulses?' after '+c.pulses+' pulse'+(c.pulses>1?'s':''):'')+'. The cell for bit '+m.planes[m.fb].b+' now holds '+g1(c.G)+' µS. The other bit cells are written the same way (the zeros need no pulses), and with each plane weighted by 2ᵇ the array reads back '+wrSgn(wb)+' (wanted '+wrSgn(m.w)+', rounded to a code: '+wrSgn((m.w<0?-1:1)*m.level/m.Lv)+'). Each cell only has to land on one of two well-separated states, so variation is much less likely to turn a stored 1 into a 0.';
+      }
+      var wh=(m.cells[0].G-m.cells[1].G)/m.span,wq=(m.w<0?-1:1)*m.level/m.Lv;
+      return 'Done'+(c.pulses?' after '+c.pulses+' pulse'+(c.pulses>1?'s':''):'')+'. The pair now holds G⁺ = '+g1(m.cells[0].G)+' µS and G⁻ = '+g1(m.cells[1].G)+' µS, so the array reads back a weight of '+wrSgn(wh)+' (wanted '+wrSgn(m.w)+', rounded to a level: '+wrSgn(wq)+'). The small difference comes from the tolerance and the device variation.';
+    }
+  }
+}
+function renderWalk(){
+  WS.i=Math.min(WS.i,S.M-1);WS.j=Math.min(WS.j,S.N-1);
+  var sig=S.M+'x'+S.N+':'+W.slice(0,S.M).map(function(r){return r.slice(0,S.N).join(',')}).join(';');
+  var mat=$('wrMat'),i,j;
+  if(WS.sig!==sig){
+    var h='';
+    for(i=0;i<S.M;i++)for(j=0;j<S.N;j++)h+='<button type="button" data-i="'+i+'" data-j="'+j+'" aria-label="Row '+(i+1)+', column '+(j+1)+', weight '+wrSgn(W[i][j])+'">'+wrSgn(W[i][j])+'</button>';
+    mat.innerHTML=h;mat.style.gridTemplateColumns='repeat('+S.N+',minmax(54px,64px))';WS.sig=sig;
+  }
+  [].forEach.call(mat.children,function(b){b.setAttribute('aria-pressed',(+b.getAttribute('data-i')===WS.i&&+b.getAttribute('data-j')===WS.j)?'true':'false')});
+  var m=wrModel(),n=m.steps.length;WS.last=n-1;WS.t=clamp(WS.t,0,n-1);
+  var st=m.steps[WS.t],t=WS.t,er=-1,q;
+  for(q=0;q<n;q++)if(m.steps[q].k==='erase'){er=q;break}
+  $('wrStepCap').textContent='2. Step '+(t+1)+' of '+n;
+  $('wrText').textContent=wrText(m,st,m.steps[t+1]);
+  var vals=[null,null];
+  if(st.k==='done')vals=[m.cells[0].G,m.cells[1].G];
+  else if(er>=0&&t>=er)for(q=0;q<2;q++)vals[q]=(q===m.cs&&st.g!==undefined)?st.g:S.gmin;
+  var showT=t>=2,g='';
+  g+=wrGauge(m.lab[0],vals[0],m.Gt[0],showT,m)+wrGauge(m.lab[1],vals[1],m.Gt[1],showT,m);
+  g+='<div class="wrscale"><span>Gmin '+S.gmin+' µS</span><span>Gmax '+S.gmax+' µS</span></div>';
+  if(m.level>0&&er>=0&&t>=er)g+='<p class="note" style="margin:0 0 8px">The other cell of the pair needs no pulses: after the erase it is already at Gmin.</p>';
+  $('wrGauge').innerHTML=g;
+  $('wrChart').innerHTML=t>=er&&er>=0?wrChartSVG(m,t):'';
+  $('wrBack').disabled=t===0;$('wrNext').disabled=t===n-1;
+  $('wrPlay').textContent=WS.tm?'Pause':(t===n-1?'Replay':'Play');
+  $('wrSig').value=S.sigma;$('wrSigO').textContent=S.sigma.toFixed(1)+'%';
+}
+$('wrMat').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  wrStop();WS.i=+b.getAttribute('data-i');WS.j=+b.getAttribute('data-j');WS.t=0;renderWalk();
+});
+$('wrBack').addEventListener('click',function(){wrStop();WS.t--;renderWalk()});
+$('wrNext').addEventListener('click',function(){wrStop();WS.t++;renderWalk()});
+$('wrPlay').addEventListener('click',function(){
+  if(WS.tm){wrStop();renderWalk();return}
+  if(WS.t>=WS.last)WS.t=0;
+  renderWalk();
+  WS.tm=setInterval(function(){WS.t++;if(WS.t>=WS.last){WS.t=WS.last;wrStop()}renderWalk()},1000);
+  renderWalk();
+});
+$('wrSig').addEventListener('input',function(e){
+  S.sigma=parseFloat(e.target.value);var sl=$('s_sigma');if(sl){sl.value=S.sigma;$('so_sigma').textContent=S.sigma.toFixed(1)+'%'}update();
+});
+
+/* ---------- worked example: a real 2x2 vector multiply ---------- */
+var VMD={x:[0.8,0.6],W:[[0.6,-0.4],[0.2,0.8]]};
+var VM={x:VMD.x.slice(),W:VMD.W.map(function(r){return r.slice()}),dev:'ideal',seed:5,Z:[]};
+function vmZ(){var r=rng(VM.seed*131+7);VM.Z=[];for(var i=0;i<2;i++){VM.Z[i]=[];for(var k=0;k<4;k++)VM.Z[i][k]=gauss(r)}}
+function vmCompute(){
+  var span=S.gmax-S.gmin,Lv=Math.pow(2,S.gBits)-1,dl=Math.pow(2,S.dacBits)-1,real=VM.dev==='real',i,j,k;
+  var x=VM.x.map(function(v){return clamp(isNaN(v)?0:v,0,1)}),Wm=VM.W.map(function(r){return r.map(function(v){return clamp(isNaN(v)?0:v,-1,1)})});
+  var xk=[],xq=[],V=[],lvl=[],wq=[],Gt=[],Ga=[],GaS=[];
+  for(i=0;i<2;i++){xk[i]=Math.round(x[i]*dl);xq[i]=xk[i]/dl;V[i]=xq[i]*S.vread}
+  for(i=0;i<2;i++){lvl[i]=[];wq[i]=[];Gt[i]=[];Ga[i]=[];GaS[i]=[];
+    for(j=0;j<2;j++){
+      var w=Wm[i][j],l=Math.round(Math.abs(w)*Lv);lvl[i][j]=l;wq[i][j]=(w<0?-1:1)*l/Lv;
+      Gt[i][2*j]=S.gmin+(w>0?l/Lv:0)*span;Gt[i][2*j+1]=S.gmin+(w<0?l/Lv:0)*span;
+    }
+    for(k=0;k<4;k++){var g=real?Math.max(0.05,Gt[i][k]*(1+S.sigma/100*VM.Z[i][k])):Gt[i][k];Ga[i][k]=g;GaS[i][k]=g*1e-6}
+  }
+  var sol=solve(V,GaS,real?S.rw:0);
+  var Ic=sol.Ic.map(function(a){return a*1e6}),cellI=sol.cell.map(function(r){return r.map(function(a){return a*1e6})});
+  var R=2*S.adcRange/100,lv=Math.pow(2,S.adcBits-1)-1,out=[];
+  for(j=0;j<2;j++){
+    var id=0,ex=0;for(i=0;i<2;i++){id+=x[i]*Wm[i][j];ex+=xq[i]*wq[i][j]}
+    var raw=(Ic[2*j]-Ic[2*j+1])/(S.vread*span),code=clamp(Math.round(raw/R*lv),-lv,lv);
+    out[j]={ideal:id,exact:ex,Ip:Ic[2*j],Im:Ic[2*j+1],raw:raw,code:code,dig:code*R/lv};
+  }
+  return {x:x,W:Wm,xk:xk,xq:xq,V:V,lvl:lvl,wq:wq,Gt:Gt,Ga:Ga,cellI:cellI,out:out,Lv:Lv,dl:dl,lv:lv,R:R,span:span,real:real};
+}
+function vmN(v,d){return (v<0?'−':'')+Math.abs(v).toFixed(d)}
+function vmShade(g){var t=clamp((g-S.gmin)/(S.gmax-S.gmin),0,1);return 'color-mix(in srgb,var(--cell) '+Math.round(8+80*t)+'%,var(--bg))'}
+function vmDiagram(d){
+  var L=120,T=44,P=74,RH=58,W=L+4*P+16,H=T+2*RH+110,o='',i,k,j;
+  for(k=0;k<4;k++)o+='<text x="'+(L+k*P+P/2)+'" y="'+(T-14)+'" text-anchor="middle" font-size="12" fill="var(--mute)">'+(k%2?'G⁻':'G⁺')+SUB[Math.floor(k/2)]+'</text>';
+  for(i=0;i<2;i++){
+    var y=T+i*RH+RH/2;
+    o+='<line x1="'+(L-18)+'" x2="'+(L+4*P-6)+'" y1="'+y+'" y2="'+y+'" stroke="var(--volt)" stroke-width="2"/>';
+    o+='<text x="'+(L-24)+'" y="'+(y-4)+'" text-anchor="end" font-size="11" fill="var(--mute)">x'+SUB[i]+' = '+d.x[i].toFixed(2)+'</text>';
+    o+='<text x="'+(L-24)+'" y="'+(y+11)+'" text-anchor="end" font-size="12" font-weight="500" fill="var(--volt)">V'+SUB[i]+' = '+(d.V[i]*1000).toFixed(0)+' mV</text>';
+  }
+  for(k=0;k<4;k++){var cx=L+k*P+P/2;o+='<line x1="'+cx+'" x2="'+cx+'" y1="'+(T+4)+'" y2="'+(T+2*RH+16)+'" stroke="var(--curr)" stroke-width="2"/>'}
+  for(i=0;i<2;i++)for(k=0;k<4;k++){
+    var cx2=L+k*P+P/2,cy=T+i*RH+RH/2,g=d.Ga[i][k],t=clamp((g-S.gmin)/d.span,0,1),a=0.1+0.9*t;
+    o+='<rect x="'+(cx2-20)+'" y="'+(cy-17)+'" width="40" height="34" rx="4" fill="var(--panel)"/>';
+    o+='<rect x="'+(cx2-20)+'" y="'+(cy-17)+'" width="40" height="34" rx="4" fill="var(--cell)" fill-opacity="'+a.toFixed(3)+'" stroke="var(--cell)" stroke-opacity=".5"/>';
+    o+='<text x="'+cx2+'" y="'+(cy-2)+'" text-anchor="middle" font-size="12" fill="'+(a>0.55?'var(--bg)':'var(--ink)')+'">'+g.toFixed(0)+'</text>';
+    o+='<text x="'+cx2+'" y="'+(cy+11)+'" text-anchor="middle" font-size="9" fill="'+(a>0.55?'var(--bg)':'var(--mute)')+'">'+d.cellI[i][k].toFixed(1)+'µA</text>';
+  }
+  var yc=T+2*RH+30;
+  for(k=0;k<4;k++){var cx3=L+k*P+P/2;o+='<text x="'+cx3+'" y="'+yc+'" text-anchor="middle" font-size="11" fill="var(--curr)">'+(k%2?d.out[(k-1)/2].Im:d.out[k/2].Ip).toFixed(1)+' µA</text>'}
+  for(j=0;j<2;j++){
+    var xm=L+(2*j)*P+P,yb=yc+10;
+    o+='<path d="M'+(xm-P/2)+' '+yb+' V'+(yb+8)+' H'+(xm+P/2)+' V'+yb+'" fill="none" stroke="var(--curr)" stroke-width="1.5"/>';
+    o+='<text x="'+xm+'" y="'+(yb+30)+'" text-anchor="middle" font-size="14" font-weight="500" fill="var(--ink)">y'+SUB[j]+' = '+vmN(d.out[j].dig,2)+'</text>';
+    o+='<text x="'+xm+'" y="'+(yb+45)+'" text-anchor="middle" font-size="10.5" fill="var(--mute)">ideal '+vmN(d.out[j].ideal,2)+'</text>';
+  }
+  o+='<text x="'+(L-24)+'" y="'+(yc)+'" text-anchor="end" font-size="10.5" fill="var(--mute)">column current</text>';
+  var sv=$('vmDiag');sv.setAttribute('viewBox','0 0 '+W+' '+H);sv.innerHTML=o;
+}
+function renderVM(){
+  if(!$('vmCards'))return;
+  var d=vmCompute(),i,j,k,h='',sp=S.gmax-S.gmin;
+  vmDiagram(d);
+  /* card 1: inputs -> voltages */
+  h+='<div class="vmc"><h3>1 · Inputs become voltages</h3><p>A '+S.dacBits+'-bit DAC rounds each input to one of '+(d.dl+1)+' levels, then scales it by the read voltage: <span class="eq">Vᵢ = (level / '+d.dl+') × '+S.vread+' V</span>.</p><table><thead><tr><th>Input</th><th>xᵢ</th><th>DAC level</th><th>Rounded</th><th>Vᵢ</th></tr></thead><tbody>';
+  for(i=0;i<2;i++)h+='<tr><td>x'+SUB[i]+'</td><td>'+d.x[i].toFixed(2)+'</td><td>'+d.xk[i]+' of '+d.dl+'</td><td>'+d.xq[i].toFixed(3)+'</td><td>'+(d.V[i]*1000).toFixed(1)+' mV</td></tr>';
+  h+='</tbody></table></div>';
+  /* card 2: weights -> conductances */
+  h+='<div class="vmc"><h3>2 · Weights become conductances</h3><p>Each weight is rounded to one of '+S.gBits+'-bit levels (0 to '+d.Lv+'). A positive weight goes into G⁺ and a negative one into G⁻; the other cell stays at Gmin. <span class="eq">G = Gmin + level/'+d.Lv+' × (Gmax − Gmin)</span> with Gmin = '+S.gmin+' and Gmax = '+S.gmax+' µS.</p><table><thead><tr><th>Weight</th><th>w</th><th>Level</th><th>G⁺ µS</th><th>G⁻ µS</th></tr></thead><tbody>';
+  for(i=0;i<2;i++)for(j=0;j<2;j++){
+    var tp=d.Gt[i][2*j],tm=d.Gt[i][2*j+1],ap=d.Ga[i][2*j],am=d.Ga[i][2*j+1];
+    function gc(t,a){return '<span class="vmg" style="background:'+vmShade(a)+';color:'+(clamp((a-S.gmin)/sp,0,1)>0.5?'var(--bg)':'var(--ink)')+'">'+a.toFixed(1)+'</span>'+(d.real&&Math.abs(a-t)>0.05?'<br><span class="vmd">target '+t.toFixed(1)+'</span>':'')}
+    h+='<tr><td>W'+SUB[i]+SUB[j]+'</td><td>'+vmN(d.W[i][j],2)+'</td><td>'+(d.W[i][j]<0?'−':'')+d.lvl[i][j]+' of '+d.Lv+'</td><td>'+gc(tp,ap)+'</td><td>'+gc(tm,am)+'</td></tr>';
+  }
+  h+='</tbody></table></div>';
+  /* card 3: currents */
+  h+='<div class="vmc"><h3>3 · Each cell passes a current</h3><p>Ohm’s law per cell, <span class="eq">I = V × G</span>. Each bit line then adds the currents of the cells on it (Kirchhoff).</p><table><thead><tr><th></th><th>I⁺<sub>1</sub></th><th>I⁻<sub>1</sub></th><th>I⁺<sub>2</sub></th><th>I⁻<sub>2</sub></th></tr></thead><tbody>';
+  for(i=0;i<2;i++){h+='<tr><td>row '+(i+1)+' (V'+SUB[i]+')</td>';for(k=0;k<4;k++)h+='<td>'+d.cellI[i][k].toFixed(2)+' µA</td>';h+='</tr>'}
+  h+='</tbody><tfoot><tr><td>Bit line sum</td>';
+  for(k=0;k<4;k++)h+='<td><b>'+(k%2?d.out[(k-1)/2].Im:d.out[k/2].Ip).toFixed(2)+' µA</b></td>';
+  h+='</tr></tfoot></table></div>';
+  /* card 4: subtract, scale, digitize */
+  h+='<div class="vmc"><h3>4 · Subtract, scale, digitize</h3><p>Each pair is subtracted, then divided by <span class="eq">Vread × (Gmax − Gmin) = '+(S.vread*sp).toFixed(1)+' µA</span> to turn current back into a weighted sum. A '+S.adcBits+'-bit ADC (full scale ±'+d.R.toFixed(2)+') makes it digital.</p><table><thead><tr><th>Output</th><th>I⁺ − I⁻</th><th>Analog y</th><th>ADC code</th><th>Digital y</th></tr></thead><tbody>';
+  for(j=0;j<2;j++){var q=d.out[j];h+='<tr><td>y'+SUB[j]+'</td><td>'+vmN(q.Ip-q.Im,2)+' µA</td><td>'+vmN(q.raw,3)+'</td><td>'+q.code+' of ±'+d.lv+'</td><td>'+vmN(q.dig,3)+'</td></tr>'}
+  h+='</tbody></table></div>';
+  /* card 5: comparison */
+  var tot=[0,0,0];
+  h+='<div class="vmc vmwide"><h3>5 · Simulated result against the ideal</h3><p>The ideal answer is plain arithmetic, <span class="eq">yⱼ = x₁·W₁ⱼ + x₂·W₂ⱼ</span>. The table shows where each difference comes in, one stage at a time.</p><div class="tw"><table><thead><tr><th>Output</th><th>Ideal (float)</th><th>After rounding x and W</th><th>Analog crossbar</th><th>After ADC (digital)</th><th>Final error</th></tr></thead><tbody>';
+  for(j=0;j<2;j++){
+    var o2=d.out[j],e=o2.dig-o2.ideal;
+    tot[0]+=Math.abs(o2.exact-o2.ideal);tot[1]+=Math.abs(o2.raw-o2.exact);tot[2]+=Math.abs(o2.dig-o2.raw);
+    var arith='';for(i=0;i<2;i++)arith+=(i?' + ':'')+d.x[i].toFixed(2)+'×'+vmN(d.W[i][j],2);
+    h+='<tr><td>y'+SUB[j]+'<div class="vmd">'+arith+'</div></td><td>'+vmN(o2.ideal,3)+'</td><td>'+vmN(o2.exact,3)+'</td><td>'+vmN(o2.raw,3)+'</td><td>'+vmN(o2.dig,3)+'</td><td class="'+(Math.abs(e)>0.05*Math.max(1,Math.abs(o2.ideal))?'bad':'good')+'">'+vmN(e,3)+'</td></tr>';
+  }
+  h+='</tbody></table></div>';
+  var names=['rounding the inputs and weights to the available levels','device variation and wire resistance','the ADC rounding'],mx=Math.max(tot[0],tot[1],tot[2]),msg;
+  if(mx<0.006)msg='All three stages add almost nothing here, so the crossbar matches the exact answer to about two decimals. These inputs and weights happen to sit exactly on the 4-bit levels. Lower the Weight levels or Input DAC bits, change a number to something like 0.37, or switch Devices to “Use σ and wire R” to watch the error appear.';
+  else msg='Largest contribution in this example: <b>'+names[tot.indexOf(mx)]+'</b> (about '+mx.toFixed(3)+' summed over both outputs).'+(VM.dev==='ideal'&&tot[1]<0.006?' Switch Devices to “Use σ and wire R” to add the analog effects.':'');
+  h+='<p class="vmsum">'+msg+'</p>';
+  /* bar chart */
+  var vals=[];d.out.forEach(function(q){vals.push(q.ideal,q.dig)});
+  var m=Math.max(0.5,Math.ceil(Math.max.apply(null,vals.map(Math.abs))*4)/4),x0=44,x1=330,y0=14,y1=134,yz=(y0+y1)/2,sc=(y1-y0)/2/m,c='';
+  [-m,0,m].forEach(function(v){var y=yz-v*sc;c+='<line x1="'+x0+'" x2="'+x1+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)" stroke-width="'+(v===0?1.5:1)+'"/><text x="'+(x0-6)+'" y="'+(y+4)+'" text-anchor="end" font-size="10" fill="var(--mute)">'+vmN(v,2)+'</text>'});
+  d.out.forEach(function(q,jj){
+    var cx=x0+(x1-x0)*(jj+0.5)/2,bw=34,hi=q.ideal*sc,hd=q.dig*sc;
+    c+='<rect x="'+(cx-bw-3)+'" y="'+(hi>=0?yz-hi:yz)+'" width="'+bw+'" height="'+Math.abs(hi)+'" fill="none" stroke="var(--ink)" stroke-width="1.5"/>';
+    c+='<rect x="'+(cx+3)+'" y="'+(hd>=0?yz-hd:yz)+'" width="'+bw+'" height="'+Math.abs(hd)+'" fill="var(--curr)"/>';
+    c+='<text x="'+cx+'" y="'+(y1+16)+'" text-anchor="middle" font-size="11" fill="var(--mute)">y'+SUB[jj]+'</text>';
+  });
+  c+='<rect x="'+x0+'" y="156" width="10" height="8" fill="none" stroke="var(--ink)" stroke-width="1.5"/><text x="'+(x0+15)+'" y="164" font-size="10" fill="var(--mute)">Ideal (float)</text><rect x="'+(x0+100)+'" y="156" width="10" height="8" fill="var(--curr)"/><text x="'+(x0+115)+'" y="164" font-size="10" fill="var(--mute)">Crossbar, digital output</text>';
+  h+='<svg class="chart" viewBox="0 0 360 172" style="max-width:420px" role="img" aria-label="Bar chart of ideal and simulated outputs">'+c+'</svg></div>';
+  $('vmCards').innerHTML=h;
+  $('vmDev').value=VM.dev;
+  var xs=[$('vmx0'),$('vmx1')];
+  [0,1].forEach(function(a){if(document.activeElement!==xs[a])xs[a].value=VM.x[a];for(var b=0;b<2;b++){var el=$('vmw'+a+b);if(document.activeElement!==el)el.value=VM.W[a][b]}});
+}
+[0,1].forEach(function(a){
+  $('vmx'+a).addEventListener('input',function(e){var v=parseFloat(e.target.value);if(isNaN(v))return;VM.x[a]=clamp(v,0,1);renderVM()});
+  [0,1].forEach(function(b){$('vmw'+a+b).addEventListener('input',function(e){var v=parseFloat(e.target.value);if(isNaN(v))return;VM.W[a][b]=clamp(v,-1,1);renderVM()})});
+});
+$('vmDev').addEventListener('change',function(e){VM.dev=e.target.value;renderVM()});
+$('vmReset').addEventListener('click',function(){VM.x=VMD.x.slice();VM.W=VMD.W.map(function(r){return r.slice()});renderVM()});
+$('vmSeed').addEventListener('click',function(){VM.seed=Math.floor(Math.random()*100000);vmZ();if(VM.dev==='ideal')VM.dev='real';renderVM()});
+$('vmLoad').addEventListener('click',function(){
+  stopPB();stopPA();if(timer){clearInterval(timer);timer=null}
+  S.arch='diff';$('selArch').value='diff';S.M=2;S.N=2;S.phase=5;S.col=0;
+  if(VM.dev==='ideal'){S.sigma=0;S.rw=0;S.wmode='ideal';$('pMode').value='ideal'}
+  for(var i=0;i<2;i++){X[i]=clamp(VM.x[i],0,1);for(var j=0;j<2;j++)W[i][j]=clamp(VM.W[i][j],-1,1)}
+  fillSel('M',2,9,2);fillSel('N',2,6,2);buildSettings();resize();
+  var rm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  $('xsvg').scrollIntoView({behavior:rm?'auto':'smooth',block:'center'});
+});
+vmZ();
 
 /* ---------- XOR example: two crossbars with a comparator between them ---------- */
 /* Own small crossbar model: same device settings and solve() as the main array, ideal write (no programming model). */
