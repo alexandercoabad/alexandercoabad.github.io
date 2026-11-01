@@ -134,6 +134,24 @@ details.q p{margin:8px 0 2px}
         <p class="note" style="margin:0;font-size:13px;color:var(--ink)">Here the cell stores a <b>weight</b>, not a bit, and its conductance can be set to many levels. Drive the rows with input voltages. Each cell gives I = V·G and each bit line adds the currents, so the whole sum is one read. The nonlinear step happens outside the array. This is the crossbar of Steps 2 and 3.</p></div>
     </div>
     <p class="note" style="max-width:80ch"><b>Same device, different demands.</b> As memory, one row is read at a time and only the gap between two states matters. As weights, every row is driven at once and the accuracy of every conductance matters, so variation, drift and write precision become the main problems. That is why Step 2 is about writing a weight precisely.</p>
+        <div class="card" id="memristor" style="margin-top:12px">
+      <h3>ReRAM and the memristor</h3>
+      <p class="note" style="margin:0 0 8px;font-size:13px;color:var(--ink)"><b>The idea.</b> “Memristor” means memory plus resistor. In 1971 Leon Chua argued that circuit theory was missing a fourth basic two-terminal element. The resistor relates voltage and current, the capacitor relates charge and voltage, and the inductor relates flux and current. The missing one would relate flux and charge, which in practice means a resistance that depends on the history of the current that has flowed through it: a resistor with memory.</p>
+      <p class="note" style="margin:0 0 8px;font-size:13px;color:var(--ink)"><b>The link to ReRAM.</b> In 2008 a team at HP Labs reported a titanium-oxide device that behaves like this, and interest in resistive switching grew from there (see Chua and Strukov et al. under Further reading). ReRAM cells are usually called <i>memristive devices</i>. The memristor is an ideal circuit element, a model. A ReRAM cell is a physical stack of oxide and electrodes that matches the model in some ways and not in others, and whether a given device is a “true” memristor is still argued about.</p>
+      <p class="note" style="margin:0 0 8px;font-size:13px;color:var(--ink)"><b>What they share.</b> The resistance depends on the past, and it stays put when the current stops. Sweep a cell in section 3 and the I-V curve is a loop that crosses at the origin, which is the usual signature of a memristive device.</p>
+      <div class="tw" style="margin-top:6px">
+      <table>
+        <thead><tr><th></th><th>Ideal memristor</th><th>Real ReRAM cell</th></tr></thead>
+        <tbody>
+          <tr><td>What it is</td><td>A circuit element in a model</td><td>A physical device: oxide between two electrodes</td></tr>
+          <tr><td>Changing the state</td><td>Any current that flows moves the state</td><td>Nothing happens below a switching threshold (0.8 V in the simulator), then SET or RESET</td></tr>
+          <tr><td>Reading</td><td>Any read moves the state a little</td><td>A low-voltage read leaves the state alone, so the cell can be treated as a resistor</td></tr>
+          <tr><td>Behaviour</td><td>Smooth and repeatable</td><td>Abrupt switching, with variation, drift, wear and often a forming step</td></tr>
+          <tr><td>Why it matters here</td><td>Gives the picture: conductance is a programmable weight</td><td>Gives the limits: precision, write cost and lifetime</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
     <div class="card" id="hfox" style="margin-top:12px">
       <h3>About the material: hafnium oxide (HfOx)</h3>
       <p class="note" style="margin:0 0 8px;font-size:13px;color:var(--ink)"><b>Why hafnium?</b> Hafnium oxide is one of the most studied ReRAM materials. Hafnium dioxide (HfO₂) is already used as a thin insulator in advanced CMOS transistors, so chip makers know how to deposit it in very thin, uniform films. HfOx cells are reported to switch fast and at low voltage, with good endurance, and to shrink to very small sizes (see Wong et al. and Govoreanu et al. under Further reading).</p>
