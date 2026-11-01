@@ -120,6 +120,20 @@ details.q p{margin:8px 0 2px}
       <div class="card"><h3>Why computing cares</h3><p class="note" style="margin:0;font-size:13px;color:var(--ink)">Conductance is the weight. Voltage is the input. Ohm's law (I = V·G) does the multiply, and the wire does the add. The weight is the physical state of the device, so it never has to be fetched.</p></div>
     </div>
 
+    <h3 style="margin:16px 0 0;font-size:15px">Why it is called ReRAM, and two ways to use the cell</h3>
+    <div class="analogy">
+      <div class="card"><h3>Why “ReRAM”?</h3>
+        <p class="note" style="margin:0 0 8px;font-size:13px;color:var(--ink)">ReRAM means <b>resistive random-access memory</b>, also written RRAM. <b>Resistive:</b> the value is stored as a resistance, set by the filament, not as charge on a capacitor or a floating gate. <b>Random access:</b> any cell can be reached by its address in about the same time, like RAM and unlike tape or disk.</p>
+        <p class="note" style="margin:0;font-size:13px;color:var(--ink)">It is also non-volatile: the resistance stays when the power is off.</p></div>
+      <div class="card"><h3>As a memory cell (RAM)</h3>
+        <p class="note" style="margin:0 0 8px;font-size:13px;color:var(--ink)">Use two states. The high-resistance state (HRS) stands for one bit value and the low-resistance state (LRS) for the other. Which is 0 and which is 1 is a convention.</p>
+        <p class="note" style="margin:0 0 8px;font-size:13px;color:var(--ink)"><b>Write:</b> a SET or RESET pulse. <b>Read:</b> apply a small voltage below the switching threshold and compare the current with a reference. More current than the reference means LRS.</p>
+        <p class="note" style="margin:0;font-size:13px;color:var(--ink)">A row decoder picks one word line, and the bit lines read the cells on it. Only the gap between the two states matters, so a fair amount of variation is tolerable.</p></div>
+      <div class="card"><h3>As a neural-network cell</h3>
+        <p class="note" style="margin:0 0 8px;font-size:13px;color:var(--ink)">A neural-network layer is a set of <b>weighted sums</b>: each output adds up the inputs multiplied by weights (numbers the network has learned), then applies a simple nonlinear step.</p>
+        <p class="note" style="margin:0;font-size:13px;color:var(--ink)">Here the cell stores a <b>weight</b>, not a bit, and its conductance can be set to many levels. Drive the rows with input voltages. Each cell gives I = V·G and each bit line adds the currents, so the whole sum is one read. The nonlinear step happens outside the array. This is the crossbar of Steps 2 and 3.</p></div>
+    </div>
+    <p class="note" style="max-width:80ch"><b>Same device, different demands.</b> As memory, one row is read at a time and only the gap between two states matters. As weights, every row is driven at once and the accuracy of every conductance matters, so variation, drift and write precision become the main problems. That is why Step 2 is about writing a weight precisely.</p>
     <div class="card" id="hfox" style="margin-top:12px">
       <h3>About the material: hafnium oxide (HfOx)</h3>
       <p class="note" style="margin:0 0 8px;font-size:13px;color:var(--ink)"><b>Why hafnium?</b> Hafnium oxide is one of the most studied ReRAM materials. Hafnium dioxide (HfO₂) is already used as a thin insulator in advanced CMOS transistors, so chip makers know how to deposit it in very thin, uniform films. HfOx cells are reported to switch fast and at low voltage, with good endurance, and to shrink to very small sizes (see Wong et al. and Govoreanu et al. under Further reading).</p>
