@@ -37,6 +37,8 @@ header h1{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,4vw,
 header p{margin:6px 0 0;max-width:68ch;color:var(--mute)}
 .eq{font-family:var(--f-mono);color:var(--ink)}
 .grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;align-items:start}
+.grid.one{grid-template-columns:minmax(0,1fr)}
+@media (max-width:900px){#xgrid .rail{order:2}}
 @media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0}
 .rail{display:flex;flex-direction:column;gap:14px;min-width:0}
@@ -54,6 +56,7 @@ button.on{background:var(--volt);border-color:var(--volt);color:var(--bg)}
 :focus-visible{outline:2px solid var(--volt);outline-offset:2px}
 .btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .wgrid{display:grid;gap:4px;margin-top:6px}
+.wgrid input.neg{border-color:var(--err);color:var(--err);background:color-mix(in srgb,var(--err) 10%,var(--bg))}
 .wgrid input{width:100%;min-width:0;padding:4px 2px;text-align:center;font-family:var(--f-mono);font-size:12px}
 .sizes{display:flex;gap:12px;flex-wrap:wrap}
 .sizes label{display:flex;gap:6px;align-items:center;font-size:13px}
@@ -84,11 +87,19 @@ tfoot td{font-weight:500;border-bottom:0}
 .stats b{font-family:var(--f-mono);font-weight:500}
 .chart{width:100%;height:auto;display:block}
 .note{font-size:12px;color:var(--mute);margin:8px 0 0}
+.sgq{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:10px 0;font-size:13px;line-height:1.45}
+.sgq>div{border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.sgt{font-family:inherit;font-size:12.5px}
+.sgw{overflow-x:auto}
+.sgt th,.sgt td{white-space:normal;min-width:70px;padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.sgt th{text-transform:none;font-weight:600}
+.sgt tr.cur td{background:var(--hl)}
+.sgt td.bad{color:var(--err)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:12px 0}
 .tile{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg)}
 .tile .big{font-family:var(--f-display);font-weight:700;font-size:28px;line-height:1.1;letter-spacing:-.01em}
 .tile .sub{font-size:12px;color:var(--mute);margin-top:3px}
-.effctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:0 28px}
+.effctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(400px,100%),1fr));gap:0 28px}
 .effctl .row label{flex-basis:120px}
 .pgrid{display:grid;gap:4px;align-items:center;overflow-x:auto;padding-bottom:4px}
 .pgrid .lab{color:var(--mute);font-size:inherit;text-align:center;font-family:var(--f-mono)}
@@ -259,14 +270,61 @@ tfoot td{font-weight:500;border-bottom:0}
       <div class="sizes">
         <label>Inputs (rows) <select id="selM"></select></label>
         <label>Outputs (cols) <select id="selN"></select></label>
-        <label>Cell encoding <select id="selArch"><option value="diff">Analog multi-level (differential pair)</option><option value="bin">Binary weighted ReRAM (1-bit cells)</option></select></label>
+        <label>Cell encoding <select id="selArch"><option value="diff">Analog multi-level cells</option><option value="bin">Binary weighted ReRAM (1-bit cells)</option></select></label>
+        <label>Weight sign <select id="selSign"><option value="signed">Signed (negatives allowed)</option><option value="unsigned">Unsigned (negatives clipped to 0)</option></select></label>
+        <label>Cells per weight <select id="selCells"><option value="pair">G⁺/G⁻ pair (two cells)</option><option value="one">G⁺ only (one cell)</option></select></label>
       </div>
       <p class="note" id="archNote"></p>
     </section>
 
-    <section class="panel">
+    <section class="panel" id="signDisc">
+      <h2>Negative weights: signed or unsigned, one cell or two?</h2>
+      <p class="note" style="margin:0 0 8px;font-size:13px;max-width:80ch">A ReRAM cell is a conductance G, and G can never be negative, so a current I = V·G can never be negative either. Neural-network weights are often negative. Two separate design choices decide how the array copes, and you can set each one with the drop-downs above.</p>
+      <div class="sgq">
+        <div><b>1. Weight sign: are negative weights needed?</b><br><i>Signed</i> keeps them, so the output can go below zero. <i>Unsigned</i> gives up on them: a negative weight is stored as 0. That is fine when every weight is naturally positive (pixel intensities, counts, probabilities), and wrong when it is not.</div>
+        <div><b>2. Cells per weight: how is a signed weight stored?</b><br><i>G⁺/G⁻ pair</i> uses two cells: one holds the positive part, one the negative part, and the column pair&rsquo;s currents are subtracted. <i>G⁺ only</i> uses one cell. To keep negatives anyway it shifts the weight into 0 to 1 and subtracts a shared <i>reference column</i> that stands for zero.</div>
+      </div>
+      <div class="sgw"><table class="sgt" id="sgTable">
+        <thead><tr><th>Weight sign</th><th>Cells per weight</th><th>How a weight is stored</th><th>Negatives</th><th>Gmin leakage</th><th>Weight step</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr data-s="diff"><td>Signed</td><td>Pair (G⁺, G⁻)</td><td>w &gt; 0 goes in G⁺, w &lt; 0 in G⁻, the other cell sits at Gmin. y = (I⁺ − I⁻) / (V<sub>read</sub>·ΔG)</td><td>Kept</td><td>Cancels (both cells leak equally)</td><td>1/L</td><td>2 cells per weight, 2 bit lines per output</td></tr>
+          <tr data-s="ref"><td>Signed</td><td>G⁺ only</td><td>u = (w+1)/2 in 0 to 1, so w = 0 sits at the middle conductance. y = 2·(I − I<sub>ref</sub>) / (V<sub>read</sub>·ΔG)</td><td>Kept</td><td>Cancels (the reference column leaks too)</td><td>2/L (twice as coarse)</td><td>1 cell per weight, plus one shared reference column</td></tr>
+          <tr data-s="clip"><td>Unsigned</td><td>G⁺ only</td><td>w &ge; 0 stored as is, w &lt; 0 stored as 0. y = I / (V<sub>read</sub>·ΔG)</td><td class="bad">Lost</td><td class="bad">Adds an offset ≈ Σx·Gmin/ΔG to every output</td><td>1/L</td><td>1 cell per weight, no subtraction (simplest hardware)</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note" style="max-width:80ch">L is the number of conductance levels minus one (set by &ldquo;Weight levels&rdquo;) and ΔG = Gmax − Gmin. The fourth combination, unsigned with a pair, is not offered: G⁻ would stay at Gmin and the second cell would buy nothing.</p>
+      <div class="sgq">
+        <div><b>Why not always use the pair?</b> It is the most accurate way to keep negatives, but it doubles the cells, the bit lines and the ADCs. If area or energy is tight, one cell per weight is attractive.</div>
+        <div><b>Why does the reference column halve the resolution?</b> One cell has to cover weights from −1 to +1, so the same conductance range is spread over twice the span. Each level now means a change of 2/L in w instead of 1/L.</div>
+        <div><b>What does unsigned really cost?</b> Negative weights turn into 0 and the leakage current of every cell piles up in the sum. The error is large when many weights are negative and small when none are.</div>
+      </div>
+      <p class="note" style="max-width:80ch"><b>Try it.</b> (1) Press Randomize with <i>Signed, pair</i>, note y₁, then switch to <i>Unsigned</i>: negative weights turn red and y₁ moves. (2) Press &ldquo;Make weights positive&rdquo; and the unsigned result now differs from ideal only by the leakage offset. (3) Set σ = 0 and the ADC to 8 bits, then compare <i>Signed, pair</i> and <i>Signed, G⁺ only</i>: the same ideal answer, but the second is coarser when Weight levels is small. (4) Combine with <i>Binary weighted</i> cells to see the same three layouts at bit level.</p>
+    </section>
+
+    <div class="grid" id="xgrid">
+    <aside class="rail">
+      <section class="panel">
+        <h2>Input vector x <span class="cap">0 to 1</span></h2>
+        <div id="xs"></div>
+      </section>
+      <section class="panel">
+        <h2>Weight matrix W <span class="cap">−1 to 1</span></h2>
+        <div id="wg" class="wgrid"></div>
+        <div class="btns">
+          <button id="bRand">Randomize weights</button>
+          <button id="bReset">Reset example</button>
+          <button id="bAbs" hidden>Make weights positive</button>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Device and circuit</h2>
+        <div id="settings"></div>
+        <div class="btns"><button id="bSeed">Resample device variation</button></div>
+      </section>
+    </aside>
+      <section class="panel">
       <h2>Crossbar</h2>
-      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:80ch">A crossbar is a grid of ReRAM cells. Each word line (a row) carries an input voltage, each bit line (a column) collects current, and a cell sits at every crossing with its stored conductance G. Press Play to watch the five stages: write the weights, drive the rows, let each cell apply Ohm&rsquo;s law, let each column sum its currents, then digitize the result. Use the controls further down to change the inputs, weights and device settings.</p>
+      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:80ch">A crossbar is a grid of ReRAM cells. Each word line (a row) carries an input voltage, each bit line (a column) collects current, and a cell sits at every crossing with its stored conductance G. Press Play to watch the five stages: write the weights, drive the rows, let each cell apply Ohm&rsquo;s law, let each column sum its currents, then digitize the result. Use the controls beside the crossbar (below it on a narrow screen) to change the inputs, weights and device settings.</p>
       <div class="steps" id="steps"></div>
       <p class="stepnote" id="stepnote"></p>
       <div class="legend">
@@ -277,6 +335,7 @@ tfoot td{font-weight:500;border-bottom:0}
       </div>
       <div class="xbar"><svg id="xsvg" role="img" aria-label="ReRAM crossbar array with word lines, bit lines and ADCs"></svg></div>
     </section>
+    </div>
 
     <section class="panel" id="wu">
       <h2>Warm-up: one cell, then two cells on one wire <span class="cap">start here</span></h2>
@@ -289,7 +348,7 @@ tfoot td{font-weight:500;border-bottom:0}
 
     <section class="panel" id="vm">
       <h2>Worked example: a real 2×2 vector multiply <span class="cap">follow every number</span></h2>
-      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:82ch">Here the crossbar computes <span class="eq">y = xᵀW</span> for a 2-element input vector and a 2×2 weight matrix. The inputs from the vector <b>x</b> become voltages on the rows. The weights from the matrix <b>W</b> become conductances in the cells, two cells per weight (G⁺ and G⁻) because a conductance cannot be negative. Each column adds up its currents, and the result is compared with the exact answer. Inside each cell box the big number is its conductance and the small one is its current; tap a cell to see where they come from. Change any number, and use the Device and circuit settings further down (DAC and weight bits, ADC bits, Gmin, Gmax, σ, wire resistance) to see where the differences come from. This example uses the analog multi-level layout. The Cell layout menu compares the default two-cell pair with two single-cell alternatives.</p>
+      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:82ch">Here the crossbar computes <span class="eq">y = xᵀW</span> for a 2-element input vector and a 2×2 weight matrix. The inputs from the vector <b>x</b> become voltages on the rows. The weights from the matrix <b>W</b> become conductances in the cells, two cells per weight (G⁺ and G⁻) because a conductance cannot be negative. Each column adds up its currents, and the result is compared with the exact answer. Inside each cell box the big number is its conductance and the small one is its current; tap a cell to see where they come from. Change any number, and use the Device and circuit settings beside the crossbar (DAC and weight bits, ADC bits, Gmin, Gmax, σ, wire resistance) to see where the differences come from. This example uses the analog multi-level layout. The Cell layout menu compares the default two-cell pair with two single-cell alternatives.</p>
       <div class="vmtop">
 <div class="vmleft">
 <div class="vmin">
@@ -392,30 +451,11 @@ tfoot td{font-weight:500;border-bottom:0}
           <div id="xwA"></div><div id="xwB"></div><div id="xw1"></div>
         </div>
         <div class="btns"><button type="button" id="xReset">Restore the XOR solution</button><button type="button" id="xSeed">Resample device variation</button></div>
-        <p class="note">Weights go from −1 to 1. Push σ toward 20 to 25% and press Resample a few times: a ✗ appears when noise on one cell pushes a sum across 0. The other device settings come from the Device and circuit panel below, and weights are written ideally with no programming model.</p>
+        <p class="note">Weights go from −1 to 1. Push σ toward 20 to 25% and press Resample a few times: a ✗ appears when noise on one cell pushes a sum across 0. The other device settings come from the Device and circuit panel beside the crossbar, and weights are written ideally with no programming model.</p>
       </details>
     </section>
 
-  <div class="grid">
-    <aside class="rail">
-      <section class="panel">
-        <h2>Input vector x <span class="cap">0 to 1</span></h2>
-        <div id="xs"></div>
-      </section>
-      <section class="panel">
-        <h2>Weight matrix W <span class="cap">−1 to 1</span></h2>
-        <div id="wg" class="wgrid"></div>
-        <div class="btns">
-          <button id="bRand">Randomize weights</button>
-          <button id="bReset">Reset example</button>
-        </div>
-      </section>
-      <section class="panel">
-        <h2>Device and circuit</h2>
-        <div id="settings"></div>
-        <div class="btns"><button id="bSeed">Resample device variation</button></div>
-      </section>
-    </aside>
+  <div class="grid one">
 
     <main class="main">
 
@@ -562,28 +602,66 @@ tfoot td{font-weight:500;border-bottom:0}
 var W0=[[0.8,-0.4,0.2,0.6,-0.7,0.3],[-0.5,0.9,0.1,-0.3,0.4,-0.8],[0.3,0.2,-0.9,0.5,0.6,-0.1],[0.7,-0.6,0.4,-0.2,-0.5,0.9],[-0.3,0.5,0.7,0.1,-0.9,0.2],[0.6,-0.1,-0.4,0.8,0.3,-0.6],
   [0.2,-0.7,0.5,0.1,0.8,-0.4],[-0.6,0.3,0.9,-0.8,0.2,0.5],[0.4,0.6,-0.3,0.7,-0.1,-0.9]];
 var X0=[0.8,0.3,0.6,1.0,0.5,0.2,0.7,0.1,0.9];
-var S={arch:'diff',M:4,N:4,dacBits:4,gBits:4,adcBits:8,adcRange:100,vread:0.2,gmin:5,gmax:100,sigma:10,rw:0,seed:7,show:'g',phase:5,col:0,wmode:'verify',v0:1.0,dv:0.1,tol:2,maxp:30,tp:50,icc:50,par:1,erase:1,pr:0,pc:0};
+var S={arch:'diff',sign:'diff',M:4,N:4,dacBits:4,gBits:4,adcBits:8,adcRange:100,vread:0.2,gmin:5,gmax:100,sigma:10,rw:0,seed:7,show:'g',phase:5,col:0,wmode:'verify',v0:1.0,dv:0.1,tol:2,maxp:30,tp:50,icc:50,par:1,erase:1,pr:0,pc:0};
 var W=W0.map(function(r){return r.slice()}), X=X0.slice(), Z=[];
 var SUB=['₁','₂','₃','₄','₅','₆','₇','₈','₉'];
 var timer=null;
 function $(id){return document.getElementById(id)}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function f(v,d){return (v<0?'−':'')+Math.abs(v).toFixed(d)}
-/* Cell encoding: 'diff' = one analog multi-level G+/G- pair per weight; 'bin' = binary weighted, one G+/G- pair of 1-bit cells per weight bit. */
+/* Cell encoding ('arch'): 'diff' = analog multi-level, 'bin' = binary weighted (one 1-bit cell per weight bit).
+   Signed weight encoding ('sign'): 'diff' = G+/G- pair of cells, 'ref' = one cell per weight plus one shared reference column at the middle conductance,
+   'clip' = one cell per weight, unsigned weights only (0 to 1, negative weights are stored as 0). */
 function isBin(){return S.arch==='bin'}
-function cpo(){return isBin()?2*S.gBits:2}            /* bit lines per output */
-function ncols(){return S.N*cpo()}
+function nc(){return S.sign==='diff'?2:1}                 /* cells per bit plane */
+function planesN(){return isBin()?S.gBits:1}              /* bit planes per output */
+function cpo(){return planesN()*nc()}                     /* bit lines per output */
+function hasRef(){return S.sign==='ref'}
+function ncols(){return S.N*cpo()+(hasRef()?1:0)}
+function refCol(){return hasRef()?S.N*cpo():-1}
+function gmid(){return (S.gmin+S.gmax)/2}
+function encodeW(w,bin){
+  var B=S.gBits,Lv=Math.pow(2,B)-1,span=S.gmax-S.gmin,gm=gmid(),sc=S.sign,pl=[],l,wq,code,q;
+  if(sc==='clip')w=Math.max(w,0);
+  if(!bin){
+    if(sc==='ref'){l=Math.round((w+1)/2*Lv);wq=2*l/Lv-1;pl.push({b:0,pw:1,gain:2,Gt:[S.gmin+l/Lv*span]});return {planes:pl,wq:wq,level:l,w:w}}
+    l=Math.round(Math.abs(w)*Lv);wq=(w<0?-1:1)*l/Lv;
+    if(sc==='diff')pl.push({b:0,pw:1,gain:1,Gt:[S.gmin+(w>0?l/Lv:0)*span,S.gmin+(w<0?l/Lv:0)*span]});
+    else pl.push({b:0,pw:1,gain:1,Gt:[S.gmin+wq*span]});
+    return {planes:pl,wq:wq,level:l,w:w};
+  }
+  if(sc==='ref'){code=Math.round((w+1)/2*Lv);wq=2*code/Lv-1}
+  else{code=Math.round(Math.abs(w)*Lv);wq=(w<0?-1:1)*code/Lv}
+  for(q=0;q<B;q++){
+    var b=B-1-q,bit=(code>>b)&1,pw=Math.pow(2,b)/Lv;
+    if(sc==='diff')pl.push({b:b,bit:bit,pw:pw,gain:1,Gt:[S.gmin+(bit&&w>0?1:0)*span,S.gmin+(bit&&w<0?1:0)*span]});
+    else pl.push({b:b,bit:bit,pw:pw,gain:sc==='ref'?2:1,Gt:[S.gmin+bit*span]});
+  }
+  return {planes:pl,wq:wq,level:code,w:w};
+}
+function colInfo(k){
+  var c=cpo(),n=nc();
+  if(hasRef()&&k===refCol())return {ref:true};
+  var j=Math.floor(k/c),r=k%c,q=Math.floor(r/n);
+  return {ref:false,j:j,q:q,c:r%n,b:isBin()?S.gBits-1-q:0};
+}
 function colLabel(k){
-  var c=cpo(),j=Math.floor(k/c),sg=(k%2?'⁻':'⁺');
-  if(!isBin())return 'y'+SUB[j]+sg;
-  var b=S.gBits-1-Math.floor((k%c)/2);return 'y'+SUB[j]+'·b'+b+sg;
+  var ci=colInfo(k);if(ci.ref)return 'ref';
+  var s='y'+SUB[ci.j];
+  if(isBin())s+='·b'+ci.b;
+  if(S.sign==='diff')s+=(ci.c?'⁻':'⁺');
+  return s;
 }
 function colDesc(k){
-  var c=cpo(),j=Math.floor(k/c);
-  if(!isBin())return 'bit line '+(j+1)+(k%2?' (G⁻)':' (G⁺)');
-  return 'output y'+SUB[j]+', bit '+(S.gBits-1-Math.floor((k%c)/2))+(k%2?' (G⁻)':' (G⁺)');
+  var ci=colInfo(k);if(ci.ref)return 'the shared reference column (Gmid)';
+  var s=isBin()?'output y'+SUB[ci.j]+', bit '+ci.b:'bit line '+(ci.j+1);
+  if(S.sign==='diff')s+=(ci.c?' (G⁻)':' (G⁺)');
+  return s;
 }
-
+function schemeName(){
+  var a=isBin()?'binary weighted':'analog multi-level';
+  return a+', '+(S.sign==='diff'?'differential pair':S.sign==='ref'?'reference column':'unsigned');
+}
 function rng(seed){var a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function makeZ(){var r=rng(S.seed*9973+11);Z=[];for(var i=0;i<9;i++){Z[i]=[];for(var k=0;k<12;k++){var u=r()||1e-9,v=r();Z[i][k]=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}}
   var r2=rng(S.seed*9973+977);for(i=0;i<9;i++)for(k=12;k<96;k++){var u2=r2()||1e-9,v2=r2();Z[i][k]=Math.sqrt(-2*Math.log(u2))*Math.cos(2*Math.PI*v2)}}
@@ -618,37 +696,21 @@ function solve(Vin,G,rw){
 }
 
 function compute(){
-  var M=S.M,N=S.N,bin=isBin(),B=S.gBits,cp=cpo(),C=N*cp,i,j,k;
+  var M=S.M,N=S.N,bin=isBin(),B=S.gBits,P=planesN(),ncell=nc(),cp=cpo(),C=ncols(),rc=refCol(),i,j,k,q,c;
   var span=S.gmax-S.gmin,Lv=Math.pow(2,S.gBits)-1,dl=Math.pow(2,S.dacBits)-1;
   var xq=[],Vin=[];
   for(i=0;i<M;i++){xq[i]=Math.round(X[i]*dl)/dl;Vin[i]=xq[i]*S.vread}
   var Gt=[],Gid=[],Ga=[],GaS=[];
   for(i=0;i<M;i++){Gt[i]=[];Gid[i]=[];Ga[i]=[];GaS[i]=[];
     for(j=0;j<N;j++){
-      var w=W[i][j];
-      if(!bin){
-        for(var s=0;s<2;s++){
-          var mag=s===0?Math.max(w,0):Math.max(-w,0);
-          var t=Math.round(mag*Lv)/Lv;
-          k=2*j+s;
-          Gt[i][k]=S.gmin+t*span;
-          Gid[i][k]=Math.max(0.05,Gt[i][k]*(1+S.sigma/100*Z[i][k]));
-        }
-      }else{
-        /* Binary weighted: |w| becomes a B-bit integer. Each bit lives in its own pair of 1-bit cells (HRS = 0, LRS = 1);
-           the pair for the weight's sign holds the bit, the other stays HRS. Planes are ordered MSB first. */
-        var code=Math.round(Math.abs(w)*Lv);
-        for(var q=0;q<B;q++){
-          var bit=(code>>(B-1-q))&1;
-          for(var s2=0;s2<2;s2++){
-            var on=bit&&(s2===0?w>0:w<0);
-            k=j*cp+2*q+s2;
-            Gt[i][k]=S.gmin+(on?1:0)*span;
-            Gid[i][k]=Math.max(0.05,Gt[i][k]*(1+S.sigma/100*Z[i][k]));
-          }
-        }
+      var e=encodeW(W[i][j],bin);
+      for(q=0;q<P;q++)for(c=0;c<ncell;c++){
+        k=j*cp+q*ncell+c;
+        Gt[i][k]=e.planes[q].Gt[c];
+        Gid[i][k]=Math.max(0.05,Gt[i][k]*(1+S.sigma/100*Z[i][k]));
       }
     }
+    if(rc>=0){Gt[i][rc]=gmid();Gid[i][rc]=Math.max(0.05,Gt[i][rc]*(1+S.sigma/100*Z[i][rc]))}
   }
   var pr=progArray(Gt,M,C,S.wmode==='single'?'single':'verify');
   for(i=0;i<M;i++)for(k=0;k<C;k++){
@@ -658,47 +720,45 @@ function compute(){
   var sol=solve(Vin,GaS,S.rw);
   var Ic=sol.Ic.map(function(a){return a*1e6});
   var cellI=sol.cell.map(function(r){return r.map(function(a){return a*1e6})});
+  var Iref=rc>=0?Ic[rc]:null,gain=S.sign==='ref'?2:1;
   var raw=[],ideal=[],code=[],out=[],err=[],planes=[];
   var R=M*S.adcRange/100,lv=Math.pow(2,S.adcBits-1)-1;
   for(j=0;j<N;j++){
     var id=0;for(i=0;i<M;i++)id+=X[i]*W[i][j];ideal[j]=id;
-    if(!bin){
-      raw[j]=(Ic[2*j]-Ic[2*j+1])/(S.vread*span);
-      code[j]=clamp(Math.round(raw[j]/R*lv),-lv,lv);
-      out[j]=code[j]*R/lv;
-    }else{
-      /* each plane has its own ADC; the digital side shifts each plane code by its bit weight and adds */
-      var pl=[],rs=0,cs=0;
-      for(var q2=0;q2<B;q2++){
-        var kk=j*cp+2*q2,b=B-1-q2,pw=Math.pow(2,b);
-        var pRaw=(Ic[kk]-Ic[kk+1])/(S.vread*span);
-        var pCode=clamp(Math.round(pRaw/R*lv),-lv,lv);
-        pl.push({b:b,pw:pw,Ip:Ic[kk],Im:Ic[kk+1],raw:pRaw,code:pCode});
-        rs+=pRaw*pw/Lv;cs+=pCode*pw;
-      }
-      planes[j]=pl;raw[j]=rs;code[j]=cs;out[j]=cs*R/(lv*Lv);
+    var pl=[],rs=0,cs=0,os=0;
+    for(q=0;q<P;q++){
+      var kk=j*cp+q*ncell,b=bin?B-1-q:0,pw=bin?Math.pow(2,b)/Lv:1;
+      var Ip=Ic[kk],Im=ncell===2?Ic[kk+1]:(rc>=0?Iref:null);
+      var val=ncell===2?(Ip-Im)/(S.vread*span):(rc>=0?gain*(Ip-Iref)/(S.vread*span):Ip/(S.vread*span));
+      var pCode=clamp(Math.round(val/R*lv),-lv,lv);
+      pl.push({b:b,pw:pw,Ip:Ip,Im:Im,raw:val,code:pCode});
+      rs+=pw*val;cs+=bin?pCode*Math.pow(2,b):pCode;os+=pw*pCode*R/lv;
     }
-    err[j]=out[j]-id;
+    planes[j]=pl;raw[j]=rs;code[j]=cs;out[j]=os;err[j]=os-id;
   }
   var rms=Math.sqrt(err.reduce(function(a,e){return a+e*e},0)/N);
   var maxAbs=ideal.reduce(function(a,v){return Math.max(a,Math.abs(v))},0)||1;
-  return {prog:pr,Gt:Gt,xq:xq,Vin:Vin,Ga:Ga,Ic:Ic,cellI:cellI,raw:raw,ideal:ideal,code:code,out:out,err:err,rms:rms,rel:rms/maxAbs,R:R,span:span,bin:bin,B:B,cp:cp,C:C,planes:planes};
+  return {prog:pr,Gt:Gt,xq:xq,Vin:Vin,Ga:Ga,Ic:Ic,cellI:cellI,raw:raw,ideal:ideal,code:code,out:out,err:err,rms:rms,rel:rms/maxAbs,R:R,span:span,bin:bin,B:B,P:P,ncell:ncell,cp:cp,C:C,rc:rc,Iref:Iref,planes:planes,sign:S.sign};
 }
 
 /* ---------- rendering ---------- */
 function renderSVG(d){
-  var M=S.M,N=S.N,C=d.C,bin=d.bin,B=d.B,P=bin?44:60,L=124,T=bin?56:36,gw=C*P,gh=M*P,ph=S.phase;
-  var Wd=L+gw+26,H=T+gh+(bin?204:164);
+  var M=S.M,N=S.N,C=d.C,bin=d.bin,B=d.B,np=d.P,ncl=d.ncell,cp=d.cp,rc=d.rc,hasR=rc>=0,P=bin?44:60,L=124,T=bin?56:36,gw=C*P,gh=M*P,ph=S.phase;
+  var off=hasR?20:0,Wd=L+gw+26,H=T+gh+(bin?208:168)+off;
   function op(n){return ph>=n?1:0.14}
   var o='';
   var rowFlow=(ph===2||ph===3)?' flow':'',colFlow=(ph===4)?' flow':'';
-  var i,j,k;
+  var i,j,k,u,NU=N*np;
+  function ux(u){return L+u*ncl*P+ncl*P/2}                   /* centre of a bit-plane unit */
   // headers
   o+='<g class="fade" opacity="'+op(1)+'">';
-  for(k=0;k<C;k++){var xx=L+k*P+P/2;o+='<text x="'+xx+'" y="'+(T-12)+'" text-anchor="middle" font-size="12" fill="var(--mute)">'+(k%2===0?'G⁺':'G⁻')+'</text>'}
+  for(k=0;k<C;k++){
+    var xx=L+k*P+P/2,lab=(k===rc)?'Gref':(ncl===2?(k%2===0?'G⁺':'G⁻'):'G');
+    o+='<text x="'+xx+'" y="'+(T-12)+'" text-anchor="middle" font-size="12" fill="var(--mute)">'+lab+'</text>';
+  }
   if(bin){
-    for(k=0;k<C;k+=2){var xb=L+k*P+P;o+='<text x="'+xb+'" y="'+(T-27)+'" text-anchor="middle" font-size="11" fill="var(--ink)">bit '+(B-1-Math.floor((k%d.cp)/2))+'</text>'}
-    for(j=0;j<N;j++){var xa=L+j*d.cp*P+4,xe=L+(j+1)*d.cp*P-4;o+='<path d="M'+xa+' '+(T-40)+' H'+xe+'" stroke="var(--ink)" stroke-width="1.5" fill="none"/><text x="'+((xa+xe)/2)+'" y="'+(T-45)+'" text-anchor="middle" font-size="12" font-weight="500" fill="var(--ink)">y'+SUB[j]+' = Σ bit·2ᵇ</text>'}
+    for(u=0;u<NU;u++)o+='<text x="'+ux(u)+'" y="'+(T-27)+'" text-anchor="middle" font-size="11" fill="var(--ink)">bit '+(B-1-(u%np))+'</text>';
+    for(j=0;j<N;j++){var xa=L+j*cp*P+4,xe=L+(j+1)*cp*P-4;o+='<path d="M'+xa+' '+(T-40)+' H'+xe+'" stroke="var(--ink)" stroke-width="1.5" fill="none"/><text x="'+((xa+xe)/2)+'" y="'+(T-45)+'" text-anchor="middle" font-size="12" font-weight="500" fill="var(--ink)">y'+SUB[j]+' = Σ bit·2ᵇ</text>'}
   }
   o+='</g>';
   // rows
@@ -724,41 +784,54 @@ function renderSVG(d){
   for(i=0;i<M;i++)for(k=0;k<C;k++){
     var cx2=L+k*P+P/2,cy=T+i*P+P/2;
     var t=clamp((d.Ga[i][k]-S.gmin)/d.span,0,1),a=0.1+0.9*t;
-    o+='<rect x="'+(cx2-15)+'" y="'+(cy-15)+'" width="30" height="30" rx="3" fill="var(--cell)" fill-opacity="'+a.toFixed(3)+'" stroke="var(--cell)" stroke-opacity=".5"><title>Cell ['+(i+1)+','+(k+1)+'] G='+d.Ga[i][k].toFixed(1)+' µS, I='+d.cellI[i][k].toFixed(2)+' µA</title></rect>';
+    o+='<rect x="'+(cx2-15)+'" y="'+(cy-15)+'" width="30" height="30" rx="3" fill="var(--cell)" fill-opacity="'+a.toFixed(3)+'" stroke="var(--cell)" stroke-opacity=".5"'+(k===rc?' stroke-dasharray="3 2" stroke-width="1.5"':'')+'><title>'+(k===rc?'Reference cell':'Cell')+' ['+(i+1)+','+(k+1)+'] G='+d.Ga[i][k].toFixed(1)+' µS, I='+d.cellI[i][k].toFixed(2)+' µA</title></rect>';
     if(S.show!=='n'){
-      var lab=S.show==='g'?d.Ga[i][k].toFixed(0):d.cellI[i][k].toFixed(1);
+      var lab2=S.show==='g'?d.Ga[i][k].toFixed(0):d.cellI[i][k].toFixed(1);
       var dim=(S.show==='i'&&ph<3)?0.15:1;
       var tc=a>0.55?'var(--cellText)':'var(--ink)';
-      o+='<text x="'+cx2+'" y="'+(cy+1)+'" text-anchor="middle" font-size="11" fill="'+tc+'" opacity="'+dim+'">'+lab+'</text>';
+      o+='<text x="'+cx2+'" y="'+(cy+1)+'" text-anchor="middle" font-size="11" fill="'+tc+'" opacity="'+dim+'">'+lab2+'</text>';
       o+='<text x="'+cx2+'" y="'+(cy+11)+'" text-anchor="middle" font-size="7.5" fill="'+tc+'" opacity="'+(dim*0.85)+'">'+(S.show==='g'?'µS':'µA')+'</text>';
     }
   }
   o+='</g>';
-  // pair merge + ADC
+  // subtraction / ADC stage
   o+='<g class="fade" opacity="'+op(5)+'">';
-  var NP=C/2,yb0=y0+42;
-  for(var pi=0;pi<NP;pi++){
-    var xp=L+(2*pi)*P+P/2,xm=L+(2*pi+1)*P+P/2,mid=(xp+xm)/2,yt=y0+22,yb=yb0;
-    o+='<path d="M'+xp+' '+yt+' V'+yb+' H'+xm+' V'+yt+' M'+mid+' '+yb+' V'+(yb+12)+'" fill="none" stroke="var(--curr)" stroke-width="2"/>';
-    o+='<text x="'+(mid-P/2+1)+'" y="'+(yb-4)+'" text-anchor="middle" font-size="11" fill="var(--curr)">+</text>';
-    o+='<text x="'+(mid+P/2-1)+'" y="'+(yb-4)+'" text-anchor="middle" font-size="11" fill="var(--curr)">−</text>';
-    if(!bin){
-      o+='<rect x="'+(mid-38)+'" y="'+(yb+12)+'" width="76" height="26" rx="4" fill="none" stroke="var(--ink)" stroke-width="1.5"/>';
-      o+='<text x="'+mid+'" y="'+(yb+29)+'" text-anchor="middle" font-size="11" fill="var(--ink)">ADC '+S.adcBits+'b</text>';
-      o+='<text x="'+mid+'" y="'+(yb+56)+'" text-anchor="middle" font-size="14" font-weight="500" fill="var(--ink)">y'+SUB[pi]+' = '+f(d.out[pi],2)+'</text>';
-      o+='<text x="'+mid+'" y="'+(yb+71)+'" text-anchor="middle" font-size="10.5" fill="var(--mute)">ideal '+f(d.ideal[pi],2)+'</text>';
+  var yb=y0+42,aw=Math.min(bin?62:(ncl===2?76:64),ncl*P-6),nar=(!bin&&ncl===1),adf=(bin&&ncl===1)?9:(bin?10:(nar?10:11));
+  if(hasR){
+    var xr=L+rc*P+P/2,ybus=yb+50;
+    o+='<path d="M'+xr+' '+(y0+22)+' V'+ybus+' H'+ux(0)+'" fill="none" stroke="var(--curr)" stroke-width="2"/>';
+    o+='<text x="'+(xr-6)+'" y="'+(ybus-5)+'" text-anchor="end" font-size="10" fill="var(--curr)">Iref</text>';
+  }
+  for(u=0;u<NU;u++){
+    var xu=ux(u),jj=Math.floor(u/np),qq=u%np,pln=d.planes[jj][qq];
+    if(ncl===2){
+      var xp=L+(2*u)*P+P/2,xm=xp+P;
+      o+='<path d="M'+xp+' '+(y0+22)+' V'+yb+' H'+xm+' V'+(y0+22)+' M'+xu+' '+yb+' V'+(yb+12)+'" fill="none" stroke="var(--curr)" stroke-width="2"/>';
+      o+='<text x="'+(xu-P/2+1)+'" y="'+(yb-4)+'" text-anchor="middle" font-size="11" fill="var(--curr)">+</text>';
+      o+='<text x="'+(xu+P/2-1)+'" y="'+(yb-4)+'" text-anchor="middle" font-size="11" fill="var(--curr)">−</text>';
     }else{
-      var pj=Math.floor(pi/B),pq=pi%B,pl=d.planes[pj][pq];
-      o+='<rect x="'+(mid-31)+'" y="'+(yb+12)+'" width="62" height="24" rx="4" fill="none" stroke="var(--ink)" stroke-width="1.5"/>';
-      o+='<text x="'+mid+'" y="'+(yb+28)+'" text-anchor="middle" font-size="10" fill="var(--ink)">ADC '+S.adcBits+'b</text>';
-      o+='<text x="'+mid+'" y="'+(yb+50)+'" text-anchor="middle" font-size="10.5" fill="var(--ink)">'+(pl.code<0?'−':'')+Math.abs(pl.code)+'</text>';
-      o+='<text x="'+mid+'" y="'+(yb+63)+'" text-anchor="middle" font-size="10.5" fill="var(--mute)">×'+pl.pw+'</text>';
-      o+='<path d="M'+mid+' '+(yb+68)+' V'+(yb+76)+'" stroke="var(--ink)" stroke-width="1.2" fill="none"/>';
+      o+='<path d="M'+xu+' '+(y0+22)+' V'+(yb+12)+'" fill="none" stroke="var(--curr)" stroke-width="2"/>';
+      o+='<text x="'+(xu-9)+'" y="'+(yb+5)+'" text-anchor="end" font-size="11" fill="var(--curr)">+</text>';
+      if(hasR){
+        o+='<path d="M'+xu+' '+(yb+50)+' V'+(yb+38)+'" fill="none" stroke="var(--curr)" stroke-width="2"/>';
+        o+='<circle cx="'+xu+'" cy="'+(yb+50)+'" r="2.5" fill="var(--curr)"/>';
+        o+='<text x="'+(xu+8)+'" y="'+(yb+46)+'" font-size="11" fill="var(--curr)">−</text>';
+      }
+    }
+    o+='<rect x="'+(xu-aw/2)+'" y="'+(yb+12)+'" width="'+aw+'" height="'+(bin?24:26)+'" rx="4" fill="none" stroke="var(--ink)" stroke-width="1.5"/>';
+    o+='<text x="'+xu+'" y="'+(yb+(bin?28:29))+'" text-anchor="middle" font-size="'+adf+'" fill="var(--ink)">ADC '+S.adcBits+'b</text>';
+    if(!bin){
+      o+='<text x="'+xu+'" y="'+(yb+56+off)+'" text-anchor="middle" font-size="'+(nar?12:14)+'" font-weight="500" fill="var(--ink)">y'+SUB[jj]+(nar?'=':' = ')+f(d.out[jj],2)+'</text>';
+      o+='<text x="'+xu+'" y="'+(yb+71+off)+'" text-anchor="middle" font-size="'+(nar?8.5:10.5)+'" fill="var(--mute)">ideal '+f(d.ideal[jj],2)+'</text>';
+    }else{
+      o+='<text x="'+xu+'" y="'+(yb+50+off)+'" text-anchor="middle" font-size="10.5" fill="var(--ink)">'+(pln.code<0?'−':'')+Math.abs(pln.code)+'</text>';
+      o+='<text x="'+xu+'" y="'+(yb+63+off)+'" text-anchor="middle" font-size="10.5" fill="var(--mute)">×'+Math.pow(2,pln.b)+'</text>';
+      o+='<path d="M'+xu+' '+(yb+68+off)+' V'+(yb+76+off)+'" stroke="var(--ink)" stroke-width="1.2" fill="none"/>';
     }
   }
   if(bin){
     for(j=0;j<N;j++){
-      var xa2=L+(j*d.cp)*P+P,xe2=L+((j+1)*d.cp-2)*P+P,ym=yb0+76,xc=(xa2+xe2)/2;
+      var xa2=ux(j*np),xe2=ux(j*np+np-1),ym=yb+76+off,xc=(xa2+xe2)/2;
       o+='<path d="M'+xa2+' '+ym+' H'+xe2+' M'+xc+' '+ym+' V'+(ym+10)+'" stroke="var(--ink)" stroke-width="1.2" fill="none"/>';
       o+='<text x="'+xc+'" y="'+(ym+27)+'" text-anchor="middle" font-size="14" font-weight="500" fill="var(--ink)">y'+SUB[j]+' = '+f(d.out[j],2)+'</text>';
       o+='<text x="'+xc+'" y="'+(ym+42)+'" text-anchor="middle" font-size="10.5" fill="var(--mute)">shift+add · ideal '+f(d.ideal[j],2)+'</text>';
@@ -780,27 +853,39 @@ function renderTables(d){
   $('res').innerHTML=h+'</tbody>';
   $('stats').innerHTML='<span>RMS error <b>'+d.rms.toFixed(3)+'</b></span><span>Relative to largest output <b>'+(d.rel*100).toFixed(1)+'%</b></span><span>ADC full scale <b>±'+d.R.toFixed(2)+'</b></span>';
   var c=S.col;if(c>=N)c=S.col=0;
-  var t;
+  var t,sc=S.sign,span=d.span,rc=d.rc,cp=d.cp,Lv=Math.pow(2,S.gBits)-1;
   if(!d.bin){
-  t='<thead><tr><th>Row</th><th>Vᵢ mV</th><th>G⁺ µS</th><th>I⁺ µA</th><th>G⁻ µS</th><th>I⁻ µA</th></tr></thead><tbody>';
-  for(i=0;i<M;i++){
-    t+='<tr><td>'+(i+1)+'</td><td>'+(d.Vin[i]*1000).toFixed(0)+'</td><td>'+d.Ga[i][2*c].toFixed(1)+'</td><td>'+d.cellI[i][2*c].toFixed(2)+'</td><td>'+d.Ga[i][2*c+1].toFixed(1)+'</td><td>'+d.cellI[i][2*c+1].toFixed(2)+'</td></tr>';
-  }
-  t+='</tbody><tfoot><tr><td>Sum</td><td></td><td></td><td>'+d.Ic[2*c].toFixed(2)+'</td><td></td><td>'+d.Ic[2*c+1].toFixed(2)+'</td></tr>';
-  t+='<tr><td>I⁺ − I⁻</td><td></td><td></td><td colspan="3">'+f(d.Ic[2*c]-d.Ic[2*c+1],2)+' µA → y = '+f(d.raw[c],3)+'</td></tr></tfoot>';
-  $('trace').innerHTML=t;
-  $('traceNote').textContent='Each cell current is Vᵢ·Gᵢⱼ (Ohm). The bit line adds them (Kirchhoff). The two bit lines of a pair are subtracted, then scaled by Vread·(Gmax−Gmin) to recover the weighted sum.';
+    var k0=c*cp;
+    if(sc==='diff'){
+      t='<thead><tr><th>Row</th><th>Vᵢ mV</th><th>G⁺ µS</th><th>I⁺ µA</th><th>G⁻ µS</th><th>I⁻ µA</th></tr></thead><tbody>';
+      for(i=0;i<M;i++)t+='<tr><td>'+(i+1)+'</td><td>'+(d.Vin[i]*1000).toFixed(0)+'</td><td>'+d.Ga[i][k0].toFixed(1)+'</td><td>'+d.cellI[i][k0].toFixed(2)+'</td><td>'+d.Ga[i][k0+1].toFixed(1)+'</td><td>'+d.cellI[i][k0+1].toFixed(2)+'</td></tr>';
+      t+='</tbody><tfoot><tr><td>Sum</td><td></td><td></td><td>'+d.Ic[k0].toFixed(2)+'</td><td></td><td>'+d.Ic[k0+1].toFixed(2)+'</td></tr>';
+      t+='<tr><td>I⁺ − I⁻</td><td></td><td></td><td colspan="3">'+f(d.Ic[k0]-d.Ic[k0+1],2)+' µA → y = '+f(d.raw[c],3)+'</td></tr></tfoot>';
+      $('traceNote').textContent='Each cell current is Vᵢ·Gᵢⱼ (Ohm). The bit line adds them (Kirchhoff). The two bit lines of a pair are subtracted, then scaled by Vread·(Gmax−Gmin) to recover the weighted sum.';
+    }else if(sc==='ref'){
+      t='<thead><tr><th>Row</th><th>Vᵢ mV</th><th>G µS</th><th>I µA</th><th>Gref µS</th><th>Iref µA</th></tr></thead><tbody>';
+      for(i=0;i<M;i++)t+='<tr><td>'+(i+1)+'</td><td>'+(d.Vin[i]*1000).toFixed(0)+'</td><td>'+d.Ga[i][k0].toFixed(1)+'</td><td>'+d.cellI[i][k0].toFixed(2)+'</td><td>'+d.Ga[i][rc].toFixed(1)+'</td><td>'+d.cellI[i][rc].toFixed(2)+'</td></tr>';
+      t+='</tbody><tfoot><tr><td>Sum</td><td></td><td></td><td>'+d.Ic[k0].toFixed(2)+'</td><td></td><td>'+d.Ic[rc].toFixed(2)+'</td></tr>';
+      t+='<tr><td>I − Iref</td><td></td><td></td><td colspan="3">'+f(d.Ic[k0]-d.Ic[rc],2)+' µA → y = '+f(d.raw[c],3)+'</td></tr></tfoot>';
+      $('traceNote').textContent='Each cell holds Gmid plus or minus an offset for its weight. The reference column holds Gmid in every row, so subtracting its current removes the Gmid part and leaves Vᵢ times the offset. The difference is scaled by Vread·(Gmax−Gmin)/2.';
+    }else{
+      t='<thead><tr><th>Row</th><th>Vᵢ mV</th><th>G µS</th><th>I µA</th></tr></thead><tbody>';
+      for(i=0;i<M;i++)t+='<tr><td>'+(i+1)+'</td><td>'+(d.Vin[i]*1000).toFixed(0)+'</td><td>'+d.Ga[i][k0].toFixed(1)+'</td><td>'+d.cellI[i][k0].toFixed(2)+'</td></tr>';
+      var offs=0;for(i=0;i<M;i++)offs+=d.xq[i]*S.gmin/span;
+      t+='</tbody><tfoot><tr><td>Sum</td><td></td><td></td><td>'+d.Ic[k0].toFixed(2)+'</td></tr>';
+      t+='<tr><td>I scaled</td><td></td><td colspan="2">y = '+f(d.raw[c],3)+' (includes about '+offs.toFixed(3)+' from the Gmin offset)</td></tr></tfoot>';
+      $('traceNote').textContent='One cell per weight, no subtraction. The bit line current is scaled by Vread·(Gmax−Gmin). A cell at its lowest conductance still passes Vᵢ·Gmin, so every output carries a small offset of about Σxᵢ·Gmin/(Gmax−Gmin). Negative weights cannot be stored here.';
+    }
   }else{
-  t='<thead><tr><th>Bit</th><th>Weight</th><th>I⁺ µA</th><th>I⁻ µA</th><th>Plane sum</th><th>ADC code</th></tr></thead><tbody>';
-  var Lv=Math.pow(2,S.gBits)-1,sumC=0;
-  d.planes[c].forEach(function(p){
-    t+='<tr><td>b'+p.b+'</td><td>'+p.pw+'/'+Lv+'</td><td>'+p.Ip.toFixed(2)+'</td><td>'+p.Im.toFixed(2)+'</td><td>'+f(p.raw,3)+'</td><td>'+p.code+'</td></tr>';
-    sumC+=p.code*p.pw;
-  });
-  t+='</tbody><tfoot><tr><td>Shift + add</td><td colspan="5">Σ code·2ᵇ = '+d.code[c]+' → y = '+f(d.out[c],3)+'  (analog sum '+f(d.raw[c],3)+')</td></tr></tfoot>';
-  $('trace').innerHTML=t;
-  $('traceNote').textContent='Each bit plane is its own pair of bit lines. Cells are binary, so a plane current is Vᵢ·G summed over the rows whose weight has that bit set. Each plane is digitized by its own ADC, then the digital side multiplies it by 2ᵇ/'+Lv+' and adds the planes.';
+    var hd=sc==='diff'?['I⁺ µA','I⁻ µA']:sc==='ref'?['I µA','Iref µA']:['I µA',''];
+    t='<thead><tr><th>Bit</th><th>Weight</th><th>'+hd[0]+'</th>'+(hd[1]?'<th>'+hd[1]+'</th>':'')+'<th>Plane sum</th><th>ADC code</th></tr></thead><tbody>';
+    d.planes[c].forEach(function(p){
+      t+='<tr><td>b'+p.b+'</td><td>'+Math.pow(2,p.b)+'/'+Lv+'</td><td>'+p.Ip.toFixed(2)+'</td>'+(hd[1]?'<td>'+p.Im.toFixed(2)+'</td>':'')+'<td>'+f(p.raw,3)+'</td><td>'+p.code+'</td></tr>';
+    });
+    t+='</tbody><tfoot><tr><td>Shift + add</td><td colspan="'+(hd[1]?5:4)+'">Σ code·2ᵇ = '+d.code[c]+' → y = '+f(d.out[c],3)+'  (analog sum '+f(d.raw[c],3)+')</td></tr></tfoot>';
+    $('traceNote').textContent='Each bit plane is read on its own bit line'+(sc==='diff'?'s (a G⁺/G⁻ pair)':sc==='ref'?', with the shared reference column subtracted (weights are offset-binary, so a 0 bit counts as −1 and a 1 bit as +1)':' (unsigned bits)')+'. Cells are binary, so a plane current is Vᵢ·G summed over the rows whose weight has that bit set. Each plane is digitized by its own ADC, then the digital side multiplies it by 2ᵇ/'+Lv+' and adds the planes.';
   }
+  $('trace').innerHTML=t;
 }
 
 function renderChart(d){
@@ -830,17 +915,35 @@ function renderSteps(d){
   var h='<button id="bPlay">'+(timer?'Stop':'Play')+'</button>';
   names.forEach(function(n,i){h+='<button data-ph="'+(i+1)+'" class="'+(S.phase===i+1?'on':'')+'">'+n+'</button>'});
   $('steps').innerHTML=h;
-  var c=S.col,txt={
-    1:(d.bin?'Each weight is split into a sign and a '+S.gBits+'-bit magnitude. Every bit gets its own pair of binary cells (G⁺ or G⁻ by sign), each written as either Gmin ('+S.gmin+' µS, 0) or Gmax ('+S.gmax+' µS, 1). '+d.C+' bit lines in total. ':'Each weight is split into G⁺ and G⁻ and aimed at one of '+Math.pow(2,S.gBits)+' conductance levels between '+S.gmin+' and '+S.gmax+' µS. ')+(S.wmode==='ideal'?'Ideal write is selected, so only Gaussian variation of '+S.sigma+'% is added.':'The write pulses below set the stored values ('+d.prog.stats.pulses+' pulses in total).'),
+  var c=S.col,sc=S.sign,B=S.gBits,Lv=Math.pow(2,B)-1,gm=gmid(),p1,p4,p5,pl=d.planes[c][0];
+  var wr=S.wmode==='ideal'?'Ideal write is selected, so only Gaussian variation of '+S.sigma+'% is added.':'The write pulses below set the stored values ('+d.prog.stats.pulses+' pulses in total).';
+  var nb=d.C+' bit line'+(d.C>1?'s':'')+' in total. ';
+  if(!d.bin){
+    if(sc==='diff')p1='Each weight is split into G⁺ and G⁻ and aimed at one of '+(Lv+1)+' conductance levels between '+S.gmin+' and '+S.gmax+' µS. ';
+    else if(sc==='ref')p1='Each weight sits in a single cell as an offset from the middle conductance, G = Gmid + w·(Gmax−Gmin)/2 with Gmid = '+gm+' µS, so it can be above or below Gmid. One extra reference column is written at Gmid. ';
+    else p1='Each weight sits in a single cell, G = Gmin + w·(Gmax−Gmin), so only weights from 0 to 1 can be stored. Negative weights are written as 0. ';
+  }else{
+    if(sc==='diff')p1='Each weight is split into a sign and a '+B+'-bit magnitude. Every bit gets its own pair of binary cells (G⁺ or G⁻ by sign), each written as either Gmin ('+S.gmin+' µS, 0) or Gmax ('+S.gmax+' µS, 1). ';
+    else if(sc==='ref')p1='Each weight becomes a '+B+'-bit offset-binary code (w = 2·code/'+Lv+' − 1). Every bit gets one binary cell, Gmin for 0 or Gmax for 1, and one shared reference column at Gmid is written too. ';
+    else p1='Each weight becomes a '+B+'-bit magnitude, one binary cell per bit (Gmin for 0, Gmax for 1). Only weights from 0 to 1 can be stored; negative weights are written as 0. ';
+  }
+  p1+=nb+wr;
+  var who=d.bin?'For output y'+SUB[c]+', the MSB plane (bit '+(B-1)+') ':'Output y'+SUB[c]+' ';
+  if(sc==='diff')p4='Each bit line collects the currents of all its cells by Kirchhoff\'s law. '+who+'G⁺ carries '+pl.Ip.toFixed(2)+' µA and G⁻ carries '+pl.Im.toFixed(2)+' µA.';
+  else if(sc==='ref')p4='Each bit line collects the currents of all its cells by Kirchhoff\'s law. '+who+'carries '+pl.Ip.toFixed(2)+' µA, and the shared reference column carries '+d.Iref.toFixed(2)+' µA.';
+  else p4='Each bit line collects the currents of all its cells by Kirchhoff\'s law. '+who+'carries '+pl.Ip.toFixed(2)+' µA. There is nothing to subtract, so the Gmin leakage of every cell stays in the sum.';
+  var sub=sc==='diff'?'The pair is subtracted':sc==='ref'?'The reference current is subtracted (one ADC input per side)':'The current is scaled directly';
+  if(d.bin)p5=sub+', each bit plane is digitized by its own '+S.adcBits+'-bit ADC, then shifted by its bit weight and added digitally. Output y'+SUB[c]+' reads '+f(d.out[c],3)+' against an ideal '+f(d.ideal[c],3)+'.';
+  else p5=sub+' and a '+S.adcBits+'-bit ADC digitizes it. Output y'+SUB[c]+' reads '+f(d.out[c],3)+' against an ideal '+f(d.ideal[c],3)+'.';
+  var txt={
+    1:p1,
     2:'A '+S.dacBits+'-bit DAC turns each input xᵢ into a read voltage Vᵢ = xᵢ·'+S.vread+' V on its word line. All rows are driven at the same time.',
     3:'Every cell passes a current Iᵢⱼ = Vᵢ·Gᵢⱼ. Cell labels switch to current in this step if you choose that label.',
-    4:d.bin?'Each bit line collects the currents of all its cells by Kirchhoff\'s law. For output y'+SUB[c]+', the MSB plane (bit '+(S.gBits-1)+') G⁺ carries '+d.Ic[c*d.cp].toFixed(2)+' µA and G⁻ carries '+d.Ic[c*d.cp+1].toFixed(2)+' µA.':'Each bit line collects the currents of all its cells by Kirchhoff\'s law. Column '+(c+1)+' G⁺ carries '+d.Ic[2*c].toFixed(2)+' µA and G⁻ carries '+d.Ic[2*c+1].toFixed(2)+' µA.',
-    5:d.bin?'Each bit plane is subtracted and digitized by its own '+S.adcBits+'-bit ADC, then shifted by its bit weight and added digitally. Output y'+SUB[c]+' reads '+f(d.out[c],3)+' against an ideal '+f(d.ideal[c],3)+'.':'The pair is subtracted and a '+S.adcBits+'-bit ADC digitizes it. Output y'+SUB[c]+' reads '+f(d.out[c],3)+' against an ideal '+f(d.ideal[c],3)+'.'
+    4:p4,
+    5:p5
   };
   $('stepnote').textContent=txt[S.phase];
 }
-
-
 
 /* ---------- weight programming (illustrative ReRAM write model) ---------- */
 var VTH=0.8,VMAX=2.4,VERASE=2.0,A_RESP=0.45,E_DRV=0.5;
@@ -1076,12 +1179,12 @@ function logChart(id,title,key,fmt,ns,vals){
   $(id).innerHTML=o;
 }
 function renderEff(d){
-  var M=S.M,N=S.N,C=d.C,pl=C/(2*N),i,k,sumVI=0;
+  var M=S.M,N=S.N,C=d.C,pl=planesN(),cpE=cpo()+(hasRef()?1/N:0),i,k,sumVI=0;
   for(i=0;i<M;i++)for(k=0;k<C;k++)sumVI+=d.Vin[i]*d.cellI[i][k];
   var arrE=sumVI*EF.tread/1000;           /* µW × ns = fJ, /1000 = pJ */
   var ecell=arrE/(M*C);
   var cur=eModel(M*N,M,N*pl,arrE);
-  var big=eModel(256*256,256,256*pl,2*pl*256*256*ecell);
+  var big=eModel(256*256,256,256*pl,cpE*256*256*ecell);
   var aL=adv(cur.dig.lat,cur.cim.lat),aE=adv(cur.dig.en,cur.cim.en),bL=adv(big.dig.lat,big.cim.lat),bE=adv(big.dig.en,big.cim.en);
   function tile(a,label,note){return '<div class="tile"><div class="big '+(a.good?'good':'bad')+'">'+a.t+'</div><div class="sub"><b style="font-weight:600;color:var(--ink)">'+label+'</b><br>'+a.sub+' · '+note+'</div></div>'}
   $('tiles').innerHTML=tile(bL,'Latency','256 × 256')+tile(bE,'Energy','256 × 256')+tile(aL,'Latency',M+' × '+N+' (current)')+tile(aE,'Energy',M+' × '+N+' (current)');
@@ -1094,18 +1197,21 @@ function renderEff(d){
   var be=cur.dig.en>cur.cim.en?Math.ceil(wE/(cur.dig.en-cur.cim.en)).toLocaleString('en-US')+' products':'never (digital uses less energy per product)';
   t+='</tbody><tfoot><tr><td>Energy break-even reuse</td><td colspan="3">'+be+'</td></tr><tr><td>Weight fetches</td><td>'+(M*N)+' per product</td><td>0 (stay in array)</td><td></td></tr></tfoot>';
   $('effT').innerHTML=t;
-  var ns=[4,8,16,32,64,128,256,512],vals=ns.map(function(n){return eModel(n*n,n,n*pl,2*pl*n*n*ecell)});
+  var ns=[4,8,16,32,64,128,256,512],vals=ns.map(function(n){return eModel(n*n,n,n*pl,cpE*n*n*ecell)});
   logChart('chLat','Latency per matrix-vector product','lat',fmtT,ns,vals);
   logChart('chEn','Energy per matrix-vector product','en',fmtE,ns,vals);
   var cl=null,ce=null;
   ns.forEach(function(n,j){if(cl===null&&vals[j].cim.lat<vals[j].dig.lat)cl=n;if(ce===null&&vals[j].cim.en<vals[j].dig.en)ce=n});
   var cross='Crossover: ReRAM is faster from '+(cl?cl+' × '+cl:'beyond 512 × 512')+' and uses less energy from '+(ce?ce+' × '+ce:'beyond 512 × 512')+' on these settings. Small arrays favor digital because the ADC and fixed read time dominate. ';
-  $('effNote').textContent=cross+'Assumptions: digital uses '+EMAC+' pJ per 8-bit MAC plus '+EMEM[EF.mem]+' pJ per weight byte fetched from '+(EF.mem==='sram'?'SRAM':'DRAM')+', '+EF.lanes+' lanes at '+EF.clk.toFixed(1)+' GHz. ReRAM array energy is taken from the simulated currents (V·I·read pulse), plus '+(0.005*Math.pow(2,S.dacBits)).toFixed(2)+' pJ per DAC input and '+(0.01*Math.pow(2,S.adcBits)).toFixed(2)+' pJ per ADC conversion; latency is read pulse plus ADC time. The first two table rows treat programming as a one-time cost spread over the number of products computed with the same weights (the write model above supplies it); the digital side assumes its weights already sit in memory. The model leaves out routing and digital post-processing. Latency stays flat only for a single tile, and large arrays run into IR drop and ADC precision limits (raise wire resistance above to see accuracy fall). These are ballpark values, not measurements of any real chip.'+(d.bin?' Binary weighted mode uses '+pl+' bit planes per output, so it has '+pl+' times as many cells and ADC conversions as the analog multi-level layout.':'');
+  $('effNote').textContent=cross+'Assumptions: digital uses '+EMAC+' pJ per 8-bit MAC plus '+EMEM[EF.mem]+' pJ per weight byte fetched from '+(EF.mem==='sram'?'SRAM':'DRAM')+', '+EF.lanes+' lanes at '+EF.clk.toFixed(1)+' GHz. ReRAM array energy is taken from the simulated currents (V·I·read pulse), plus '+(0.005*Math.pow(2,S.dacBits)).toFixed(2)+' pJ per DAC input and '+(0.01*Math.pow(2,S.adcBits)).toFixed(2)+' pJ per ADC conversion; latency is read pulse plus ADC time. The first two table rows treat programming as a one-time cost spread over the number of products computed with the same weights (the write model above supplies it); the digital side assumes its weights already sit in memory. The model leaves out routing and digital post-processing. Latency stays flat only for a single tile, and large arrays run into IR drop and ADC precision limits (raise wire resistance above to see accuracy fall). These are ballpark values, not measurements of any real chip.'+(d.bin?' Binary weighted mode uses '+pl+' bit planes per output, so it has '+pl+' times as many ADC conversions and many more cells than the analog multi-level layout.':'')+(S.sign==='diff'?'':' The '+(S.sign==='ref'?'reference-column':'unsigned')+' encoding needs about half the cells of a differential pair, because each weight uses one cell instead of two.');
 }
 
 var LAST=null;
+function markW(){
+  for(var i=0;i<S.M;i++)for(var j=0;j<S.N;j++){var el=$('w_'+i+'_'+j);if(el)el.classList.toggle('neg',S.sign==='clip'&&W[i][j]<0)}
+}
 function update(){
-  archNote();var d=compute();LAST=d;
+  archNote();markW();var d=compute();LAST=d;
   renderSVG(d);renderTables(d);renderChart(d);renderSteps(d);renderEff(d);renderProg(d);renderEx(d);renderWalk();renderVM();renderXor();
 }
 
@@ -1155,17 +1261,38 @@ function resize(){stopPB();stopPA();buildX();buildW();buildCols();buildProgSel()
 $('selM').addEventListener('change',function(e){S.M=parseInt(e.target.value,10);resize()});
 $('selN').addEventListener('change',function(e){S.N=parseInt(e.target.value,10);resize()});
 function archNote(){
-  $('archNote').textContent=isBin()
-    ?'Binary weighted: each weight is a sign plus a '+S.gBits+'-bit magnitude (set "Weight levels" to change the bit count). Every bit sits in its own pair of 1-bit cells, either Gmin or Gmax, on its own bit lines, so each output uses '+(2*S.gBits)+' bit lines. Each bit plane is read by its own ADC and the digital side shifts and adds the planes (bit b is worth 2ᵇ). Cells only need two well-separated states, which makes writing and variation much easier to tolerate, at the cost of '+S.gBits+' times the cells.'
-    :'Analog multi-level: each output uses two bit lines (G⁺ and G⁻), so signed weights map to non-negative conductances. Each weight is stored in one cell per bit line at one of 2^bits conductance levels.';
+  var a=isBin()
+    ?'Binary weighted: each weight is split into '+S.gBits+' bits (set "Weight levels" to change the bit count). Every bit sits in its own 1-bit cell, either Gmin or Gmax, on its own bit line, so each bit plane is read by its own ADC and the digital side shifts and adds the planes (bit b is worth 2ᵇ). Cells only need two well-separated states, at the cost of '+S.gBits+' times the cells.'
+    :'Analog multi-level: each weight sits in a cell at one of 2^bits conductance levels between Gmin and Gmax.';
+  var g=S.sign==='diff'
+    ?' Differential pair: every weight uses two cells, G⁺ for the positive part and G⁻ for the negative part, and the two bit-line currents are subtracted. Negative weights work and the Gmin leakage cancels, at the cost of two cells per weight.'
+    :S.sign==='ref'
+    ?' G⁺ only with a reference column: every weight uses one cell, shifted into the positive range so zero sits at the middle conductance Gmid. One shared reference column at Gmid is subtracted from every output. Negative weights work and the Gmin leakage cancels, with about half the cells, but one set of levels covers both signs, so each step in w is twice as coarse.'
+    :' Unsigned, G⁺ only: every weight uses one cell and nothing is subtracted. A cell cannot be negative, so negative weights are stored as 0 (shown in red below), and the Gmin leakage of every cell adds a small offset to each output.';
+  $('archNote').textContent=a+g;
+  var ab=$('bAbs');if(ab)ab.hidden=S.sign!=='clip';
+  var rs=document.querySelectorAll('#sgTable tbody tr');for(var q=0;q<rs.length;q++)rs[q].classList.toggle('cur',rs[q].getAttribute('data-s')===S.sign);
 }
 $('selArch').addEventListener('change',function(e){S.arch=e.target.value;resize()});
+function signUI(){
+  var v=S.sign;$('selSign').value=v==='clip'?'unsigned':'signed';$('selCells').value=v==='diff'?'pair':'one';
+  $('selCells').options[0].disabled=(v==='clip');
+}
+function signFromUI(chg){
+  var sg=$('selSign').value,ce=$('selCells').value;
+  if(sg==='unsigned')ce='one';
+  else if(chg==='sign'&&ce==='one'&&S.sign==='clip')ce='pair';   /* back to signed: start from the pair */
+  S.sign=sg==='unsigned'?'clip':(ce==='pair'?'diff':'ref');signUI();resize();
+}
+$('selSign').addEventListener('change',function(){signFromUI('sign')});
+$('selCells').addEventListener('change',function(){signFromUI('cells')});
 $('selShow').addEventListener('change',function(e){S.show=e.target.value;update()});
 $('colsel').addEventListener('change',function(e){S.col=parseInt(e.target.value,10);update()});
 $('bRand').addEventListener('click',function(){
-  for(var i=0;i<9;i++)for(var j=0;j<6;j++)W[i][j]=Math.round((Math.random()*2-1)*20)/20;
+  for(var i=0;i<9;i++)for(var j=0;j<6;j++)W[i][j]=S.sign==='clip'?Math.round(Math.random()*20)/20:Math.round((Math.random()*2-1)*20)/20;
   syncW();update();
 });
+$('bAbs').addEventListener('click',function(){for(var i=0;i<9;i++)for(var j=0;j<6;j++)W[i][j]=Math.abs(W[i][j]);syncW();update()});
 $('bReset').addEventListener('click',function(){
   W=W0.map(function(r){return r.slice()});X=X0.slice();syncW();buildX();update();
 });
@@ -1231,7 +1358,7 @@ var EZ=2,EP=[1,0,1,0],PN=EXD[2].names,EXT=EXD[2].T,EXP=4;
 function exSize(n){EZ=n;PN=EXD[n].names;EXT=EXD[n].T;EXP=n*n}
 function fmtN(v){return (Math.round(v*100)/100).toString().replace('-','−')}
 function exActive(){ /* true when the simulator holds exactly this example's weights at this size */
-  if(S.M!==EXP||S.N!==4)return false;
+  if(S.M!==EXP||S.N!==4||isBin()||S.sign!=='diff')return false;
   for(var i=0;i<EXP;i++)for(var j=0;j<4;j++)if(W[i][j]!==EXT[j][i])return false;
   return true;
 }
@@ -1285,7 +1412,7 @@ function exSet(v){
 }
 function exLoad(){
   stopPB();stopPA();if(timer){clearInterval(timer);timer=null}
-  S.arch='diff';$('selArch').value='diff';S.M=EXP;S.N=4;S.sigma=0;S.rw=0;S.wmode='ideal';S.phase=5;S.col=0;
+  S.arch='diff';$('selArch').value='diff';S.sign='diff';signUI();S.M=EXP;S.N=4;S.sigma=0;S.rw=0;S.wmode='ideal';S.phase=5;S.col=0;
   for(var i=0;i<EXP;i++){X[i]=EP[i];for(var j=0;j<4;j++)W[i][j]=EXT[j][i]}
   fillSel('M',2,9,EXP);fillSel('N',2,6,4);$('pMode').value='ideal';
   buildSettings();resize();
@@ -1321,29 +1448,18 @@ function wrStop(){if(WS.tm){clearInterval(WS.tm);WS.tm=null}}
 function wrSgn(w){return (w>0?'+':w<0?'−':'')+Math.abs(w).toFixed(2)}
 function wrModel(){
   var i=WS.i,j=WS.j,w=W[i][j],span=S.gmax-S.gmin,Lv=Math.pow(2,S.gBits)-1,sg=S.sigma/100,tolG=S.tol/100*span;
-  var level=Math.round(Math.abs(w)*Lv),gT=S.gmin+level/Lv*span;
-  var Gt=[S.gmin+(w>0?level/Lv:0)*span,S.gmin+(w<0?level/Lv:0)*span];
-  var bin=isBin(),B=S.gBits,cp2=2*B,neg=w<0?1:0,planes=null,fb=0,lab=['G⁺ cell','G⁻ cell'],cells,cs;
-  if(!bin){
-    cells=[0,1].map(function(q){var k=2*j+q;return simCell(Gt[q],sg,rng(S.seed*7919+i*131+k*17+5),null)});
-    cs=(level>0&&w<0)?1:0;
-  }else{
-    /* binary weighted: every bit of |w| has its own pair of 1-bit cells; follow the cell of the highest 1-bit */
-    planes=[];
-    for(var qp=0;qp<B;qp++){
-      var bit=(level>>(B-1-qp))&1,gp=[],cp=[];
-      for(var s2=0;s2<2;s2++){
-        var on=bit&&(s2===neg),kk=j*cp2+2*qp+s2;
-        gp.push(S.gmin+(on?1:0)*span);
-        cp.push(simCell(gp[s2],sg,rng(S.seed*7919+i*131+kk*17+5),null));
-      }
-      planes.push({bit:bit,b:B-1-qp,Gt:gp,pair:cp});
-    }
-    for(fb=0;fb<B-1&&!planes[fb].bit;fb++);
-    Gt=planes[fb].Gt;cells=planes[fb].pair;cs=(level>0)?neg:0;gT=level>0?S.gmax:S.gmin;
-    lab=['bit '+planes[fb].b+', G⁺ cell','bit '+planes[fb].b+', G⁻ cell'];
-  }
-  var c=cells[cs],steps=[{k:'weight'},{k:'pair'},{k:bin?'bits':'level'}],n=0,ev=c.ev,q;
+  var bin=isBin(),B=S.gBits,ncell=nc(),cp2=cpo(),enc=encodeW(w,bin),level=enc.level,sc=S.sign;
+  var planes=enc.planes.map(function(pl,q){
+    return {b:pl.b,bit:pl.bit,pw:pl.pw,Gt:pl.Gt,cells:pl.Gt.map(function(gt,c){var k=j*cp2+q*ncell+c;return simCell(gt,sg,rng(S.seed*7919+i*131+k*17+5),null)})};
+  });
+  /* follow one cell: in the first plane that stores something above Gmin (the highest 1-bit), the cell with the highest target */
+  var fb=0,q,c2,cs=0;
+  for(q=0;q<planes.length;q++){if(planes[q].Gt.some(function(g){return g>S.gmin+1e-6})){fb=q;break}}
+  var gtp=planes[fb].Gt;for(c2=1;c2<gtp.length;c2++)if(gtp[c2]>gtp[cs]+1e-6)cs=c2;
+  var cells=planes[fb].cells,Gt=planes[fb].Gt,c=cells[cs],gT=Gt[cs];
+  var lab=sc==='diff'?['G⁺ cell','G⁻ cell']:['cell'];
+  if(bin)lab=lab.map(function(t){return 'bit '+planes[fb].b+', '+t});
+  var steps=[{k:'weight'},{k:'pair'},{k:bin?'bits':'level'}],n=0,ev=c.ev;
   for(q=0;q<ev.length;q++){
     var e=ev[q];
     if(e.t==='erase')steps.push({k:'erase',g:S.gmin});
@@ -1351,7 +1467,21 @@ function wrModel(){
     else if(e.t==='SET'||e.t==='RESET'){n++;steps.push({k:'pulse',op:e.t,V:e.V,g:e.G,n:n})}
   }
   steps.push({k:'done'});
-  return {i:i,j:j,w:w,span:span,Lv:Lv,level:level,gT:gT,tolG:tolG,Gt:Gt,cells:cells,cs:cs,c:c,steps:steps,bin:bin,B:B,planes:planes,fb:fb,lab:lab};
+  return {i:i,j:j,w:w,span:span,Lv:Lv,level:level,wq:enc.wq,gT:gT,tolG:tolG,Gt:Gt,cells:cells,cs:cs,c:c,steps:steps,bin:bin,B:B,planes:planes,fb:fb,lab:lab,sc:sc};
+}
+function wrReadback(m){
+  var gm=gmid(),sp=m.span;
+  if(!m.bin){
+    if(m.sc==='diff')return (m.planes[0].cells[0].G-m.planes[0].cells[1].G)/sp;
+    if(m.sc==='ref')return (m.planes[0].cells[0].G-gm)/(sp/2);
+    return (m.planes[0].cells[0].G-S.gmin)/sp;
+  }
+  var s=0;
+  m.planes.forEach(function(p){
+    var v=m.sc==='diff'?(p.cells[0].G-p.cells[1].G)/sp:m.sc==='ref'?2*(p.cells[0].G-gm)/sp:(p.cells[0].G-S.gmin)/sp;
+    s+=p.pw*v;
+  });
+  return s;
 }
 function wrGauge(label,val,tgt,showT,m){
   var p=function(g){return clamp((g-S.gmin)/m.span*100,0,100)},h='<div class="wrg"><span class="lab">'+label+'</span><div class="trk">';
@@ -1384,22 +1514,28 @@ function wrChartSVG(m,t){
   return o+'</svg>';
 }
 function wrText(m,st,nx){
-  var i=m.i,j=m.j,c=m.c,g1=function(v){return v.toFixed(1)};
+  var i=m.i,j=m.j,c=m.c,g1=function(v){return v.toFixed(1)},gm=gmid(),sc=m.sc,wn=m.w<0&&sc==='clip';
   switch(st.k){
     case 'weight':return 'The weight in row '+(i+1)+', column '+(j+1)+' is '+wrSgn(m.w)+'. To use it in the crossbar it has to be stored as the conductance of ReRAM cells.';
     case 'bits':{
       var bs=m.planes.map(function(p){return p.bit}).join('');
+      if(sc==='ref')return 'Binary weighted with a reference column: the weight is stored as an offset-binary code, u = round((w + 1)/2 × '+m.Lv+') = '+m.level+' of '+m.Lv+', which is '+bs+' in binary, so the stored weight is 2u/'+m.Lv+' − 1 = '+wrSgn(m.wq)+'. Each bit gets one cell on its own bit line: a 1 is written to Gmax ('+S.gmax+' µS), a 0 stays at Gmin. This walkthrough follows the cell for bit '+m.planes[m.fb].b+(m.level>0?' (the highest 1)':'')+', with a target of '+g1(m.gT)+' µS.';
       return m.level===0
         ?'Binary weighted: '+Math.abs(m.w).toFixed(2)+' rounds to 0 of '+m.Lv+' steps, so every bit is 0 and every cell stays at Gmin.'
-        :'Binary weighted: the Weight levels setting ('+m.B+' bit) gives '+m.Lv+' steps. '+Math.abs(m.w).toFixed(2)+' rounds to '+m.level+' of '+m.Lv+', which is '+bs+' in binary. Each bit gets its own pair of cells on its own bit lines. A 1 is written to Gmax ('+S.gmax+' µS) and a 0 stays at Gmin. This walkthrough follows the cell for bit '+m.planes[m.fb].b+' (the highest 1), with a target of '+g1(m.gT)+' µS.';
+        :'Binary weighted: the Weight levels setting ('+m.B+' bit) gives '+m.Lv+' steps. '+Math.abs(m.w).toFixed(2)+' rounds to '+m.level+' of '+m.Lv+', which is '+bs+' in binary. Each bit gets its own '+(sc==='diff'?'pair of cells':'cell')+' on its own bit line'+(sc==='diff'?'s':'')+'. A 1 is written to Gmax ('+S.gmax+' µS) and a 0 stays at Gmin. This walkthrough follows the cell for bit '+m.planes[m.fb].b+' (the highest 1), with a target of '+g1(m.gT)+' µS.';
     }
-    case 'pair':if(m.bin)return m.level===0
-      ?'This weight rounds to zero, so every cell stays at its lowest conductance, Gmin.'
-      :'A conductance can’t be negative, so the sign decides which side the bits go on. '+(m.w>0?'A positive weight puts its bits in the G⁺ cell of each bit’s pair, and every G⁻ cell stays at Gmin.':'A negative weight puts its bits in the G⁻ cell of each bit’s pair, and every G⁺ cell stays at Gmin.');
+    case 'pair':
+      if(sc==='ref')return 'A conductance can’t be negative, so the sign is stored as an offset from the middle conductance Gmid = '+gm+' µS, which stands for zero. A positive weight is stored above Gmid and a negative one below it. One shared reference column of cells at Gmid is subtracted from every output, so the array needs one extra column instead of a second cell for every weight.';
+      if(sc==='clip')return 'Unsigned encoding: one cell per weight and no subtraction, so a weight can only be 0 to 1. '+(wn?'This weight is negative, which this encoding cannot store, so it is written as 0 (Gmin). The ideal answer still uses '+wrSgn(m.w)+', which is why the outputs become wrong.':'The cell’s conductance simply grows with the weight.');
+      if(m.bin)return m.level===0
+        ?'This weight rounds to zero, so every cell stays at its lowest conductance, Gmin.'
+        :'A conductance can’t be negative, so the sign decides which side the bits go on. '+(m.w>0?'A positive weight puts its bits in the G⁺ cell of each bit’s pair, and every G⁻ cell stays at Gmin.':'A negative weight puts its bits in the G⁻ cell of each bit’s pair, and every G⁺ cell stays at Gmin.');
       return m.level===0
-      ?'This weight rounds to zero, so both cells of its pair simply stay at their lowest conductance, Gmin.'
-      :'A conductance can’t be negative, so each weight uses a pair of cells on neighbouring bit lines, G⁺ and G⁻, and the column reads their difference. '+(m.w>0?'A positive weight goes in the G⁺ cell and G⁻ stays at Gmin.':'A negative weight goes in the G⁻ cell and G⁺ stays at Gmin.');
-    case 'level':return 'A cell can hold only a limited number of levels (the Weight levels setting: '+S.gBits+' bit gives '+m.Lv+' steps). '+Math.abs(m.w).toFixed(2)+' rounds to level '+m.level+' of '+m.Lv+', so the target is Gmin + '+m.level+'/'+m.Lv+' × (Gmax − Gmin) = '+g1(m.gT)+' µS.';
+        ?'This weight rounds to zero, so both cells of its pair simply stay at their lowest conductance, Gmin.'
+        :'A conductance can’t be negative, so each weight uses a pair of cells on neighbouring bit lines, G⁺ and G⁻, and the column reads their difference. '+(m.w>0?'A positive weight goes in the G⁺ cell and G⁻ stays at Gmin.':'A negative weight goes in the G⁻ cell and G⁺ stays at Gmin.');
+    case 'level':
+      if(sc==='ref')return 'A cell can hold only a limited number of levels (the Weight levels setting: '+S.gBits+' bit gives '+m.Lv+' steps). The weight is shifted into 0 to 1, u = (w + 1)/2 = '+((m.w+1)/2).toFixed(2)+', which rounds to level '+m.level+' of '+m.Lv+'. The stored weight is therefore '+wrSgn(m.wq)+' and the target is Gmin + '+m.level+'/'+m.Lv+' × (Gmax − Gmin) = '+g1(m.gT)+' µS. One set of levels covers both signs, so each step in w is 2/'+m.Lv+'.';
+      return 'A cell can hold only a limited number of levels (the Weight levels setting: '+S.gBits+' bit gives '+m.Lv+' steps). '+(wn?'0':Math.abs(m.w).toFixed(2))+' rounds to level '+m.level+' of '+m.Lv+', so the target is Gmin + '+m.level+'/'+m.Lv+' × (Gmax − Gmin) = '+g1(m.gT)+' µS.';
     case 'erase':return 'Erase: a RESET pulse takes the cells to their lowest conductance, Gmin = '+S.gmin+' µS, so every write starts from a known state.';
     case 'verify':
       if(st.ok)return 'Verify read: the cell measures '+g1(st.g)+' µS and the target is '+g1(m.gT)+' µS (tolerance ±'+g1(m.tolG)+' µS). That is close enough, so this cell is done.';
@@ -1409,12 +1545,11 @@ function wrText(m,st,nx){
       ?'SET pulse '+st.n+' at '+st.V.toFixed(1)+' V: the conductance rises to '+g1(st.g)+' µS.'+(st.n===1?' Pulses start gentle and get '+S.dv.toFixed(1)+' V stronger each time, so we creep up on the target instead of overshooting.':'')
       :'RESET pulse '+st.n+' at '+st.V.toFixed(1)+' V: the conductance drops to '+g1(st.g)+' µS. The last pulse overshot, so we back off.';
     default:{
-      if(m.bin){
-        var wb=0;m.planes.forEach(function(p){wb+=Math.pow(2,p.b)*(p.pair[0].G-p.pair[1].G)/m.span});wb/=m.Lv;
-        return 'Done'+(c.pulses?' after '+c.pulses+' pulse'+(c.pulses>1?'s':''):'')+'. The cell for bit '+m.planes[m.fb].b+' now holds '+g1(c.G)+' µS. The other bit cells are written the same way (the zeros need no pulses), and with each plane weighted by 2ᵇ the array reads back '+wrSgn(wb)+' (wanted '+wrSgn(m.w)+', rounded to a code: '+wrSgn((m.w<0?-1:1)*m.level/m.Lv)+'). Each cell only has to land on one of two well-separated states, so variation is much less likely to turn a stored 1 into a 0.';
-      }
-      var wh=(m.cells[0].G-m.cells[1].G)/m.span,wq=(m.w<0?-1:1)*m.level/m.Lv;
-      return 'Done'+(c.pulses?' after '+c.pulses+' pulse'+(c.pulses>1?'s':''):'')+'. The pair now holds G⁺ = '+g1(m.cells[0].G)+' µS and G⁻ = '+g1(m.cells[1].G)+' µS, so the array reads back a weight of '+wrSgn(wh)+' (wanted '+wrSgn(m.w)+', rounded to a level: '+wrSgn(wq)+'). The small difference comes from the tolerance and the device variation.';
+      var wh=wrReadback(m),np=c.pulses?' after '+c.pulses+' pulse'+(c.pulses>1?'s':''):'';
+      if(m.bin)return 'Done'+np+'. The cell for bit '+m.planes[m.fb].b+' now holds '+g1(c.G)+' µS. The other bit cells are written the same way (the zeros need no pulses), and with each plane weighted by 2ᵇ the array reads back '+wrSgn(wh)+' (wanted '+wrSgn(m.w)+', rounded to a code: '+wrSgn(m.wq)+'). Each cell only has to land on one of two well-separated states, so variation is much less likely to turn a stored 1 into a 0.';
+      if(sc==='diff')return 'Done'+np+'. The pair now holds G⁺ = '+g1(m.cells[0].G)+' µS and G⁻ = '+g1(m.cells[1].G)+' µS, so the array reads back a weight of '+wrSgn(wh)+' (wanted '+wrSgn(m.w)+', rounded to a level: '+wrSgn(m.wq)+'). The small difference comes from the tolerance and the device variation.';
+      if(sc==='ref')return 'Done'+np+'. The cell holds '+g1(c.G)+' µS. Relative to Gmid ('+gm+' µS) that reads back as a weight of '+wrSgn(wh)+' (wanted '+wrSgn(m.w)+', rounded to a level: '+wrSgn(m.wq)+'). Levels are packed twice as tightly as in the differential pair, because one cell has to cover both signs, so the same variation hurts more.';
+      return 'Done'+np+'. The cell holds '+g1(c.G)+' µS, which reads back as a weight of '+wrSgn(wh)+' (wanted '+wrSgn(m.w)+(wn?', but negative weights cannot be stored, so it is 0':', rounded to a level: '+wrSgn(m.wq))+').';
     }
   }
 }
@@ -1433,13 +1568,13 @@ function renderWalk(){
   for(q=0;q<n;q++)if(m.steps[q].k==='erase'){er=q;break}
   $('wrStepCap').textContent='2. Step '+(t+1)+' of '+n;
   $('wrText').textContent=wrText(m,st,m.steps[t+1]);
-  var vals=[null,null];
-  if(st.k==='done')vals=[m.cells[0].G,m.cells[1].G];
-  else if(er>=0&&t>=er)for(q=0;q<2;q++)vals[q]=(q===m.cs&&st.g!==undefined)?st.g:S.gmin;
-  var showT=t>=2,g='';
-  g+=wrGauge(m.lab[0],vals[0],m.Gt[0],showT,m)+wrGauge(m.lab[1],vals[1],m.Gt[1],showT,m);
+  var nce=m.cells.length,vals=[],showT=t>=2,g='';
+  for(q=0;q<nce;q++)vals[q]=null;
+  if(st.k==='done')for(q=0;q<nce;q++)vals[q]=m.cells[q].G;
+  else if(er>=0&&t>=er)for(q=0;q<nce;q++)vals[q]=(q===m.cs&&st.g!==undefined)?st.g:S.gmin;
+  for(q=0;q<nce;q++)g+=wrGauge(m.lab[q],vals[q],m.Gt[q],showT,m);
   g+='<div class="wrscale"><span>Gmin '+S.gmin+' µS</span><span>Gmax '+S.gmax+' µS</span></div>';
-  if(m.level>0&&er>=0&&t>=er)g+='<p class="note" style="margin:0 0 8px">The other cell of the pair needs no pulses: after the erase it is already at Gmin.</p>';
+  if(nce===2&&m.level>0&&er>=0&&t>=er)g+='<p class="note" style="margin:0 0 8px">The other cell of the pair needs no pulses: after the erase it is already at Gmin.</p>';
   $('wrGauge').innerHTML=g;
   $('wrChart').innerHTML=t>=er&&er>=0?wrChartSVG(m,t):'';
   $('wrBack').disabled=t===0;$('wrNext').disabled=t===n-1;
@@ -1673,12 +1808,12 @@ function renderVM(){
   if(VM.sel[1]>=nc)VM.sel=[0,0];
   VM.d=d;if(VM.hov&&VM.hov.src==='cell')VM.hov=null;
   vmDiagram(d);vmLive(d);vmCellBox(d);
-  $('vmEnc').value=enc;$('vmLoad').disabled=enc!=='diff';
-  $('vmLoad').title=enc!=='diff'?'The main crossbar uses the differential layout. Switch Cell layout to Differential pair to load this example.':'';
+  $('vmEnc').value=enc;$('vmLoad').disabled=false;
+  $('vmLoad').title='';
   var ncell=2*nc;
   $('vmEncNote').innerHTML=enc==='diff'?'<b>Differential pair:</b> 2 cells per weight ('+ncell+' cells here). G⁺ holds positive weights and G⁻ holds negative ones, and the two bit-line currents are subtracted, so negative weights work and the Gmin leakage cancels.'
-    :enc==='clip'?'<b>G⁺ only, negatives clipped:</b> 1 cell per weight ('+ncell+' cells here, half as many). A cell cannot be negative, so negative weights are clipped to 0, and the Gmin leakage of every cell adds to the output with nothing to cancel it. Watch y go wrong. The “Load into the crossbar” button works with the differential layout only.'
-    :'<b>G⁺ only + reference column:</b> 1 cell per weight plus one shared reference column ('+ncell+' cells here). Weights are shifted into the positive range, so negatives work, and the reference column’s current is subtracted from every output, which cancels the Gmin leakage. The cost is resolution: one set of levels covers both signs, so each step in w is twice as coarse. The “Load into the crossbar” button works with the differential layout only.';
+    :enc==='clip'?'<b>G⁺ only, negatives clipped:</b> 1 cell per weight ('+ncell+' cells here, half as many). A cell cannot be negative, so negative weights are clipped to 0, and the Gmin leakage of every cell adds to the output with nothing to cancel it. Watch y go wrong.'
+    :'<b>G⁺ only + reference column:</b> 1 cell per weight plus one shared reference column ('+ncell+' cells here). Weights are shifted into the positive range, so negatives work, and the reference column’s current is subtracted from every output, which cancels the Gmin leakage. The cost is resolution: one set of levels covers both signs, so each step in w is twice as coarse.';
   /* card 1: inputs -> voltages */
   h+='<div class="vmc"><h3>1 · Inputs become voltages</h3><p>A '+S.dacBits+'-bit DAC rounds each input to one of '+(d.dl+1)+' levels, then scales it by the read voltage: <span class="eq">Vᵢ = (level / '+d.dl+') × '+S.vread+' V</span>.</p><table><thead><tr><th>Input</th><th>xᵢ</th><th>DAC level</th><th>Rounded</th><th>Vᵢ</th></tr></thead><tbody>';
   for(i=0;i<2;i++)h+='<tr><td>x'+SUB[i]+'</td><td>'+d.x[i].toFixed(2)+'</td><td>'+d.xk[i]+' of '+d.dl+'</td><td>'+d.xq[i].toFixed(3)+'</td><td>'+(d.V[i]*1000).toFixed(1)+' mV</td></tr>';
@@ -1764,9 +1899,8 @@ $('vmEnc').addEventListener('change',function(e){VM.enc=e.target.value;VM.sel=[0
 $('vmReset').addEventListener('click',function(){VM.x=VMD.x.slice();VM.W=VMD.W.map(function(r){return r.slice()});renderVM()});
 $('vmSeed').addEventListener('click',function(){VM.seed=Math.floor(Math.random()*100000);vmZ();if(VM.dev==='ideal')VM.dev='real';renderVM()});
 $('vmLoad').addEventListener('click',function(){
-  if(VM.enc!=='diff')return;
   stopPB();stopPA();if(timer){clearInterval(timer);timer=null}
-  S.arch='diff';$('selArch').value='diff';S.M=2;S.N=2;S.phase=5;S.col=0;
+  S.arch='diff';$('selArch').value='diff';S.sign=VM.enc;signUI();S.M=2;S.N=2;S.phase=5;S.col=0;
   if(VM.dev==='ideal'){S.sigma=0;S.rw=0;S.wmode='ideal';$('pMode').value='ideal'}
   for(var i=0;i<2;i++){X[i]=clamp(VM.x[i],0,1);for(var j=0;j<2;j++)W[i][j]=clamp(VM.W[i][j],-1,1)}
   fillSel('M',2,9,2);fillSel('N',2,6,2);buildSettings();resize();
