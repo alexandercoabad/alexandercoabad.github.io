@@ -107,6 +107,9 @@ details.q p{margin:8px 0 2px}
 .tile .big{font-family:var(--f-display);font-weight:700;font-size:24px;line-height:1.1}
 .tile .sub{font-size:12px;color:var(--mute);margin-top:3px}
 .twrap{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.refs{margin:6px 0 4px;padding-left:24px;font-size:13px;line-height:1.5;max-width:92ch}
+.refs li{margin:8px 0}
+.refs .why{display:block;color:var(--mute);font-size:12px;margin-top:2px}
 </style>
 </head>
 <body>
@@ -139,12 +142,26 @@ details.q p{margin:8px 0 2px}
     <details class="q"><summary>The weight is 0.62 and you chose 3 bits. Why is the stored weight not 0.62?</summary><p>3 bits gives 8 levels, which is 7 steps between Gmin and Gmax. 0.62 × 7 = 4.34 rounds to level 4, and level 4 is worth 4 / 7 = 0.571. The loss of 0.049 is rounding, and it happens before any pulse is sent. More bits make the steps smaller but pack the levels closer together.</p></details>
     <details class="q"><summary>Why read the cell back after every pulse instead of sending a fixed number of pulses?</summary><p>The same pulse moves different cells by different amounts, and even the same cell by different amounts each time. Switch to "Open loop" in step 5 and press "Different cell" a few times to see the spread. Reading back lets the controller stop each cell when it is close enough.</p></details>
     <details class="q"><summary>What does a tighter tolerance cost?</summary><p>More pulses and more reads, so more time and energy per weight, and sometimes the loop cannot land inside a very narrow band and runs out of pulses. A looser tolerance is cheaper but leaves a bigger error in every weight. Try ±0.5% and ±10% in step 5.</p></details>
-    <details class="q"><summary>Once the weights are written, which parts of the computation change from one multiply to the next?</summary><p>Only the input voltages. The conductances stay where they were written, so the cost of writing is paid once and shared by every multiply that reuses those weights. The efficiency panel in Step 2 has a "Weight reuse" slider for this.</p></details>
+    <details class="q"><summary>Once the weights are written, which parts of the computation change from one multiply to the next?</summary><p>Only the input voltages. The conductances stay where they were written, so the cost of writing is paid once and shared by every multiply that reuses those weights. The efficiency panel in Step 3 has a "Weight reuse" slider for this.</p></details>
   </section>
 
   <section class="panel twrap" id="next">
     <div><span class="cap">What next</span><h2 style="margin:2px 0 0">Next: put the cells in a grid</h2><p class="note" style="margin:4px 0 0;font-size:13px;max-width:62ch">Step 3 is the crossbar simulator. It stores a whole matrix this way, repeating this loop for every cell, and shows the pulse count and total write cost, then multiplies with it. The reference page collects the equations, terms and settings used in all three steps.</p></div>
     <div class="btns" style="margin:0"><a href="../" style="text-decoration:none"><button class="set" type="button">Open the crossbar simulator &rarr;</button></a><a href="../reference/" style="text-decoration:none"><button type="button">Open the reference</button></a></div>
+  </section>
+
+    <section class="panel" id="reading">
+    <h2>Further reading</h2>
+    <p class="note" style="margin:0 0 6px;font-size:13px;max-width:80ch">The pulse voltages, pulse counts and conductances on this page come from an illustrative model, not from a real device. These papers describe write-and-verify on real devices.</p>
+    <ol class="refs">
+<li>Alibart, F., Gao, L., Hoskins, B. D. &amp; Strukov, D. B. High precision tuning of state for memristive devices by adaptable variation-tolerant algorithm. <i>Nanotechnology</i> 23, 075201 (2012). <a href="https://doi.org/10.1088/0957-4484/23/7/075201">doi:10.1088/0957-4484/23/7/075201</a> · <a href="https://arxiv.org/abs/1110.1393">arXiv:1110.1393</a>
+            <span class="why">A feedback write algorithm that tuned the conductance of titanium-oxide devices to about 1% relative accuracy (roughly 7 bits) despite large variation in switching. The idea behind program-and-verify.</span></li>
+<li>Wong, H.-S. P. et al. Metal–oxide RRAM. <i>Proceedings of the IEEE</i> 100, 1951–1970 (2012). <a href="https://doi.org/10.1109/JPROC.2012.2190369">doi:10.1109/JPROC.2012.2190369</a>
+            <span class="why">A review of metal-oxide ReRAM: the switching mechanism, the materials and the electrical behaviour, with a focus on memory use.</span></li>
+<li>Hu, M. et al. Dot-product engine for neuromorphic computing: programming 1T1M crossbar to accelerate matrix-vector multiplication. <i>53rd ACM/EDAC/IEEE Design Automation Conference (DAC)</i>, 1–6 (2016). <a href="https://doi.org/10.1145/2897937.2898010">doi:10.1145/2897937.2898010</a>
+            <span class="why">An analog memristor-crossbar accelerator for matrix-vector multiplication, with a method for mapping matrix values onto device conductances. The abstract reports results with only 4-bit DACs and ADCs.</span></li>
+    </ol>
+    <p class="note" style="max-width:80ch">The full, grouped list is at the end of the <a href="../#refs">crossbar simulator</a>. Links can change, so searching the title and DOI always works.</p>
   </section>
 
   <footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>

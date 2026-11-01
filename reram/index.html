@@ -86,6 +86,10 @@ tfoot td{font-weight:500;border-bottom:0}
 .stats{display:flex;gap:22px;flex-wrap:wrap;margin-top:10px;font-size:13px}
 .stats b{font-family:var(--f-mono);font-weight:500}
 .chart{width:100%;height:auto;display:block}
+.figrow{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;margin-top:6px}
+.figrow>div{min-width:0;max-width:100%}
+#pWave,#pTraj{overflow:visible}
+.fgb{width:300px}.fgf{width:240px}.fgw{width:310px}
 .note{font-size:12px;color:var(--mute);margin:8px 0 0}
 .sgq{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:10px 0;font-size:13px;line-height:1.45}
 .sgq>div{border:1px solid var(--line);border-radius:6px;padding:8px 10px}
@@ -102,6 +106,8 @@ tfoot td{font-weight:500;border-bottom:0}
 .effctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(400px,100%),1fr));gap:0 28px}
 .effctl .row label{flex-basis:120px}
 .pgrid{display:grid;gap:4px;align-items:center;overflow-x:auto;padding-bottom:4px}
+#pgrid{max-width:640px;font-size:11px}
+#pgrid .pc{padding:3px 2px;font-size:11px}
 .pgrid .lab{color:var(--mute);font-size:inherit;text-align:center;font-family:var(--f-mono)}
 .pc{padding:5px 2px;text-align:center;border:1px solid var(--line);border-radius:4px;background:var(--bg);font-family:var(--f-mono);font-size:12px;cursor:pointer;min-width:0}
 .pc.sel{outline:2px solid var(--volt);outline-offset:1px}
@@ -261,9 +267,53 @@ tfoot td{font-weight:500;border-bottom:0}
   <header>
     <p style="margin:0 0 6px;font-size:13px"><span class="cap">Step 3 of 3</span> &nbsp;·&nbsp; <a href="basics/">Step 1: ReRAM vs an ordinary resistor</a> &nbsp;·&nbsp; <a href="write/">&larr; Step 2: how a weight gets written into a cell (read these first)</a> &nbsp;·&nbsp; <a href="reference/">Reference</a></p>
     <h1>ReRAM Crossbar Simulator</h1>
+    <p>A crossbar is a grid of ReRAM cells. Each word line (a row) carries an input voltage, each bit line (a column) collects current, and a cell sits at every crossing with its stored conductance G.</p>
     <p>Weights are stored as conductances in a resistive-RAM crossbar. Input voltages on the word lines produce bit-line currents that already equal the matrix product, <span class="eq">Iⱼ = Σᵢ Vᵢ·Gᵢⱼ</span>, so the multiply and the sum both happen inside the array.</p>
     <p>This is a generic, textbook model of analog ReRAM compute-in-memory: a passive crossbar with differential conductance pairs, a quantized DAC and ADC, Gaussian device variation, wire IR drop and a pulse-and-verify model of how the weights are written. It is meant for learning and quick experiments, not as a novel architecture or a model of any specific chip.</p>
+  
+    <p class="note" style="font-size:13px;max-width:80ch"><b>Path through this page:</b> 1) Warm-up: one cell, then two on a wire. 2) A 2×2 multiply, number by number. 3) The full crossbar. 4) How negative weights are stored. 5) Writing the weights and what it costs. 6) Efficiency against a digital multiply-accumulate. Extensions at the end are optional. Here a <i>weight</i> is simply a number that scales an input, and a <i>vector-matrix multiply</i> is a set of multiply-and-add sums done together.</p>
   </header>
+
+    <section class="panel" id="wu">
+      <h2>Warm-up: one cell, then two cells on one wire <span class="cap">start here</span></h2>
+      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:82ch">To read its stored value, a ReRAM cell acts like a resistor whose size you set when you program it. The only law you need is <span class="eq">I = V × G</span>: the current <b>I</b> equals the voltage <b>V</b> across the cell times its conductance <b>G</b> (the opposite of resistance). Think of water in a pipe: V is the pressure, G is how wide the pipe is, and I is how much water flows. Drag the sliders, then put a second cell on the same wire.</p>
+      <div class="row" style="max-width:420px"><label for="wuN">Cells on the wire</label><select id="wuN"><option value="1">One cell</option><option value="2">Two cells on one wire</option></select></div>
+      <div class="wugrid"><div class="wuctl" id="wuCtl"></div><div class="wuview"><div class="xbar"><svg id="wuSvg" role="img" aria-label="One or two ReRAM cells on a bit line, with the row voltage, the conductance and the current of each cell"></svg></div></div></div>
+      <div class="wueq" id="wuEq" aria-live="polite"></div>
+      <p class="note">A crossbar column is this picture repeated: many cells share one bit line, each cell turns its row voltage into a current, and the wire adds them up. The conductance range of the sliders follows Gmin and Gmax in the Device and circuit panel.</p>
+    </section>
+
+    <section class="panel" id="vm">
+      <h2>Worked example: a real 2×2 vector multiply <span class="cap">follow every number</span></h2>
+      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:82ch">Here the crossbar computes <span class="eq">y = xᵀW</span> for a 2-element input vector and a 2×2 weight matrix. The inputs from the vector <b>x</b> become voltages on the rows. The weights from the matrix <b>W</b> become conductances in the cells, two cells per weight (G⁺ and G⁻) because a conductance cannot be negative. Each column adds up its currents, and the result is compared with the exact answer. Inside each cell box the big number is its conductance and the small one is its current; tap a cell to see where they come from. Change any number, and use the Device and circuit settings beside the crossbar (DAC and weight bits, ADC bits, Gmin, Gmax, σ, wire resistance) to see where the differences come from. This example uses the analog multi-level layout. The Cell layout menu compares the default two-cell pair with two single-cell alternatives.</p>
+      <div class="vmtop">
+<div class="vmleft">
+<div class="vmin">
+        <div><span class="cap">Input vector x (0 to 1)</span><div class="mat" style="grid-template-columns:repeat(2,70px)"><input type="number" id="vmx0" min="0" max="1" step="0.05" aria-label="Input x1"><input type="number" id="vmx1" min="0" max="1" step="0.05" aria-label="Input x2"></div></div>
+        <div><span class="cap">Weight matrix W (−1 to 1)</span><div class="mat" style="grid-template-columns:repeat(2,70px)"><input type="number" id="vmw00" min="-1" max="1" step="0.05" aria-label="Weight row 1 column 1"><input type="number" id="vmw01" min="-1" max="1" step="0.05" aria-label="Weight row 1 column 2"><input type="number" id="vmw10" min="-1" max="1" step="0.05" aria-label="Weight row 2 column 1"><input type="number" id="vmw11" min="-1" max="1" step="0.05" aria-label="Weight row 2 column 2"></div></div>
+        <div class="row" style="margin:0"><label for="vmDev" style="flex-basis:auto">Devices</label><select id="vmDev"><option value="ideal">Ideal cells and wires</option><option value="real">Use σ and wire R from the settings</option></select></div>
+        <div class="row" style="margin:0"><label for="vmEnc" style="flex-basis:auto">Cell layout</label><select id="vmEnc"><option value="diff">Differential pair (G⁺ and G⁻)</option><option value="clip">G⁺ only, negatives clipped</option><option value="ref">G⁺ only + reference column</option></select></div>
+      </div>
+      <div class="btns">
+        <button type="button" id="vmReset">Reset example</button>
+        <button type="button" id="vmSeed">Resample device variation</button>
+        <button type="button" id="vmLoad">Load into the crossbar below</button>
+      </div>
+      <p class="vmkey" id="vmEncNote"></p>
+      
+<p class="note vmhlnote" id="vmHlNote"></p>
+</div>
+<div class="vmright">
+<p class="vmkey">Each box in the diagram is one ReRAM cell. The <b>big number</b> is its <b>conductance G</b> (in microsiemens, µS), and the <b>small number</b> is the <b>current I</b> (in microamps, µA) that flows through it. Both are labelled with their units. <b>Tap any cell</b> to see where its two numbers come from.</p>
+      <div class="xbar"><svg id="vmDiag" role="img" aria-label="A 2 by 2 weight matrix stored in ReRAM cells, with input voltages on the rows and currents on the columns" style="min-width:520px;max-width:680px"></svg></div>
+</div>
+</div>
+<details class="vmpredbox" id="vmPredBox"><summary id="vmPredSum">Predict first · 5 quick questions</summary><div id="vmPred"></div></details>
+      <div class="vmlive" id="vmLive"></div>
+      <div class="vmcell" id="vmCell" aria-live="polite"></div>
+      <div class="vmcards" id="vmCards"></div>
+    </section>
+
 
     <section class="panel">
       <h2>Array size and cell encoding</h2>
@@ -277,29 +327,7 @@ tfoot td{font-weight:500;border-bottom:0}
       <p class="note" id="archNote"></p>
     </section>
 
-    <section class="panel" id="signDisc">
-      <h2>Negative weights: signed or unsigned, one cell or two?</h2>
-      <p class="note" style="margin:0 0 8px;font-size:13px;max-width:80ch">A ReRAM cell is a conductance G, and G can never be negative, so a current I = V·G can never be negative either. Neural-network weights are often negative. Two separate design choices decide how the array copes, and you can set each one with the drop-downs above.</p>
-      <div class="sgq">
-        <div><b>1. Weight sign: are negative weights needed?</b><br><i>Signed</i> keeps them, so the output can go below zero. <i>Unsigned</i> gives up on them: a negative weight is stored as 0. That is fine when every weight is naturally positive (pixel intensities, counts, probabilities), and wrong when it is not.</div>
-        <div><b>2. Cells per weight: how is a signed weight stored?</b><br><i>G⁺/G⁻ pair</i> uses two cells: one holds the positive part, one the negative part, and the column pair&rsquo;s currents are subtracted. <i>G⁺ only</i> uses one cell. To keep negatives anyway it shifts the weight into 0 to 1 and subtracts a shared <i>reference column</i> that stands for zero.</div>
-      </div>
-      <div class="sgw"><table class="sgt" id="sgTable">
-        <thead><tr><th>Weight sign</th><th>Cells per weight</th><th>How a weight is stored</th><th>Negatives</th><th>Gmin leakage</th><th>Weight step</th><th>Cost</th></tr></thead>
-        <tbody>
-          <tr data-s="diff"><td>Signed</td><td>Pair (G⁺, G⁻)</td><td>w &gt; 0 goes in G⁺, w &lt; 0 in G⁻, the other cell sits at Gmin. y = (I⁺ − I⁻) / (V<sub>read</sub>·ΔG)</td><td>Kept</td><td>Cancels (both cells leak equally)</td><td>1/L</td><td>2 cells per weight, 2 bit lines per output</td></tr>
-          <tr data-s="ref"><td>Signed</td><td>G⁺ only</td><td>u = (w+1)/2 in 0 to 1, so w = 0 sits at the middle conductance. y = 2·(I − I<sub>ref</sub>) / (V<sub>read</sub>·ΔG)</td><td>Kept</td><td>Cancels (the reference column leaks too)</td><td>2/L (twice as coarse)</td><td>1 cell per weight, plus one shared reference column</td></tr>
-          <tr data-s="clip"><td>Unsigned</td><td>G⁺ only</td><td>w &ge; 0 stored as is, w &lt; 0 stored as 0. y = I / (V<sub>read</sub>·ΔG)</td><td class="bad">Lost</td><td class="bad">Adds an offset ≈ Σx·Gmin/ΔG to every output</td><td>1/L</td><td>1 cell per weight, no subtraction (simplest hardware)</td></tr>
-        </tbody>
-      </table></div>
-      <p class="note" style="max-width:80ch">L is the number of conductance levels minus one (set by &ldquo;Weight levels&rdquo;) and ΔG = Gmax − Gmin. The fourth combination, unsigned with a pair, is not offered: G⁻ would stay at Gmin and the second cell would buy nothing.</p>
-      <div class="sgq">
-        <div><b>Why not always use the pair?</b> It is the most accurate way to keep negatives, but it doubles the cells, the bit lines and the ADCs. If area or energy is tight, one cell per weight is attractive.</div>
-        <div><b>Why does the reference column halve the resolution?</b> One cell has to cover weights from −1 to +1, so the same conductance range is spread over twice the span. Each level now means a change of 2/L in w instead of 1/L.</div>
-        <div><b>What does unsigned really cost?</b> Negative weights turn into 0 and the leakage current of every cell piles up in the sum. The error is large when many weights are negative and small when none are.</div>
-      </div>
-      <p class="note" style="max-width:80ch"><b>Try it.</b> (1) Press Randomize with <i>Signed, pair</i>, note y₁, then switch to <i>Unsigned</i>: negative weights turn red and y₁ moves. (2) Press &ldquo;Make weights positive&rdquo; and the unsigned result now differs from ideal only by the leakage offset. (3) Set σ = 0 and the ADC to 8 bits, then compare <i>Signed, pair</i> and <i>Signed, G⁺ only</i>: the same ideal answer, but the second is coarser when Weight levels is small. (4) Combine with <i>Binary weighted</i> cells to see the same three layouts at bit level.</p>
-    </section>
+
 
     <div class="grid" id="xgrid">
     <aside class="rail">
@@ -337,122 +365,39 @@ tfoot td{font-weight:500;border-bottom:0}
     </section>
     </div>
 
-    <section class="panel" id="wu">
-      <h2>Warm-up: one cell, then two cells on one wire <span class="cap">start here</span></h2>
-      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:82ch">To read its stored value, a ReRAM cell acts like a resistor whose size you set when you program it. The only law you need is <span class="eq">I = V × G</span>: the current <b>I</b> equals the voltage <b>V</b> across the cell times its conductance <b>G</b> (the opposite of resistance). Think of water in a pipe: V is the pressure, G is how wide the pipe is, and I is how much water flows. Drag the sliders, then put a second cell on the same wire.</p>
-      <div class="row" style="max-width:420px"><label for="wuN">Cells on the wire</label><select id="wuN"><option value="1">One cell</option><option value="2">Two cells on one wire</option></select></div>
-      <div class="wugrid"><div class="wuctl" id="wuCtl"></div><div class="wuview"><div class="xbar"><svg id="wuSvg" role="img" aria-label="One or two ReRAM cells on a bit line, with the row voltage, the conductance and the current of each cell"></svg></div></div></div>
-      <div class="wueq" id="wuEq" aria-live="polite"></div>
-      <p class="note">A crossbar column is this picture repeated: many cells share one bit line, each cell turns its row voltage into a current, and the wire adds them up. The conductance range of the sliders follows Gmin and Gmax in the Device and circuit panel.</p>
-    </section>
 
-    <section class="panel" id="vm">
-      <h2>Worked example: a real 2×2 vector multiply <span class="cap">follow every number</span></h2>
-      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:82ch">Here the crossbar computes <span class="eq">y = xᵀW</span> for a 2-element input vector and a 2×2 weight matrix. The inputs from the vector <b>x</b> become voltages on the rows. The weights from the matrix <b>W</b> become conductances in the cells, two cells per weight (G⁺ and G⁻) because a conductance cannot be negative. Each column adds up its currents, and the result is compared with the exact answer. Inside each cell box the big number is its conductance and the small one is its current; tap a cell to see where they come from. Change any number, and use the Device and circuit settings beside the crossbar (DAC and weight bits, ADC bits, Gmin, Gmax, σ, wire resistance) to see where the differences come from. This example uses the analog multi-level layout. The Cell layout menu compares the default two-cell pair with two single-cell alternatives.</p>
-      <div class="vmtop">
-<div class="vmleft">
-<div class="vmin">
-        <div><span class="cap">Input vector x (0 to 1)</span><div class="mat" style="grid-template-columns:repeat(2,70px)"><input type="number" id="vmx0" min="0" max="1" step="0.05" aria-label="Input x1"><input type="number" id="vmx1" min="0" max="1" step="0.05" aria-label="Input x2"></div></div>
-        <div><span class="cap">Weight matrix W (−1 to 1)</span><div class="mat" style="grid-template-columns:repeat(2,70px)"><input type="number" id="vmw00" min="-1" max="1" step="0.05" aria-label="Weight row 1 column 1"><input type="number" id="vmw01" min="-1" max="1" step="0.05" aria-label="Weight row 1 column 2"><input type="number" id="vmw10" min="-1" max="1" step="0.05" aria-label="Weight row 2 column 1"><input type="number" id="vmw11" min="-1" max="1" step="0.05" aria-label="Weight row 2 column 2"></div></div>
-        <div class="row" style="margin:0"><label for="vmDev" style="flex-basis:auto">Devices</label><select id="vmDev"><option value="ideal">Ideal cells and wires</option><option value="real">Use σ and wire R from the settings</option></select></div>
-        <div class="row" style="margin:0"><label for="vmEnc" style="flex-basis:auto">Cell layout</label><select id="vmEnc"><option value="diff">Differential pair (G⁺ and G⁻)</option><option value="clip">G⁺ only, negatives clipped</option><option value="ref">G⁺ only + reference column</option></select></div>
-      </div>
-      <div class="btns">
-        <button type="button" id="vmReset">Reset example</button>
-        <button type="button" id="vmSeed">Resample device variation</button>
-        <button type="button" id="vmLoad">Load into the crossbar above</button>
-      </div>
-      <p class="vmkey" id="vmEncNote"></p>
-      
-<p class="note vmhlnote" id="vmHlNote"></p>
-</div>
-<div class="vmright">
-<p class="vmkey">Each box in the diagram is one ReRAM cell. The <b>big number</b> is its <b>conductance G</b> (in microsiemens, µS), and the <b>small number</b> is the <b>current I</b> (in microamps, µA) that flows through it. Both are labelled with their units. <b>Tap any cell</b> to see where its two numbers come from.</p>
-      <div class="xbar"><svg id="vmDiag" role="img" aria-label="A 2 by 2 weight matrix stored in ReRAM cells, with input voltages on the rows and currents on the columns" style="min-width:520px;max-width:680px"></svg></div>
-</div>
-</div>
-<details class="vmpredbox" id="vmPredBox"><summary id="vmPredSum">Predict first · 5 quick questions</summary><div id="vmPred"></div></details>
-      <div class="vmlive" id="vmLive"></div>
-      <div class="vmcell" id="vmCell" aria-live="polite"></div>
-      <div class="vmcards" id="vmCards"></div>
-    </section>
 
-    <section class="panel" id="ex">
-      <h2>Example 1: which side of the picture is lit? <span class="cap">tiny example</span></h2>
-      <p class="note" style="margin:0 0 12px;font-size:13px;max-width:80ch">Pick a 2×2 picture (4 pixels) or a 3×3 patch (9 pixels). The array stores four <b>templates</b>: Left, Right, Top and Bottom. Each template is a column of weights: +1 for &ldquo;I want this pixel lit&rdquo;, −1 for &ldquo;I want it dark&rdquo;, and 0 for &ldquo;I don&rsquo;t care&rdquo; (3×3 only). The picture goes in as voltages, every cell adds its current to its bit line, and the template that overlaps the picture most collects the most current. In the 3×3 case the templates are edge-detecting kernels like those used in image processing, so this is one step of a convolution. It is a one-layer neural network, computed in a single read.</p>
-      <div class="row"><label for="exSize">Picture size</label><select id="exSize"><option value="2">2×2 picture (4 pixels)</option><option value="3">3×3 patch (9 pixels, edge kernels)</option></select></div>
-      <div class="exgrid">
-        <div>
-          <div class="cap">1. Draw the picture (tap pixels)</div>
-          <div class="expix" id="exPix"></div>
-          <div class="cap">Or try a preset</div>
-          <div class="btns" id="exPre"></div>
-        </div>
-        <div>
-          <div class="cap">2. Templates (weights) and 3. what each bit line adds up</div>
-          <div class="tw"><table id="exT"></table></div>
-          <p class="exverdict" id="exV"></p>
-          <p class="note" id="exMode" style="margin-top:2px"></p>
-        </div>
-      </div>
-      <div class="btns">
-        <button type="button" id="exLoad">Load this example into the simulator</button>
-        <button type="button" id="exPlay">Watch the crossbar compute it</button>
-      </div>
-      <p class="note" id="exNote2"></p>
-    </section>
 
-    <section class="panel" id="wr">
-      <h2>Example 2: how does a weight get written into a cell? <span class="cap">step by step</span></h2>
-      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:80ch">A ReRAM cell can&rsquo;t be set to an exact value with one pulse, because every device responds a little differently. So each weight is written with a short loop: pulse, read the cell back, compare with the target, and repeat until it is close enough. Tap any number in the matrix (it is the matrix currently in the simulator, so load the example above to see its templates) and step through how it is stored in a pair of cells. SET and RESET are opposite-polarity pulses applied across the cell; <a href="basics/#pulses">Step 1 shows what each does to the filament and where the pulse is injected</a>.</p>
-      <div class="wrgrid">
-        <div>
-          <div class="cap">1. Pick a weight</div>
-          <div class="wrmat" id="wrMat"></div>
-        </div>
-        <div>
-          <div class="cap" id="wrStepCap"></div>
-          <div class="wrtext" id="wrText" aria-live="polite"></div>
-          <div id="wrGauge"></div>
-          <div id="wrChart"></div>
-        </div>
-      </div>
-      <div class="btns">
-        <button type="button" id="wrBack">◀ Back</button>
-        <button type="button" id="wrNext">Next ▶</button>
-        <button type="button" id="wrPlay">Play</button>
-      </div>
-      <div class="row" style="max-width:420px"><label for="wrSig">Variation σ</label><input type="range" id="wrSig" min="0" max="25" step="0.5" value="10"><output id="wrSigO">10.0%</output></div>
-      <p class="note">This is the same write model as the Programming panel further down (with Write method set to Program-and-verify), so the same cell gets the same pulses there. Different cells need different numbers of pulses because each device responds a little differently: raise the variation σ and tap a few weights to see it. The Programming panel also shows the circuit, the pulse waveform and the cost of writing the whole array.</p>
-    </section>
 
-    <section class="panel" id="xor">
-      <h2>Example 3: why XOR needs two crossbars</h2>
-      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:80ch">XOR is 1 when exactly one of the two inputs is on. One crossbar can only draw a single straight line through the four cases, and no line separates XOR&rsquo;s 0s from its 1s. With two crossbars and a comparator in between it works: A asks &ldquo;is any input on?&rdquo; (h₁) and &ldquo;are both on?&rdquo; (h₂), and B answers &ldquo;any, but not both&rdquo;.</p>
-      <div class="row"><label for="xMode">Network</label><select id="xMode"><option value="two">Two crossbars with a hidden layer</option><option value="one">One crossbar only</option></select></div>
-      <div class="xorflow">
-        <div class="xcard" style="flex-basis:150px">
-          <span class="cap">Inputs (tap to flip)</span>
-          <div class="xin" id="xIn"><button type="button" data-i="0"></button><button type="button" data-i="1"></button></div>
-          <div class="xline" style="color:var(--mute)">bias = 1 (always on)</div>
-        </div>
-        <div id="xCards"></div>
+
+
+
+
+
+
+      <section class="panel" id="signDisc">
+      <details><summary style="cursor:pointer;font-weight:600;font-size:15px">Negative weights: signed or unsigned, one cell or two? <span class="cap">read when you reach negative weights</span></summary>
+      <p class="note" style="margin:0 0 8px;font-size:13px;max-width:80ch">A ReRAM cell is a conductance G, and G can never be negative, so a current I = V·G can never be negative either. A weight is the number that scales an input, and weights are often negative as well as positive. Two separate design choices decide how the array copes, and you can set each one with the drop-downs above.</p>
+      <div class="sgq">
+        <div><b>1. Weight sign: are negative weights needed?</b><br><i>Signed</i> keeps them, so the output can go below zero. <i>Unsigned</i> gives up on them: a negative weight is stored as 0. That is fine when every weight is naturally positive (pixel intensities, counts, probabilities), and wrong when it is not.</div>
+        <div><b>2. Cells per weight: how is a signed weight stored?</b><br><i>G⁺/G⁻ pair</i> uses two cells: one holds the positive part, one the negative part, and the column pair&rsquo;s currents are subtracted. <i>G⁺ only</i> uses one cell. To keep negatives anyway it shifts the weight into 0 to 1 and subtracts a shared <i>reference column</i> that stands for zero.</div>
       </div>
-      <p class="xscore" id="xScore"></p>
-      <div class="tw"><table id="xorT"></table></div>
-      <p class="note" id="xNote"></p>
-      <details>
-        <summary>Experiment: edit the weights, add noise</summary>
-        <div class="effctl">
-          <div class="row"><label for="xSig">Variation σ</label><input type="range" id="xSig" min="0" max="25" step="0.5" value="10"><output id="xSigO">10.0%</output></div>
-          <div class="row"><label for="xRw">Wire R / segment</label><input type="range" id="xRw" min="0" max="300" step="5" value="0"><output id="xRwO">0 Ω</output></div>
-        </div>
-        <div class="xwed">
-          <div id="xwA"></div><div id="xwB"></div><div id="xw1"></div>
-        </div>
-        <div class="btns"><button type="button" id="xReset">Restore the XOR solution</button><button type="button" id="xSeed">Resample device variation</button></div>
-        <p class="note">Weights go from −1 to 1. Push σ toward 20 to 25% and press Resample a few times: a ✗ appears when noise on one cell pushes a sum across 0. The other device settings come from the Device and circuit panel beside the crossbar, and weights are written ideally with no programming model.</p>
-      </details>
+      <div class="sgw"><table class="sgt" id="sgTable">
+        <thead><tr><th>Weight sign</th><th>Cells per weight</th><th>How a weight is stored</th><th>Negatives</th><th>Gmin leakage</th><th>Weight step</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr data-s="diff"><td>Signed</td><td>Pair (G⁺, G⁻)</td><td>w &gt; 0 goes in G⁺, w &lt; 0 in G⁻, the other cell sits at Gmin. y = (I⁺ − I⁻) / (V<sub>read</sub>·ΔG)</td><td>Kept</td><td>Cancels (both cells leak equally)</td><td>1/L</td><td>2 cells per weight, 2 bit lines per output</td></tr>
+          <tr data-s="ref"><td>Signed</td><td>G⁺ only</td><td>u = (w+1)/2 in 0 to 1, so w = 0 sits at the middle conductance. y = 2·(I − I<sub>ref</sub>) / (V<sub>read</sub>·ΔG)</td><td>Kept</td><td>Cancels (the reference column leaks too)</td><td>2/L (twice as coarse)</td><td>1 cell per weight, plus one shared reference column</td></tr>
+          <tr data-s="clip"><td>Unsigned</td><td>G⁺ only</td><td>w &ge; 0 stored as is, w &lt; 0 stored as 0. y = I / (V<sub>read</sub>·ΔG)</td><td class="bad">Lost</td><td class="bad">Adds an offset ≈ Σx·Gmin/ΔG to every output</td><td>1/L</td><td>1 cell per weight, no subtraction (simplest hardware)</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note" style="max-width:80ch">L is the number of conductance levels minus one (set by &ldquo;Weight levels&rdquo;) and ΔG = Gmax − Gmin. The fourth combination, unsigned with a pair, is not offered: G⁻ would stay at Gmin and the second cell would buy nothing.</p>
+      <div class="sgq">
+        <div><b>Why not always use the pair?</b> It is the most accurate way to keep negatives, but it doubles the cells, the bit lines and the ADCs. If area or energy is tight, one cell per weight is attractive.</div>
+        <div><b>Why does the reference column halve the resolution?</b> One cell has to cover weights from −1 to +1, so the same conductance range is spread over twice the span. Each level now means a change of 2/L in w instead of 1/L.</div>
+        <div><b>What does unsigned really cost?</b> Negative weights turn into 0 and the leakage current of every cell piles up in the sum. The error is large when many weights are negative and small when none are.</div>
+      </div>
+      <p class="note" style="max-width:80ch"><b>Try it.</b> (1) Press Randomize with <i>Signed, pair</i>, note y₁, then switch to <i>Unsigned</i>: negative weights turn red and y₁ moves. (2) Press &ldquo;Make weights positive&rdquo; and the unsigned result now differs from ideal only by the leakage offset. (3) Set σ = 0 and the ADC to 8 bits, then compare <i>Signed, pair</i> and <i>Signed, G⁺ only</i>: the same ideal answer, but the second is coarser when Weight levels is small. (4) Combine with <i>Binary weighted</i> cells to see the same three layouts at bit level.</p>
+    </details>
     </section>
 
   <div class="grid one">
@@ -475,10 +420,6 @@ tfoot td{font-weight:500;border-bottom:0}
         </div>
         <p class="note" id="pNote"></p>
         <div class="tiles" id="ptiles"></div>
-        <div class="two">
-          <div><div class="cap">Programming circuitry</div><svg id="pBlock" class="chart" viewBox="0 0 410 306" role="img" aria-label="Block diagram of the ReRAM write and verify circuitry"></svg></div>
-          <div><div class="cap">Program-and-verify loop</div><svg id="pFlow" class="chart" viewBox="0 0 322 372" role="img" aria-label="Flowchart of the program-and-verify loop"></svg></div>
-        </div>
         <h2 class="sub2">Pulse sequence for one cell</h2>
         <div class="steps">
           <label for="psRow">Row</label><select id="psRow"></select>
@@ -486,14 +427,16 @@ tfoot td{font-weight:500;border-bottom:0}
           <button id="bPB">Play sequence</button>
         </div>
         <p class="stepnote" id="pCap"></p>
-        <div class="two">
-          <svg id="pWave" class="chart" viewBox="0 0 420 222" role="img" aria-label="Voltage waveform of the write pulses and verify reads"></svg>
-          <svg id="pTraj" class="chart" viewBox="0 0 420 222" role="img" aria-label="Conductance after each pulse compared with the target"></svg>
+        <div class="figrow">
+          <div class="fgb"><div class="cap">Programming circuitry</div><svg id="pBlock" class="chart" viewBox="0 0 410 306" role="img" aria-label="Block diagram of the ReRAM write and verify circuitry"></svg></div>
+          <div class="fgf"><div class="cap">Program-and-verify loop</div><svg id="pFlow" class="chart" viewBox="0 0 352 372" role="img" aria-label="Flowchart of the program-and-verify loop"></svg></div>
+          <div class="fgw"><svg id="pWave" class="chart" viewBox="0 0 420 222" role="img" aria-label="Voltage waveform of the write pulses and verify reads"></svg></div>
+          <div class="fgw"><svg id="pTraj" class="chart" viewBox="0 0 420 222" role="img" aria-label="Conductance after each pulse compared with the target"></svg></div>
         </div>
         <h2 class="sub2">Array write map</h2>
-        <div class="steps"><button id="bPA">Program array row by row</button><span class="note" id="pGridNote" style="margin:0"></span></div>
+        <div class="steps"><label for="pSeed">Variation seed</label><input type="number" id="pSeed" min="0" max="99999" step="1" style="width:84px" title="Same seed, same map. Type a number to reproduce a map in class."><button id="bPA">Program array row by row</button><span class="note" id="pGridNote" style="margin:0"></span></div>
         <div class="pgrid" id="pgrid"></div>
-        <p class="note">Each number is how many write pulses that cell needed. Darker means more. Cells aimed at the lowest conductance stay at their erased value and need none. Click a cell to inspect its pulse sequence. A red outline marks a cell that never reached its tolerance.</p>
+        <p class="note">Each number is how many write pulses that cell needed. Darker means more. Cells aimed at the lowest conductance stay at their erased value and need none. That is why every G⁺/G⁻ pair has a 0: a positive weight is written into the G⁺ cell and a negative one into the G⁻ cell, and the other cell of the pair rests at Gmin. The counts come from this page&rsquo;s illustrative write model with seeded random variation, so they show the shape of the effect, not the figures of a real device. The counts depend only on where each target sits between Gmin and Gmax, not on their µS values, so moving Gmin or Gmax changes the targets in µS but leaves these counts the same. Click a cell to inspect its pulse sequence. A red outline marks a cell that never reached its tolerance.</p>
       </section>
 
       <div class="two">
@@ -531,6 +474,83 @@ tfoot td{font-weight:500;border-bottom:0}
         <p class="note" id="effNote"></p>
       </section>
 
+
+    <section class="panel" id="extras"><h2>Extensions <span class="cap">optional, after the main path</span></h2><p class="note" style="margin:0;font-size:13px;max-width:80ch">Example 1 uses the crossbar as a tiny pattern matcher. Example 2 repeats Step 2 on the matrix loaded in the simulator. Example 3 shows why one crossbar is not always enough.</p></section>
+    <section class="panel" id="ex">
+      <h2>Example 1: which side of the picture is lit? <span class="cap">tiny example</span></h2>
+      <p class="note" style="margin:0 0 12px;font-size:13px;max-width:80ch">Pick a 2×2 picture (4 pixels) or a 3×3 patch (9 pixels). The array stores four <b>templates</b>: Left, Right, Top and Bottom. Each template is a column of weights: +1 for &ldquo;I want this pixel lit&rdquo;, −1 for &ldquo;I want it dark&rdquo;, and 0 for &ldquo;I don&rsquo;t care&rdquo; (3×3 only). The picture goes in as voltages, every cell adds its current to its bit line, and the template that overlaps the picture most collects the most current. In the 3×3 case the templates are edge-detecting kernels like those used in image processing, so this is one step of a convolution. It is a one-layer neural network (a weighted sum per template, then pick the biggest), computed in a single read.</p>
+      <div class="row"><label for="exSize">Picture size</label><select id="exSize"><option value="2">2×2 picture (4 pixels)</option><option value="3">3×3 patch (9 pixels, edge kernels)</option></select></div>
+      <div class="exgrid">
+        <div>
+          <div class="cap">1. Draw the picture (tap pixels)</div>
+          <div class="expix" id="exPix"></div>
+          <div class="cap">Or try a preset</div>
+          <div class="btns" id="exPre"></div>
+        </div>
+        <div>
+          <div class="cap">2. Templates (weights) and 3. what each bit line adds up</div>
+          <div class="tw"><table id="exT"></table></div>
+          <p class="exverdict" id="exV"></p>
+          <p class="note" id="exMode" style="margin-top:2px"></p>
+        </div>
+      </div>
+      <div class="btns">
+        <button type="button" id="exLoad">Load this example into the simulator</button>
+        <button type="button" id="exPlay">Watch the crossbar compute it</button>
+      </div>
+      <p class="note" id="exNote2"></p>
+    </section>
+    <section class="panel" id="wr">
+      <h2>Example 2: how does a weight get written into a cell? <span class="cap">step by step</span></h2>
+      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:80ch">A ReRAM cell can&rsquo;t be set to an exact value with one pulse, because every device responds a little differently. So each weight is written with a short loop: pulse, read the cell back, compare with the target, and repeat until it is close enough. Tap any number in the matrix (it is the matrix currently in the simulator, so load the example above to see its templates) and step through how it is stored in a pair of cells. SET and RESET are opposite-polarity pulses applied across the cell; <a href="basics/#pulses">Step 1 shows what each does to the filament and where the pulse is injected</a>.</p>
+      <div class="wrgrid">
+        <div>
+          <div class="cap">1. Pick a weight</div>
+          <div class="wrmat" id="wrMat"></div>
+        </div>
+        <div>
+          <div class="cap" id="wrStepCap"></div>
+          <div class="wrtext" id="wrText" aria-live="polite"></div>
+          <div id="wrGauge"></div>
+          <div id="wrChart"></div>
+        </div>
+      </div>
+      <div class="btns">
+        <button type="button" id="wrBack">◀ Back</button>
+        <button type="button" id="wrNext">Next ▶</button>
+        <button type="button" id="wrPlay">Play</button>
+      </div>
+      <div class="row" style="max-width:420px"><label for="wrSig">Variation σ</label><input type="range" id="wrSig" min="0" max="25" step="0.5" value="10"><output id="wrSigO">10.0%</output></div>
+      <p class="note">This is the same write model as the Programming panel further down (with Write method set to Program-and-verify), so the same cell gets the same pulses there. Different cells need different numbers of pulses because each device responds a little differently: raise the variation σ and tap a few weights to see it. The Programming panel also shows the circuit, the pulse waveform and the cost of writing the whole array.</p>
+    </section>
+    <section class="panel" id="xor">
+      <h2>Example 3: why XOR needs two crossbars</h2>
+      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:80ch">XOR is 1 when exactly one of the two inputs is on. One crossbar can only draw a single straight line through the four cases, and no line separates XOR&rsquo;s 0s from its 1s. With two crossbars and a comparator in between it works: A asks &ldquo;is any input on?&rdquo; (h₁) and &ldquo;are both on?&rdquo; (h₂), and B answers &ldquo;any, but not both&rdquo;.</p>
+      <div class="row"><label for="xMode">Network</label><select id="xMode"><option value="two">Two crossbars with a hidden layer</option><option value="one">One crossbar only</option></select></div>
+      <div class="xorflow">
+        <div class="xcard" style="flex-basis:150px">
+          <span class="cap">Inputs (tap to flip)</span>
+          <div class="xin" id="xIn"><button type="button" data-i="0"></button><button type="button" data-i="1"></button></div>
+          <div class="xline" style="color:var(--mute)">bias = 1 (always on)</div>
+        </div>
+        <div id="xCards"></div>
+      </div>
+      <p class="xscore" id="xScore"></p>
+      <div class="tw"><table id="xorT"></table></div>
+      <p class="note" id="xNote"></p>
+      <details>
+        <summary>Experiment: edit the weights, add noise</summary>
+        <div class="effctl">
+          <div class="row"><label for="xSig">Variation σ</label><input type="range" id="xSig" min="0" max="25" step="0.5" value="10"><output id="xSigO">10.0%</output></div>
+          <div class="row"><label for="xRw">Wire R / segment</label><input type="range" id="xRw" min="0" max="300" step="5" value="0"><output id="xRwO">0 Ω</output></div>
+        </div>
+        <div class="xwed">
+          <div id="xwA"></div><div id="xwB"></div><div id="xw1"></div>
+        </div>
+        <div class="btns"><button type="button" id="xReset">Restore the XOR solution</button><button type="button" id="xSeed">Resample device variation</button></div>
+        <p class="note">Weights go from −1 to 1. Push σ toward 20 to 25% and press Resample a few times: a ✗ appears when noise on one cell pushes a sum across 0. The other device settings come from the Device and circuit panel beside the crossbar, and weights are written ideally with no programming model.</p>
+      </details>
+    </section>
     <section class="panel" id="refs">
         <h2>References and further reading</h2>
         <p class="note" style="margin:0 0 6px;font-size:13px;max-width:80ch">This simulator is a teaching model. Its device behaviour (pulse response, variation, energy and timing figures) is illustrative and not fitted to any particular device, so use the sources below for real data. They are grouped by the part of the page they support. Citation details were checked against publisher or index records on 1 November 2026, and links can change, so searching the title and DOI always works.</p>
@@ -1008,14 +1028,16 @@ function bx(x,y,w,h,lines,on){
   return o;
 }
 function ar(d,on,mk){return '<path d="'+d+'" fill="none" stroke="'+(on?'var(--curr)':'var(--mute)')+'" stroke-width="'+(on?2:1.5)+'" marker-end="url(#'+mk+')"/>'}
-function blockSVG(st){
+function blockSVG(st,arr,lbl){
   var wr=(st==='SET'||st==='RESET'),rd=(st==='read'||st==='cmp'||st==='done'),er=(st==='erase'),any=wr||rd||er;
   var o='<defs><marker id="ahb" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="var(--mute)"/></marker></defs>';
   var bls=[270,320,370],wls=[100,140,180],a,b;
-  for(a=0;a<3;a++){o+='<line x1="'+bls[a]+'" y1="62" x2="'+bls[a]+'" y2="258" stroke="'+((wr||rd)&&a===1?'var(--curr)':'var(--mute)')+'" stroke-width="'+((wr||rd)&&a===1?2:1.2)+'"/>'}
-  for(a=0;a<3;a++){o+='<line x1="212" y1="'+wls[a]+'" x2="400" y2="'+wls[a]+'" stroke="'+((wr||rd)&&a===1?'var(--curr)':'var(--mute)')+'" stroke-width="'+((wr||rd)&&a===1?2:1.2)+'"/>'}
+  function hbl(i){return arr?(arr.par||i===1):((wr||rd)&&i===1)}
+  function hwl(i){return arr?i===arr.wl:((wr||rd)&&i===1)}
+  for(a=0;a<3;a++){o+='<line x1="'+bls[a]+'" y1="62" x2="'+bls[a]+'" y2="258" stroke="'+(hbl(a)?'var(--curr)':'var(--mute)')+'" stroke-width="'+(hbl(a)?2:1.2)+'"/>'}
+  for(a=0;a<3;a++){o+='<line x1="212" y1="'+wls[a]+'" x2="400" y2="'+wls[a]+'" stroke="'+(hwl(a)?'var(--curr)':'var(--mute)')+'" stroke-width="'+(hwl(a)?2:1.2)+'"/>'}
   for(a=0;a<3;a++)for(b=0;b<3;b++){
-    var sel=(a===1&&b===1&&(wr||rd))||er;
+    var sel=arr?((a===arr.wl&&(arr.par||b===1))||er):((a===1&&b===1&&(wr||rd))||er);
     o+='<rect x="'+(bls[b]-11)+'" y="'+(wls[a]-11)+'" width="22" height="22" rx="3" fill="'+(sel?'var(--hl)':'var(--bg)')+'" stroke="'+(sel?'var(--curr)':'var(--mute)')+'" stroke-width="'+(sel?2:1.2)+'"/><text x="'+bls[b]+'" y="'+(wls[a]+3.5)+'" text-anchor="middle" font-size="9.5" fill="var(--ink)">R</text>';
   }
   o+=bx(8,16,112,46,['Pulse generator','+ DAC: V0 + n·ΔV'],wr||er);
@@ -1026,6 +1048,7 @@ function blockSVG(st){
   o+=bx(240,258,160,40,['Sense amp + ADC','(verify read)'],rd);
   o+=ar('M120 39 H240',wr||er,'ahb')+ar('M64 92 V62',wr||er,'ahb')+ar('M120 115 H146',any,'ahb')+ar('M240 278 H64 V214',rd,'ahb')+ar('M64 168 V138',st==='cmp'||st==='done','ahb');
   o+='<text x="232" y="214" font-size="9.5" fill="var(--mute)" text-anchor="end">1T1R: gate = WL</text>';
+  if(lbl)o+='<text x="72" y="238" font-size="10" fill="var(--curr)">'+lbl+'</text>';
   return o;
 }
 function flowSVG(st){
@@ -1037,14 +1060,14 @@ function flowSVG(st){
   o+=bx(65,60,170,34,['Select cell: WL + BL'],inl);
   o+=bx(65,112,170,34,['Verify read: sense G'],st==='read');
   o+=dm(150,190,90,30,'|G − target| ≤ tol ?',st==='cmp');
-  o+=bx(252,172,64,36,['Cell done'],st==='done');
+  o+=bx(274,172,72,36,['Cell done'],st==='done');
   o+=dm(150,264,80,28,'G below target ?',false);
   o+=bx(16,312,108,34,['SET, V += ΔV'],st==='SET');
   o+=bx(176,312,108,34,['RESET, V += ΔV'],st==='RESET');
-  o+=ar('M150 42 V60',false,'ahf')+ar('M150 94 V112',false,'ahf')+ar('M150 146 V160',false,'ahf')+ar('M240 190 H252',st==='done','ahf')+ar('M150 220 V236',false,'ahf');
+  o+=ar('M150 42 V60',false,'ahf')+ar('M150 94 V112',false,'ahf')+ar('M150 146 V160',false,'ahf')+ar('M240 190 H274',st==='done','ahf')+ar('M150 220 V236',false,'ahf');
   o+=ar('M70 264 V312',st==='SET','ahf')+ar('M230 264 V312',st==='RESET','ahf');
   o+=ar('M70 346 V360 H8 V129 H65',false,'ahf')+'<path d="M230 346 V360 H70" fill="none" stroke="var(--mute)" stroke-width="1.5"/>';
-  o+=lb(246,184,'yes')+lb(156,232,'no')+lb(62,286,'yes','end')+lb(238,286,'no');
+  o+=lb(257,182,'yes','middle')+lb(156,232,'no')+lb(62,286,'yes','end')+lb(238,286,'no');
   return o;
 }
 
@@ -1068,8 +1091,13 @@ function renderProg(d){
     tile(st.pulses,'Write pulses',st.pulsed+' of '+st.n+' cells pulsed, '+avg.toFixed(1)+' each')+
     tile(st.conv+' / '+st.n,'Within tolerance',(st.n-st.conv)+' failed',st.conv<st.n)+
     tile(st.rmsPct.toFixed(2)+'%','Programming error',st.rms.toFixed(2)+' µS RMS of the range');
-  $('pBlock').innerHTML=blockSVG(stage);
-  $('pFlow').innerHTML=flowSVG(stage);
+  var aStage=stage,aArr=null,aLbl='';
+  if(PA.on&&PB.i<0){
+    if(PA.row===0){if(S.erase){aStage='erase';aLbl='Erasing the whole array first'}}
+    else{var rr=Math.min(PA.row,M)-1;aStage='SET';aArr={wl:rr===0?0:(rr>=M-1?2:1),par:!!S.par};aLbl='Row '+(rr+1)+' of '+M+(S.par?', all columns at once':', one cell at a time')}
+  }
+  $('pBlock').innerHTML=blockSVG(aStage,aArr,aLbl);
+  $('pFlow').innerHTML=flowSVG(aStage==='erase'?'erase':stage);
   $('bPB').textContent=PB.on?'Stop':'Play sequence';
   $('bPA').textContent=PA.on?'Stop':'Program array row by row';
   $('psRow').value=S.pr;$('psCol').value=S.pc;
@@ -1129,8 +1157,8 @@ function renderProg(d){
       h+='<button class="pc'+(i===S.pr&&k===S.pc?' sel':'')+(cc.ok?'':' fail')+(hid?' dim':'')+'" data-i="'+i+'" data-k="'+k+'" style="background:color-mix(in srgb,var(--curr) '+(hid?0:pct.toFixed(0))+'%,var(--bg))" title="target '+cc.Gt.toFixed(1)+' µS, stored '+cc.G.toFixed(1)+' µS">'+(hid?'·':cc.pulses)+'</button>';
     }
   }
-  var gr=$('pgrid');gr.style.gridTemplateColumns=d.bin?'auto repeat('+C+',36px)':'auto repeat('+C+',minmax(0,1fr))';gr.style.fontSize=d.bin?'10px':'';gr.innerHTML=h;
-  if(PA.on){var cum=S.erase?st.eraseT:0;for(i=0;i<Math.min(PA.row,M);i++)cum+=st.rowT[i];$('pGridNote').textContent='Rows written: '+Math.min(PA.row,M)+' of '+M+', elapsed '+fmtT(cum)}else $('pGridNote').textContent='';
+  var gr=$('pgrid');gr.style.gridTemplateColumns=d.bin?'auto repeat('+C+',36px)':'auto repeat('+C+',minmax(0,1fr))';gr.style.fontSize=d.bin?'10px':'';gr.innerHTML=h;var sd=$('pSeed');if(sd&&document.activeElement!==sd)sd.value=S.seed;
+  if(PA.on){var act=PA.row===0?(S.erase?'Erasing the whole array to the high-resistance state first. ':'Starting. '):'Row '+Math.min(PA.row,M)+' of '+M+(S.par?' written, all columns in parallel. ':' written, cell by cell. ');var cum=S.erase?st.eraseT:0;for(i=0;i<Math.min(PA.row,M);i++)cum+=st.rowT[i];$('pGridNote').textContent=act+'Elapsed '+fmtT(cum)}else $('pGridNote').textContent='';
 }
 function buildProgSel(){
   var h='',i;for(i=0;i<S.M;i++)h+='<option value="'+i+'">x'+SUB[i]+'</option>';$('psRow').innerHTML=h;
@@ -1296,6 +1324,7 @@ $('bAbs').addEventListener('click',function(){for(var i=0;i<9;i++)for(var j=0;j<
 $('bReset').addEventListener('click',function(){
   W=W0.map(function(r){return r.slice()});X=X0.slice();syncW();buildX();update();
 });
+$('pSeed').addEventListener('change',function(){var v=parseInt(this.value,10);if(isNaN(v)||v<0)v=0;if(v>99999)v=99999;S.seed=v;this.value=v;makeZ();update()});
 $('bSeed').addEventListener('click',function(){S.seed=Math.floor(Math.random()*100000);makeZ();update()});
 $('steps').addEventListener('click',function(e){
   var t=e.target;

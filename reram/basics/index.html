@@ -89,6 +89,9 @@ details.q p{margin:8px 0 2px}
 .flow{stroke-dasharray:6 5;animation:dash .7s linear infinite}
 @keyframes dash{to{stroke-dashoffset:-11}}
 @media (prefers-reduced-motion:reduce){.flow{animation:none}}
+.refs{margin:6px 0 4px;padding-left:24px;font-size:13px;line-height:1.5;max-width:92ch}
+.refs li{margin:8px 0}
+.refs .why{display:block;color:var(--mute);font-size:12px;margin-top:2px}
 </style>
 </head>
 <body>
@@ -249,12 +252,12 @@ details.q p{margin:8px 0 2px}
     <h2>6. What you will meet in the simulator</h2>
     <p class="lead">Step 2 shows how a weight is written into a cell, and Step 3 is the crossbar simulator. Each difference above explains one of their controls, so here is a preview of what to look for.</p>
     <div class="mapgrid">
-      <div class="card"><h3>The write panel</h3><p>Erase, SET and RESET pulses, program-and-verify and the pulse-count map exist only because ReRAM must be programmed. A resistor array would skip all of it. <a href="../#prog">Open the write panel</a>.</p></div>
+      <div class="card"><h3>The write panel</h3><p>Erase, SET and RESET pulses, program-and-verify and the pulse-count map exist only because ReRAM must be programmed. A resistor array would skip all of it. Step 2 walks through it. The array-level write panel comes later in <a href="../#prog">Step 3</a>.</p></div>
       <div class="card"><h3>The variation σ slider</h3><p>The σ slider and the write-noise model represent ReRAM's imprecision (section 4 above). A resistor array would mainly have small, static mismatch. <a href="../#prog">See it in the write map</a>.</p></div>
       <div class="card"><h3>Gmin and Gmax</h3><p>They represent the high-resistance and low-resistance states. A real resistor has one value, not two states, so a resistor array has no such range.</p></div>
       <div class="card"><h3>Weight levels</h3><p>A ReRAM cell has to be written to one of several conductance levels in between its two extremes. A resistor array would need a different resistor value for every weight, fixed at manufacture.</p></div>
       <div class="card"><h3>Read voltage</h3><p>The read voltage is kept small (0.2 V by default) so that the cell stays inside the band where it acts like a plain resistor and the crossbar math holds (section 3).</p></div>
-      <div class="card"><h3>Efficiency panel</h3><p>The weights never move: they are the devices. That is where the energy saving over a digital multiply-accumulate comes from. <a href="../#eff">Open the efficiency panel</a>.</p></div>
+      <div class="card"><h3>Efficiency panel</h3><p>The weights never move: they are the devices. That is where the energy saving over a digital multiply-accumulate comes from. You will see it in the efficiency panel at the end of <a href="../#eff">Step 3</a>.</p></div>
     </div>
   </section>
 
@@ -271,6 +274,22 @@ details.q p{margin:8px 0 2px}
   <section class="panel" id="next" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
     <div><span class="cap">Step 2 of 3</span><h2 style="margin:2px 0 0">Ready to write a weight?</h2><p class="note" style="margin:4px 0 0;font-size:13px;max-width:60ch">Now that a cell is a resistor you can program, follow one weight from a number to a conductance: pick the cell, round to a level, erase, then pulse and read back until it is close enough. After that, the crossbar puts thousands of these cells in a grid.</p></div>
     <a href="../write/" style="text-decoration:none"><button class="set" type="button" style="padding:10px 18px;font-size:15px">Follow one weight, step by step &rarr;</button></a>
+  </section>
+
+    <section class="panel" id="reading">
+    <h2>Further reading</h2>
+    <p class="note" style="margin:0 0 6px;font-size:13px;max-width:80ch">Everything on this page is a teaching model, so its numbers are illustrative and not fitted to a real device. Start with the review by Wong et al. These sources are for the real physics and data.</p>
+    <ol class="refs">
+<li>Wong, H.-S. P. et al. Metal–oxide RRAM. <i>Proceedings of the IEEE</i> 100, 1951–1970 (2012). <a href="https://doi.org/10.1109/JPROC.2012.2190369">doi:10.1109/JPROC.2012.2190369</a>
+            <span class="why">A review of metal-oxide ReRAM: the switching mechanism, the materials and the electrical behaviour, with a focus on memory use.</span></li>
+<li>Waser, R. &amp; Aono, M. Nanoionics-based resistive switching memories. <i>Nature Materials</i> 6, 833–840 (2007). <a href="https://doi.org/10.1038/nmat2023">doi:10.1038/nmat2023</a>
+            <span class="why">A review of the physics behind resistive switching, where the movement of ions inside the material changes the cell’s resistance.</span></li>
+<li>Strukov, D. B., Snider, G. S., Stewart, D. R. &amp; Williams, R. S. The missing memristor found. <i>Nature</i> 453, 80–83 (2008). <a href="https://doi.org/10.1038/nature06932">doi:10.1038/nature06932</a>
+            <span class="why">Reports a nanoscale titanium-oxide device that behaves like a memristor. Widely cited as the paper that renewed interest in the idea.</span></li>
+<li>Chua, L. O. Memristor — the missing circuit element. <i>IEEE Transactions on Circuit Theory</i> 18, 507–519 (1971).
+            <span class="why">Proposes the memristor as a fourth basic circuit element, in effect a resistor with memory.</span></li>
+    </ol>
+    <p class="note" style="max-width:80ch">The full, grouped list is at the end of the <a href="../#refs">crossbar simulator</a>. Links can change, so searching the title and DOI always works.</p>
   </section>
 
   <footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>
