@@ -113,11 +113,19 @@ details.q p{margin:8px 0 2px}
 
   <section class="panel" id="what">
     <h2>What a ReRAM cell is</h2>
-    <p class="lead">A thin metal-oxide layer (for example HfOx) sits between two electrodes. A <b>SET</b> pulse builds a conductive filament of oxygen vacancies through the oxide, which lowers the resistance. A <b>RESET</b> pulse of opposite polarity or different amplitude breaks the filament, which raises it. A read at low voltage does not disturb the state, so within that read range the cell behaves like a resistor with whatever value was last written. That is the assumption behind the crossbar math in the simulator.</p>
+    <p class="lead">A thin metal-oxide layer, for example hafnium oxide (HfOx), sits between two electrodes. A <b>SET</b> pulse builds a conductive filament of oxygen vacancies through the oxide, which lowers the resistance. A <b>RESET</b> pulse of opposite polarity or different amplitude breaks the filament, which raises it. A read at low voltage does not disturb the state, so within that read range the cell behaves like a resistor with whatever value was last written. That is the assumption behind the crossbar math in the simulator.</p>
     <div class="analogy">
       <div class="card"><h3>Think of a water pipe</h3><p class="note" style="margin:0;font-size:13px;color:var(--ink)">A resistor is a pipe of fixed width: it passes a fixed amount of water for a given pressure. A ReRAM cell is a pipe whose width you can change with a strong push, and which stays at the new width after you let go.</p></div>
       <div class="card"><h3>Think of a lamp</h3><p class="note" style="margin:0;font-size:13px;color:var(--ink)">A resistor is a fixed bulb. A ReRAM cell is a dimmer whose knob you turn with write pulses. It stays where you left it, even when the house power is cut.</p></div>
       <div class="card"><h3>Why computing cares</h3><p class="note" style="margin:0;font-size:13px;color:var(--ink)">Conductance is the weight. Voltage is the input. Ohm's law (I = V·G) does the multiply, and the wire does the add. The weight is the physical state of the device, so it never has to be fetched.</p></div>
+    </div>
+
+    <div class="card" id="hfox" style="margin-top:12px">
+      <h3>About the material: hafnium oxide (HfOx)</h3>
+      <p class="note" style="margin:0 0 8px;font-size:13px;color:var(--ink)"><b>Why hafnium?</b> Hafnium oxide is one of the most studied ReRAM materials. Hafnium dioxide (HfO₂) is already used as a thin insulator in advanced CMOS transistors, so chip makers know how to deposit it in very thin, uniform films. HfOx cells are reported to switch fast and at low voltage, with good endurance, and to shrink to very small sizes (see Wong et al. and Govoreanu et al. under Further reading).</p>
+      <p class="note" style="margin:0 0 8px;font-size:13px;color:var(--ink)"><b>What the “x” means.</b> The film is not exactly HfO₂: its oxygen content is not fixed. Switching works by moving oxygen ions, which leaves oxygen vacancies behind. A chain of vacancies is the conductive filament.</p>
+      <p class="note" style="margin:0 0 8px;font-size:13px;color:var(--ink)"><b>What a real cell adds.</b> A fresh film is an insulator, so a one-time, higher-voltage <i>forming</i> step creates the first filament. Real stacks also usually include a metal electrode or cap layer, for example titanium, hafnium or titanium nitride, that takes up and gives back oxygen during SET and RESET. The simulator leaves out both.</p>
+      <p class="note" style="margin:0;font-size:13px;color:var(--ink)"><b>Other oxides.</b> Titanium oxide and tantalum oxide switch by a similar oxygen-vacancy mechanism, so the picture in this lesson carries over. The simulator is generic: its numbers, such as the 5–100 µS range and the 0.8 V switching threshold, are illustrative and not measured on HfOx.</p>
     </div>
   </section>
 
@@ -165,7 +173,7 @@ details.q p{margin:8px 0 2px}
       </tbody>
     </table>
     </div>
-    <p class="note">Pulses below about 0.8 V do nothing (below the switching threshold). Stronger pulses move the filament further. Reading above about 0.8 V starts to behave like a weak SET pulse, which is called read disturb. The step size model is the same illustrative one the write panel in the simulator uses. This is the usual bipolar picture (for example HfOx). Which electrode is positive for SET depends on the material stack, and some cell types (unipolar) use the same polarity for both and tell them apart by amplitude and length. The simulator uses the bipolar picture, and its numbers are illustrative. The next section shows how single pulses add up to a weight and where the pulse is applied in an array.</p>
+    <p class="note">Pulses below about 0.8 V do nothing (below the switching threshold). Stronger pulses move the filament further. Reading above about 0.8 V starts to behave like a weak SET pulse, which is called read disturb. The step size model is the same illustrative one the write panel in the simulator uses. This is the usual bipolar picture (for example hafnium oxide, HfOx). Which electrode is positive for SET depends on the material stack, and some cell types (unipolar) use the same polarity for both and tell them apart by amplitude and length. The simulator uses the bipolar picture, and its numbers are illustrative. The next section shows how single pulses add up to a weight and where the pulse is applied in an array.</p>
   </section>
 
   <section class="panel" id="pulses">
@@ -282,6 +290,8 @@ details.q p{margin:8px 0 2px}
     <ol class="refs">
 <li>Wong, H.-S. P. et al. Metal–oxide RRAM. <i>Proceedings of the IEEE</i> 100, 1951–1970 (2012). <a href="https://doi.org/10.1109/JPROC.2012.2190369">doi:10.1109/JPROC.2012.2190369</a>
             <span class="why">A review of metal-oxide ReRAM: the switching mechanism, the materials and the electrical behaviour, with a focus on memory use.</span></li>
+          <li>Govoreanu, B. et al. 10×10 nm² Hf/HfOx crossbar resistive RAM with excellent performance, reliability and low-energy operation. <i>IEEE International Electron Devices Meeting (IEDM)</i>, 31.6.1–31.6.4 (2011). <a href="https://imec-publications.be/handle/20.500.12860/18997">imec repository</a>
+            <span class="why">A hafnium-oxide ReRAM cell smaller than 10 nm × 10 nm in a crossbar, reported with fast low-voltage switching and high endurance.</span></li>
 <li>Waser, R. &amp; Aono, M. Nanoionics-based resistive switching memories. <i>Nature Materials</i> 6, 833–840 (2007). <a href="https://doi.org/10.1038/nmat2023">doi:10.1038/nmat2023</a>
             <span class="why">A review of the physics behind resistive switching, where the movement of ions inside the material changes the cell’s resistance.</span></li>
 <li>Strukov, D. B., Snider, G. S., Stewart, D. R. &amp; Williams, R. S. The missing memristor found. <i>Nature</i> 453, 80–83 (2008). <a href="https://doi.org/10.1038/nature06932">doi:10.1038/nature06932</a>

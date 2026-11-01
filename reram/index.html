@@ -561,12 +561,18 @@ tfoot td{font-weight:500;border-bottom:0}
             <span class="why">Proposes the memristor as a fourth basic circuit element, in effect a resistor with memory.</span></li>
           <li>Strukov, D. B., Snider, G. S., Stewart, D. R. &amp; Williams, R. S. The missing memristor found. <i>Nature</i> 453, 80–83 (2008). <a href="https://doi.org/10.1038/nature06932">doi:10.1038/nature06932</a>
             <span class="why">Reports a nanoscale titanium-oxide device that behaves like a memristor. Widely cited as the paper that renewed interest in the idea.</span></li>
-          <li>Wong, H.-S. P. et al. Metal–oxide RRAM. <i>Proceedings of the IEEE</i> 100, 1951–1970 (2012). <a href="https://doi.org/10.1109/JPROC.2012.2190369">doi:10.1109/JPROC.2012.2190369</a>
+          <li>Waser, R. &amp; Aono, M. Nanoionics-based resistive switching memories. <i>Nature Materials</i> 6, 833–840 (2007). <a href="https://doi.org/10.1038/nmat2023">doi:10.1038/nmat2023</a>
+            <span class="why">A review of the physics behind resistive switching, where the movement of ions inside the material changes the cell’s resistance.</span></li>
+<li>Wong, H.-S. P. et al. Metal–oxide RRAM. <i>Proceedings of the IEEE</i> 100, 1951–1970 (2012). <a href="https://doi.org/10.1109/JPROC.2012.2190369">doi:10.1109/JPROC.2012.2190369</a>
             <span class="why">A review of metal-oxide ReRAM: the switching mechanism, the materials and the electrical behaviour, with a focus on memory use.</span></li>
+<li>Govoreanu, B. et al. 10×10 nm² Hf/HfOx crossbar resistive RAM with excellent performance, reliability and low-energy operation. <i>IEEE International Electron Devices Meeting (IEDM)</i>, 31.6.1–31.6.4 (2011). <a href="https://imec-publications.be/handle/20.500.12860/18997">imec repository</a>
+            <span class="why">A hafnium-oxide ReRAM cell smaller than 10 nm × 10 nm in a crossbar, reported with fast low-voltage switching and high endurance.</span></li>
+<li>Ielmini, D. Resistive switching memories based on metal oxides: mechanisms, reliability and scaling. <i>Semiconductor Science and Technology</i> 31, 063002 (2016). <a href="https://doi.org/10.1088/0268-1242/31/6/063002">doi:10.1088/0268-1242/31/6/063002</a>
+            <span class="why">A review of how oxide ReRAM switches, how reliable it is, and how it scales.</span></li>
         </ol>
 
         <h2 class="sub2">Crossbars, vector-matrix multiplication and in-memory computing <span class="cap">supports the crossbar, Example 1 and the efficiency panel</span></h2>
-        <ol class="refs" start="4">
+        <ol class="refs" start="7">
           <li>Hu, M. et al. Dot-product engine for neuromorphic computing: programming 1T1M crossbar to accelerate matrix-vector multiplication. <i>53rd ACM/EDAC/IEEE Design Automation Conference (DAC)</i>, 1–6 (2016). <a href="https://doi.org/10.1145/2897937.2898010">doi:10.1145/2897937.2898010</a>
             <span class="why">An analog memristor-crossbar accelerator for matrix-vector multiplication, with a method for mapping matrix values onto device conductances. The abstract reports results with only 4-bit DACs and ADCs.</span></li>
           <li>Ielmini, D. &amp; Wong, H.-S. P. In-memory computing with resistive switching devices. <i>Nature Electronics</i> 1, 333–343 (2018). <a href="https://doi.org/10.1038/s41928-018-0092-2">doi:10.1038/s41928-018-0092-2</a>
@@ -576,13 +582,13 @@ tfoot td{font-weight:500;border-bottom:0}
         </ol>
 
         <h2 class="sub2">Writing the weights <span class="cap">supports Example 2 and the Programming panel</span></h2>
-        <ol class="refs" start="7">
+        <ol class="refs" start="10">
           <li>Alibart, F., Gao, L., Hoskins, B. D. &amp; Strukov, D. B. High precision tuning of state for memristive devices by adaptable variation-tolerant algorithm. <i>Nanotechnology</i> 23, 075201 (2012). <a href="https://doi.org/10.1088/0957-4484/23/7/075201">doi:10.1088/0957-4484/23/7/075201</a> · <a href="https://arxiv.org/abs/1110.1393">arXiv:1110.1393</a>
             <span class="why">A feedback write algorithm that tuned the conductance of titanium-oxide devices to about 1% relative accuracy (roughly 7 bits) despite large variation in switching. The idea behind program-and-verify.</span></li>
         </ol>
 
         <h2 class="sub2">Neural networks on ReRAM hardware <span class="cap">supports the examples, including XOR (Example 3)</span></h2>
-        <ol class="refs" start="8">
+        <ol class="refs" start="11">
           <li>Prezioso, M. et al. Training and operation of an integrated neuromorphic network based on metal-oxide memristors. <i>Nature</i> 521, 61–64 (2015). <a href="https://doi.org/10.1038/nature14441">doi:10.1038/nature14441</a>
             <span class="why">Experimental memristor crossbars with variability low enough to run a small network, a single-layer perceptron. Such a network can only classify linearly separable patterns, the limit the XOR panel demonstrates.</span></li>
           <li>Wan, W. et al. A compute-in-memory chip based on resistive random-access memory. <i>Nature</i> 608, 504–512 (2022). <a href="https://doi.org/10.1038/s41586-022-04992-8">doi:10.1038/s41586-022-04992-8</a> · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9385482">open access</a>
@@ -590,7 +596,7 @@ tfoot td{font-weight:500;border-bottom:0}
         </ol>
 
         <h2 class="sub2">ReRAM in silicon with SKY130 <span class="cap">tools and announcements, not peer-reviewed papers</span></h2>
-        <ol class="refs" start="10">
+        <ol class="refs" start="13">
           <li>SkyWater PDK, <code>sky130_fd_pr_reram</code>: primitives for ReRAM on SKY130 provided by SkyWater. <a href="https://foss-eda-tools.googlesource.com/skywater-pdk/libs/sky130_fd_pr_reram/">foss-eda-tools.googlesource.com</a> (mirrored at <a href="https://github.com/google/skywater-pdk-libs-sky130_fd_pr_reram">github.com/google/skywater-pdk-libs-sky130_fd_pr_reram</a>)
             <span class="why">The open ReRAM cell with layout, SPICE and Verilog-AMS views, plus test designs. Read its documentation for the model&rsquo;s actual behaviour and limits before comparing it with this simulator.</span></li>
           <li>open_pdks, the build system that produces the sky130A (standard) and sky130B (with the ReRAM option) kits. <a href="https://foss-eda-tools.googlesource.com/third_party/opencircuitdesign.com/open_pdks/">foss-eda-tools.googlesource.com</a>
@@ -602,7 +608,7 @@ tfoot td{font-weight:500;border-bottom:0}
         </ol>
 
         <h2 class="sub2">Splitting weights across several cells <span class="cap">supports the Binary weighted cell encoding</span></h2>
-        <ol class="refs" start="14">
+        <ol class="refs" start="17">
           <li>Shafiee, A. et al. ISAAC: a convolutional neural network accelerator with in-situ analog arithmetic in crossbars. <i>ACM SIGARCH Computer Architecture News</i> 44(3) (2016); presented at ISCA 2016. <a href="https://doi.org/10.1145/3007787.3001139">doi:10.1145/3007787.3001139</a> · <a href="https://users.cs.utah.edu/~rajeev/pubs/isca16.pdf">author copy</a>
             <span class="why">A crossbar accelerator that spreads each 16-bit weight over several memristor cells in the same row (2 bits per cell in the paper) and merges the columns with shifts and adds. The Binary weighted option is the 1-bit-per-cell extreme of the same idea.</span></li>
         </ol>
