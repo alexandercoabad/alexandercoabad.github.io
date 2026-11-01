@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Writing a Weight into a ReRAM Cell</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#EBEFF2; --panel:#F8FAFB; --ink:#15212B; --mute:#587080; --line:#C7D1D8;
+  --volt:#1D63C9; --curr:#C2620A; --cell:#22313D; --err:#B3261E; --ok:#1E7B4A; --hl:#FBE9D2;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+    --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+  --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+:root{color-scheme:light}
+html{padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+a{color:var(--volt)}
+header h1{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,4vw,34px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;max-width:72ch;color:var(--mute)}
+.crumb{font-size:13px;margin:0 0 8px!important;color:var(--ink)!important}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+h2{font-family:var(--f-display);font-size:18px;font-weight:600;margin:0 0 8px;letter-spacing:.01em}
+h3{font-family:var(--f-display);font-size:15px;font-weight:600;margin:0 0 4px}
+.cap{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--mute);font-weight:600}
+.lead{margin:0 0 12px;max-width:78ch;font-size:14px}
+.note{font-size:12px;color:var(--mute);margin:8px 0 0}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+.card{border:1px solid var(--line);border-radius:6px;padding:12px;background:var(--bg);min-width:0}
+.card p{margin:4px 0 0;font-size:13px}
+.card.on{border-color:var(--curr);background:var(--hl)}
+.row{display:flex;align-items:center;gap:10px;margin:7px 0}
+.row label{flex:0 0 130px;font-size:13px}
+.row input[type=range]{flex:1;min-width:0;accent-color:var(--volt)}
+.row output{flex:0 0 96px;text-align:right;font-family:var(--f-mono);font-size:12px}
+.row select{flex:1;min-width:0}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 10px}
+button{cursor:pointer}
+button:hover:not(:disabled){border-color:var(--volt)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.set{border-color:var(--curr);color:var(--curr);font-weight:600}
+button.reset{border-color:var(--volt);color:var(--volt);font-weight:600}
+:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+svg{display:block;width:100%;height:auto}
+#pair{max-width:640px;margin:0 auto}
+svg text{font-family:var(--f-mono)}
+.status{min-height:2.9em;font-size:13px;margin:6px 0}
+.good{color:var(--ok)} .bad{color:var(--err)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute)}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+details.q{border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0;background:var(--bg)}
+details.q summary{cursor:pointer;font-weight:600}
+details.q p{margin:8px 0 2px}
+.credit{font-size:12px;color:var(--mute);text-align:center;padding-top:6px;border-top:1px solid var(--line)}
+
+/* lesson layout: step list on the left, one active step on the right */
+.lesson{display:grid;grid-template-columns:minmax(0,250px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.lesson{grid-template-columns:minmax(0,1fr)}}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+@media (max-width:860px){.steps{flex-direction:row;flex-wrap:wrap}.steps li{flex:1 1 150px}.steps .d{display:none}}
+.steps button{width:100%;text-align:left;display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;padding:8px 10px;border-radius:6px;align-items:start}
+.steps .n{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--mute);font-family:var(--f-mono);font-size:12px;color:var(--mute)}
+.steps .t{font-weight:600;font-size:13px;line-height:1.3}
+.steps .d{font-size:12px;color:var(--mute);margin-top:2px;line-height:1.35}
+.steps button[aria-current=step]{border-color:var(--curr);background:var(--hl)}
+.steps button[aria-current=step] .n{border-color:var(--curr);background:var(--curr);color:var(--bg)}
+.steps button.done .n{border-color:var(--ok);color:var(--ok)}
+.stage{min-width:0;display:flex;flex-direction:column;gap:10px}
+.stagehead{display:flex;flex-direction:column;gap:2px}
+.nav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px}
+.calc{font-family:var(--f-mono);font-size:13px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;overflow-x:auto;font-variant-numeric:tabular-nums}
+.calc b{font-weight:500;color:var(--curr)}
+.calc .m{color:var(--mute)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.chip{border:1.5px solid var(--line);border-radius:999px;padding:2px 12px;font-size:12px;color:var(--mute)}
+.chip.on{border-color:var(--curr);background:var(--hl);color:var(--ink);font-weight:600}
+.log{max-height:190px;overflow:auto;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums}
+.log div{display:grid;grid-template-columns:30px 66px minmax(0,1fr);gap:6px;padding:3px 8px;border-bottom:1px solid var(--line)}
+.log div:last-child{border-bottom:0;background:var(--hl)}
+.log .k{color:var(--mute)}
+.log .a{font-weight:500}
+.log .a.s{color:var(--curr)} .log .a.r{color:var(--volt)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:8px 0}
+.tile{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg)}
+.tile .big{font-family:var(--f-display);font-weight:700;font-size:24px;line-height:1.1}
+.tile .sub{font-size:12px;color:var(--mute);margin-top:3px}
+.twrap{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.refs{margin:6px 0 4px;padding-left:24px;font-size:13px;line-height:1.5;max-width:92ch}
+.refs li{margin:8px 0}
+.refs .why{display:block;color:var(--mute);font-size:12px;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="crumb"><span class="cap">Step 2 of 3</span> &nbsp;·&nbsp; <a href="../basics/">&larr; Step 1: ReRAM basics</a> &nbsp;·&nbsp; <a href="../">Next: the crossbar simulator &rarr;</a> &nbsp;·&nbsp; <a href="../reference/">Reference</a></p>
+    <h1>How does a weight get written into a cell?</h1>
+    <p>In a ReRAM array (the crossbar of Step 3), the weights are not stored as bits in a file. Each one is a conductance, and a cell has to be pushed to it with electrical pulses and checked. Follow one weight through the six steps below, from a number on a slider to a conductance inside a cell.</p>
+  </header>
+
+  <section class="panel" id="lesson">
+    <div class="lesson">
+      <ol class="steps" id="stepList" aria-label="Steps"></ol>
+      <div class="stage">
+        <div class="stagehead"><span class="cap" id="stepNo"></span><h2 id="stepTitle" style="margin:0"></h2></div>
+        <p class="lead" id="stepLead" style="margin:0"></p>
+        <svg id="pair" viewBox="0 0 560 262" role="img" aria-label="The two ReRAM cells that hold one weight, with conductance gauges"></svg>
+        <div id="body"></div>
+        <div class="nav">
+          <button id="bBack" type="button">&larr; Back</button>
+          <button id="bNext" class="set" type="button">Next step &rarr;</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="check">
+    <h2>Check yourself</h2>
+    <details class="q"><summary>Why does one weight need two cells?</summary><p>A conductance cannot be negative, but a weight can. The positive part goes into the G⁺ cell and the negative part into the G⁻ cell, and the other cell rests at Gmin. The read-out subtracts the two currents, so Gmin cancels.</p></details>
+    <details class="q"><summary>The weight is 0.62 and you chose 3 bits. Why is the stored weight not 0.62?</summary><p>3 bits gives 8 levels, which is 7 steps between Gmin and Gmax. 0.62 × 7 = 4.34 rounds to level 4, and level 4 is worth 4 / 7 = 0.571. The loss of 0.049 is rounding, and it happens before any pulse is sent. More bits make the steps smaller but pack the levels closer together.</p></details>
+    <details class="q"><summary>Why read the cell back after every pulse instead of sending a fixed number of pulses?</summary><p>The same pulse moves different cells by different amounts, and even the same cell by different amounts each time. Switch to "Open loop" in step 5 and press "Different cell" a few times to see the spread. Reading back lets the controller stop each cell when it is close enough.</p></details>
+    <details class="q"><summary>What does a tighter tolerance cost?</summary><p>More pulses and more reads, so more time and energy per weight, and sometimes the loop cannot land inside a very narrow band and runs out of pulses. A looser tolerance is cheaper but leaves a bigger error in every weight. Try ±0.5% and ±10% in step 5.</p></details>
+    <details class="q"><summary>Once the weights are written, which parts of the computation change from one multiply to the next?</summary><p>Only the input voltages. The conductances stay where they were written, so the cost of writing is paid once and shared by every multiply that reuses those weights. The efficiency panel in Step 3 has a "Weight reuse" slider for this.</p></details>
+  </section>
+
+  <section class="panel twrap" id="next">
+    <div><span class="cap">What next</span><h2 style="margin:2px 0 0">Next: put the cells in a grid</h2><p class="note" style="margin:4px 0 0;font-size:13px;max-width:62ch">Step 3 is the crossbar simulator. It stores a whole matrix this way, repeating this loop for every cell, and shows the pulse count and total write cost, then multiplies with it. The reference page collects the equations, terms and settings used in all three steps.</p></div>
+    <div class="btns" style="margin:0"><a href="../" style="text-decoration:none"><button class="set" type="button">Open the crossbar simulator &rarr;</button></a><a href="../reference/" style="text-decoration:none"><button type="button">Open the reference</button></a></div>
+  </section>
+
+    <section class="panel" id="reading">
+    <h2>Further reading</h2>
+    <p class="note" style="margin:0 0 6px;font-size:13px;max-width:80ch">The pulse voltages, pulse counts and conductances on this page come from an illustrative model, not from a real device. These papers describe write-and-verify on real devices.</p>
+    <ol class="refs">
+<li>Alibart, F., Gao, L., Hoskins, B. D. &amp; Strukov, D. B. High precision tuning of state for memristive devices by adaptable variation-tolerant algorithm. <i>Nanotechnology</i> 23, 075201 (2012). <a href="https://doi.org/10.1088/0957-4484/23/7/075201">doi:10.1088/0957-4484/23/7/075201</a> · <a href="https://arxiv.org/abs/1110.1393">arXiv:1110.1393</a>
+            <span class="why">A feedback write algorithm that tuned the conductance of titanium-oxide devices to about 1% relative accuracy (roughly 7 bits) despite large variation in switching. The idea behind program-and-verify.</span></li>
+<li>Wong, H.-S. P. et al. Metal–oxide RRAM. <i>Proceedings of the IEEE</i> 100, 1951–1970 (2012). <a href="https://doi.org/10.1109/JPROC.2012.2190369">doi:10.1109/JPROC.2012.2190369</a>
+            <span class="why">A review of metal-oxide ReRAM: the switching mechanism, the materials and the electrical behaviour, with a focus on memory use.</span></li>
+<li>Hu, M. et al. Dot-product engine for neuromorphic computing: programming 1T1M crossbar to accelerate matrix-vector multiplication. <i>53rd ACM/EDAC/IEEE Design Automation Conference (DAC)</i>, 1–6 (2016). <a href="https://doi.org/10.1145/2897937.2898010">doi:10.1145/2897937.2898010</a>
+            <span class="why">An analog memristor-crossbar accelerator for matrix-vector multiplication, with a method for mapping matrix values onto device conductances. The abstract reports results with only 4-bit DACs and ADCs.</span></li>
+    </ol>
+    <p class="note" style="max-width:80ch">The full, grouped list is at the end of the <a href="../#refs">crossbar simulator</a>. Links can change, so searching the title and DOI always works.</p>
+  </section>
+
+  <footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>
+</div>
+
+<script>
+(function(){
+var P={gmin:5,gmax:100,vth:0.8,vmax:2.4,verase:2.0,aresp:0.45,edrv:0.5,vread:0.2,tread:10,tadc:10,tp:50,icc:50,eadc:2.56};
+var S={step:1,w:0.62,bits:3,x:0.5,method:'verify',tol:2,v0:1.0,dv:0.1,maxp:30,sigma:10,seed:1,p:1};
+var STEPS=[
+ ['Start with a weight','A number from a trained model'],
+ ['Pick the cell','Positive or negative: G⁺ or G⁻'],
+ ['Round to a level','Find the target conductance'],
+ ['Erase first','Start from a known state'],
+ ['Pulse, read, compare','Repeat until it is close enough'],
+ ['Done: the weight is stored','What it cost and how accurate it is']
+];
+var tmr=null,R=null,D=null;
+function $(id){return document.getElementById(id)}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function sg(v,d){return (v<0?'−':'')+Math.abs(v).toFixed(d)}
+function sp(v,d){return (v<0?'−':'+')+Math.abs(v).toFixed(d)}
+function fmtT(ns){if(ns<1e3)return ns.toFixed(ns<10?1:0)+' ns';return (ns/1e3).toFixed(ns<1e4?2:1)+' µs'}
+function fmtE(pj){if(pj<1e3)return pj.toFixed(pj<10?1:0)+' pJ';return (pj/1e3).toFixed(pj<1e4?2:1)+' nJ'}
+function rng(seed){var a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){var u=r()||1e-9,v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+
+/* ---------- the numbers behind steps 1 to 3 ---------- */
+function derive(){
+  var mag=Math.abs(S.w),Lv=Math.pow(2,S.bits)-1,lvl=Math.round(mag*Lv),q=lvl/Lv,span=P.gmax-P.gmin;
+  return {mag:mag,Lv:Lv,L:Lv+1,lvl:lvl,q:q,span:span,side:S.w>0?'p':(S.w<0?'m':'n'),Gt:P.gmin+q*span,tol:S.tol/100*span,qw:S.w<0?-q:q};
+}
+
+/* ---------- one cell, written with SET/RESET pulses (same illustrative model as the crossbar page) ---------- */
+function simCell(Gt,s,rnd,sched,d){
+  var G=P.gmin,tol=d.tol,ev=[],sch=[],pulses=0,reads=0,E=0,T=0,ok=false,tv=P.tread+P.tadc;
+  var cg=Math.max(0.2,1+s*gauss(rnd));
+  function push(o){o.cT=T;o.cE=E;ev.push(o)}
+  E+=P.verase*P.verase*P.gmax*P.tp/1000+P.edrv;T+=P.tp;push({t:'erase',G:G});
+  function pulse(op,V){
+    var drive=clamp((V-P.vth)/(P.vmax-P.vth),0,1),f=cg*Math.max(0,1+0.5*s*gauss(rnd)),Gb=G;
+    if(op==='SET'){G=clamp(G+P.aresp*drive*(P.gmax-G)*f,P.gmin,P.gmax);E+=V*P.icc*P.tp/1000+P.edrv}
+    else{G=clamp(G-P.aresp*drive*(G-P.gmin)*f,P.gmin,P.gmax);E+=V*V*Gb*P.tp/1000+P.edrv}
+    T+=P.tp;pulses++;sch.push({op:op,V:V});push({t:op,V:V,G:G,Gb:Gb});
+  }
+  if(sched){
+    sched.forEach(function(q){pulse(q.op,q.V)});
+    ok=Math.abs(G-Gt)<=tol;
+  }else{
+    var vS=S.v0,vR=S.v0,dir='';
+    for(;;){
+      var good=Math.abs(Gt-G)<=tol;
+      reads++;T+=tv;E+=P.vread*P.vread*G*P.tread/1000+P.eadc;
+      push({t:'read',G:G});push({t:'cmp',G:G,ok:good,err:G-Gt});
+      if(good){ok=true;break}
+      if(pulses>=S.maxp)break;
+      var op=Gt>G?'SET':'RESET';
+      if(dir&&op!==dir){if(op==='SET')vS=S.v0;else vR=S.v0}
+      dir=op;
+      if(op==='SET'){pulse('SET',vS);vS=Math.min(vS+S.dv,P.vmax)}else{pulse('RESET',vR);vR=Math.min(vR+S.dv,P.vmax)}
+    }
+  }
+  return {G:G,ev:ev,sch:sch,pulses:pulses,reads:reads,E:E,T:T,ok:ok};
+}
+function run(){
+  D=derive();
+  var s=S.sigma/100,r;
+  if(S.method==='open'){
+    var nom=simCell(D.Gt,0,rng(S.seed*7919+5),null,D);
+    r=simCell(D.Gt,s,rng(S.seed*7919+6),nom.sch,D);
+  }else r=simCell(D.Gt,s,rng(S.seed*7919+5),null,D);
+  /* the other cell of the pair: erased in the same step, and (with verify) read once */
+  var eIdle=P.verase*P.verase*P.gmax*P.tp/1000+P.edrv+(S.method==='open'?0:P.vread*P.vread*P.gmin*P.tread/1000+P.eadc);
+  r.Etot=r.E+eIdle;
+  r.Gp=D.side==='p'?r.G:P.gmin;r.Gm=D.side==='m'?r.G:P.gmin;
+  r.stored=(r.Gp-r.Gm)/D.span;
+  R=r;S.p=clamp(S.p,1,R.ev.length);
+}
+
+/* ---------- drawing the two cells ---------- */
+function drawPair(v){
+  var span=P.gmax-P.gmin,o='';
+  [0,1].forEach(function(c){
+    var cx=c?420:140,G=c?v.gm:v.gp,Gt=c?v.tm:v.tp,s=clamp((G-P.gmin)/span,0,1),top=48,bot=148,H=bot-top,yt=bot-s*H,wb=8+22*s,wt=4+12*s;
+    var hl=v.hl===(c?'m':'p'),name=c?'G⁻ cell':'G⁺ cell',role=c?'negative part':'positive part';
+    if(hl)o+='<rect x="'+(cx-104)+'" y="4" width="208" height="254" rx="8" fill="var(--hl)" stroke="var(--curr)" stroke-width="1.5"/>';
+    o+='<text x="'+cx+'" y="20" text-anchor="middle" font-size="16" font-weight="500" fill="var(--ink)">'+name+'</text>';
+    o+='<text x="'+cx+'" y="35" text-anchor="middle" font-size="12" fill="var(--mute)">'+role+'</text>';
+    o+='<rect x="'+(cx-90)+'" y="38" width="180" height="10" rx="2" fill="var(--mute)" opacity=".55"/>';
+    o+='<rect x="'+(cx-90)+'" y="'+top+'" width="180" height="'+H+'" fill="var(--line)" opacity=".7"/>';
+    o+='<polygon points="'+(cx-wb/2)+','+bot+' '+(cx+wb/2)+','+bot+' '+(cx+wt/2)+','+yt.toFixed(1)+' '+(cx-wt/2)+','+yt.toFixed(1)+'" fill="var(--curr)" opacity="'+(0.25+0.75*s).toFixed(2)+'"/>';
+    o+='<rect x="'+(cx-90)+'" y="'+bot+'" width="180" height="10" rx="2" fill="var(--mute)" opacity=".55"/>';
+    /* gauge */
+    var gx0=cx-90,gx1=cx+90,gy=200,X=function(g){return gx0+(gx1-gx0)*(clamp(g,P.gmin,P.gmax)-P.gmin)/span};
+    o+='<line x1="'+gx0+'" x2="'+gx1+'" y1="'+gy+'" y2="'+gy+'" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/>';
+    if(v.target&&Gt!=null){
+      o+='<rect x="'+X(Gt-v.tol)+'" y="'+(gy-9)+'" width="'+Math.max(2,X(Gt+v.tol)-X(Gt-v.tol))+'" height="18" rx="3" fill="var(--ok)" opacity=".22"/>';
+      o+='<path d="M'+X(Gt)+' '+(gy-12)+' l-5 -8 h10z" fill="var(--ok)"/>';
+      o+='<text x="'+X(Gt)+'" y="'+(gy-24)+'" text-anchor="middle" font-size="12" fill="var(--ok)">aim '+Gt.toFixed(1)+'</text>';
+    }
+    o+='<circle cx="'+X(G)+'" cy="'+gy+'" r="7" fill="var(--curr)"/>';
+    o+='<text x="'+gx0+'" y="'+(gy+26)+'" font-size="12" fill="var(--mute)">Gmin '+P.gmin+'</text><text x="'+gx1+'" y="'+(gy+26)+'" text-anchor="end" font-size="12" fill="var(--mute)">Gmax '+P.gmax+' µS</text>';
+    o+='<text x="'+cx+'" y="'+(gy+48)+'" text-anchor="middle" font-size="17" font-weight="500" fill="var(--ink)">G = '+G.toFixed(1)+' µS'+(v.tag?'':'')+'</text>';
+  });
+  if(v.mid)o+='<text x="280" y="108" text-anchor="middle" font-size="13" fill="var(--mute)">'+v.mid+'</text>';
+  $('pair').innerHTML=o;
+}
+var OLD={p:84,m:28};
+function pairView(){
+  var d=D,st=S.step,v={gp:OLD.p,gm:OLD.m,tp:null,tm:null,tol:d.tol,target:false,hl:null,mid:''};
+  var tp=d.side==='p'?d.Gt:P.gmin,tm=d.side==='m'?d.Gt:P.gmin;
+  if(st<=3)v.mid='old data';
+  if(st===2){v.hl=d.side==='n'?null:d.side}
+  if(st===3){v.hl=d.side==='n'?null:d.side;v.target=true;v.tp=tp;v.tm=tm}
+  if(st===4){v.gp=P.gmin;v.gm=P.gmin;v.target=true;v.tp=tp;v.tm=tm;v.mid='erased'}
+  if(st===5){var e=R.ev[S.p-1];v.target=true;v.tp=tp;v.tm=tm;v.gp=d.side==='p'?e.G:P.gmin;v.gm=d.side==='m'?e.G:P.gmin;v.mid=S.p===1?'erased':'writing'}
+  if(st===6){v.target=true;v.tp=tp;v.tm=tm;v.gp=R.Gp;v.gm=R.Gm;v.mid='stored'}
+  drawPair(v);
+}
+
+/* ---------- the step list ---------- */
+function buildList(){
+  var h='';
+  STEPS.forEach(function(s,i){h+='<li><button type="button" data-s="'+(i+1)+'"><span class="n">'+(i+1)+'</span><span><span class="t">'+s[0]+'</span><br><span class="d">'+s[1]+'</span></span></button></li>'});
+  $('stepList').innerHTML=h;
+  $('stepList').addEventListener('click',function(e){var b=e.target.closest('button');if(b)go(+b.getAttribute('data-s'))});
+}
+function markList(){
+  var bs=$('stepList').querySelectorAll('button');
+  for(var i=0;i<bs.length;i++){
+    var n=i+1;bs[i].className=n<S.step?'done':'';
+    if(n===S.step)bs[i].setAttribute('aria-current','step');else bs[i].removeAttribute('aria-current');
+  }
+}
+function go(n){
+  n=clamp(n,1,6);
+  stopRun();
+  S.step=n;
+  $('stepNo').textContent='Step '+n+' of 6';
+  $('stepTitle').textContent=STEPS[n-1][0];
+  $('bBack').disabled=n===1;$('bNext').disabled=n===6;
+  $('bNext').textContent=n<6?'Next: '+STEPS[n][0]+' →':'Last step';
+  markList();buildBody();update();
+}
+$('bBack').addEventListener('click',function(){go(S.step-1)});
+$('bNext').addEventListener('click',function(){go(S.step+1)});
+
+/* ---------- step bodies ---------- */
+function wRow(){return '<div class="row"><label for="w">Weight w</label><input type="range" id="w" min="-1" max="1" step="0.01" value="'+S.w+'"><output id="wO"></output></div>'}
+function bindW(){
+  $('w').addEventListener('input',function(e){S.w=parseFloat(e.target.value);S.p=1;run();update()});
+}
+function buildBody(){
+  var b=$('body'),n=S.step,h='';
+  if(n===1){
+    h=wRow()+'<svg id="nl" viewBox="0 0 520 74" role="img" aria-label="Number line from −1 to +1 with the weight marked"></svg>'
+     +'<div class="two"><div class="card"><h3>Problem 1: weights can be negative</h3><p>A cell\'s conductance is always positive. Something has to carry the sign.</p></div>'
+     +'<div class="card"><h3>Problem 2: a cell holds a few levels</h3><p>A weight can be any number, but a cell can be set only to levels between its lowest and highest conductance.</p></div></div>';
+  }else if(n===2){
+    h=wRow()+'<div class="two"><div class="card" id="cP"><h3>Positive weight (w &gt; 0)</h3><p>The <b>G⁺ cell</b> stores |w|. The G⁻ cell rests at Gmin.</p></div>'
+     +'<div class="card" id="cM"><h3>Negative weight (w &lt; 0)</h3><p>The <b>G⁻ cell</b> stores |w|. The G⁺ cell rests at Gmin.</p></div></div>'
+     +'<p class="status" id="s2txt"></p>'
+     +'<div class="calc">weight = (G⁺ − G⁻) / (Gmax − Gmin)</div>'
+     +'<p class="note">Reading both cells and subtracting gives back the sign. Gmin sits in both cells, so it cancels. In the array, the subtraction happens on the two bit lines before the converter.</p>';
+  }else if(n===3){
+    h=wRow()+'<div class="row"><label for="bits">Weight levels</label><input type="range" id="bits" min="1" max="6" step="1" value="'+S.bits+'"><output id="bitsO"></output></div>'
+     +'<svg id="lad" viewBox="0 0 520 96" role="img" aria-label="Conductance levels between Gmin and Gmax with the chosen level marked"></svg>'
+     +'<div class="calc" id="calc3"></div><p class="note" id="n3"></p>';
+  }else if(n===4){
+    h='<div class="two"><div class="card"><h3>What happens</h3><p>One strong RESET pulse (−'+P.verase.toFixed(1)+' V, '+P.tp+' ns) is applied to the cells. Each filament dissolves and the cell drops to its lowest conductance, Gmin.</p></div>'
+     +'<div class="card"><h3>Why do it first</h3><p>The old data is wiped, and every cell starts from the same known floor, so the pulses that follow only need to move upward. In this model that keeps the pulse count predictable.</p></div></div>'
+     +'<svg id="erw" viewBox="0 0 520 120" role="img" aria-label="A single negative erase pulse"></svg>'
+     +'<p class="status" id="s4txt"></p>';
+  }else if(n===5){
+    h='<div class="two"><div>'
+     +'<div class="row"><label for="meth">Write method</label><select id="meth"><option value="verify">Program-and-verify</option><option value="open">Open loop (no read-back)</option></select></div>'
+     +'<div class="row"><label for="tol">Tolerance</label><input type="range" id="tol" min="0.5" max="10" step="0.5" value="'+S.tol+'"><output id="tolO"></output></div>'
+     +'<div class="row"><label for="dv">Step ΔV</label><input type="range" id="dv" min="0.02" max="0.3" step="0.01" value="'+S.dv+'"><output id="dvO"></output></div></div><div>'
+     +'<div class="row"><label for="v0">Start amplitude</label><input type="range" id="v0" min="0.8" max="2" step="0.05" value="'+S.v0+'"><output id="v0O"></output></div>'
+     +'<div class="row"><label for="sig">Variation σ</label><input type="range" id="sig" min="0" max="25" step="0.5" value="'+S.sigma+'"><output id="sigO"></output></div>'
+     +'<div class="btns" style="margin:6px 0"><button type="button" id="bCell">Try a different cell</button></div></div></div>'
+     +'<div class="chips" id="chips"></div>'
+     +'<div class="btns"><button type="button" id="bAct" class="set">Next action</button><button type="button" id="bPulse">Next pulse</button><button type="button" id="bRun">Run to finish</button><button type="button" id="bRestart">Restart</button></div>'
+     +'<p class="status" id="s5txt" aria-live="polite"></p>'
+     +'<div class="log" id="log" role="log" aria-label="Write log"></div>'
+     +'<div class="two" style="margin-top:12px"><svg id="wv" viewBox="0 0 420 222" role="img" aria-label="Voltage on the cell over time"></svg><svg id="tj" viewBox="0 0 420 222" role="img" aria-label="Conductance after each pulse against the target"></svg></div>'
+     +'<p class="note">The model is illustrative: each SET moves G a fraction of the way toward Gmax, each RESET a fraction toward Gmin, with a random factor per cell and per pulse. Pulses under '+P.vth+' V do nothing. The other cell of the pair is already at its aim (Gmin) after the erase, so it only needs one verify read.</p>';
+  }else{
+    h='<div class="tiles" id="tiles6"></div>'
+     +'<h3 style="margin-top:6px">How close is the stored weight?</h3><div class="tw"><table id="t6"></table></div>'
+     +'<h3 style="margin-top:10px">Now use it in the array</h3>'
+     +'<div class="row"><label for="x">Input x</label><input type="range" id="x" min="0" max="1" step="0.05" value="'+S.x+'"><output id="xO"></output></div>'
+     +'<div class="calc" id="calc6"></div><p class="note">This is what the crossbar does with every cell. The weight itself never moved: only the input voltage changed.</p>';
+  }
+  b.innerHTML=h;bindBody();
+}
+function bindBody(){
+  var n=S.step;
+  if(n<=3)bindW();
+  if(n===3)$('bits').addEventListener('input',function(e){S.bits=parseInt(e.target.value,10);S.p=1;run();update()});
+  if(n===5){
+    $('meth').value=S.method;
+    $('meth').addEventListener('change',function(e){S.method=e.target.value;restart()});
+    [['tol','tol'],['dv','dv'],['v0','v0'],['sig','sigma']].forEach(function(q){
+      $(q[0]).addEventListener('input',function(e){S[q[1]]=parseFloat(e.target.value);restart()});
+    });
+    $('bCell').addEventListener('click',function(){S.seed=1+Math.floor(Math.random()*9000);restart()});
+    $('bAct').addEventListener('click',function(){stopRun();advance(1)});
+    $('bPulse').addEventListener('click',function(){stopRun();var i=S.p;while(i<R.ev.length){i++;var t=R.ev[i-1].t;if(t==='SET'||t==='RESET')break}S.p=i;update()});
+    $('bRun').addEventListener('click',function(){if(tmr){stopRun();update();return}if(S.p>=R.ev.length)S.p=1;tmr=setInterval(function(){if(S.p>=R.ev.length){stopRun();update();return}advance(1)},320);update()});
+    $('bRestart').addEventListener('click',function(){stopRun();S.p=1;update()});
+  }
+  if(n===6)$('x').addEventListener('input',function(e){S.x=parseFloat(e.target.value);update()});
+}
+function restart(){stopRun();S.p=1;run();update()}
+function advance(k){S.p=Math.min(R.ev.length,S.p+k);update()}
+function stopRun(){if(tmr){clearInterval(tmr);tmr=null}}
+
+/* ---------- updating each step ---------- */
+function update(){
+  if(!D)run();
+  var d=D,n=S.step;
+  pairView();
+  var leads=[
+    'A trained neural network hands you a list of numbers. Here we take one of them and ask what the hardware has to do to keep it. Drag the slider to choose the weight.',
+    'Conductance is never negative, so the sign needs a second cell. Every weight in the crossbar occupies a pair: one cell for the positive part and one for the negative part.',
+    'A cell can only be set to one of a fixed number of conductance levels. Round the weight to the nearest level, then convert that level to the conductance you will aim for.',
+    'Before writing, the controller wipes the old data and puts the cells in a known state: the lowest conductance, Gmin.',
+    'The controller applies a pulse, reads the cell back, compares it with the aim, and repeats. Step through it with the buttons, or let it run.',
+    'The pulses stopped and the weight now lives in the cell as a conductance. It stays there with the power off. These are the cost and the accuracy.'
+  ];
+  $('stepLead').textContent=leads[n-1];
+  if(n<=3)$('wO').textContent=sp(S.w,2);
+  if(n===1)nl();
+  if(n===2){
+    $('cP').className='card'+(d.side==='p'?' on':'');$('cM').className='card'+(d.side==='m'?' on':'');
+    $('s2txt').textContent=d.side==='n'?'w = 0, so neither cell is used. Both rest at Gmin.':'w = '+sp(S.w,2)+' is '+(d.side==='p'?'positive':'negative')+', so the '+(d.side==='p'?'G⁺':'G⁻')+' cell will store '+d.mag.toFixed(2)+' and the '+(d.side==='p'?'G⁻':'G⁺')+' cell stays at Gmin = '+P.gmin+' µS.';
+  }
+  if(n===3)step3();
+  if(n===4)step4();
+  if(n===5)step5();
+  if(n===6)step6();
+}
+function nl(){
+  var X=function(v){return 30+460*(v+1)/2},o='<line x1="30" x2="490" y1="34" y2="34" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/>';
+  [-1,-0.5,0,0.5,1].forEach(function(v){o+='<line x1="'+X(v)+'" x2="'+X(v)+'" y1="28" y2="40" stroke="var(--mute)"/><text x="'+X(v)+'" y="60" text-anchor="middle" font-size="11" fill="var(--mute)">'+(v>0?'+':(v<0?'−':''))+Math.abs(v)+'</text>'});
+  o+='<circle cx="'+X(S.w)+'" cy="34" r="9" fill="'+(S.w<0?'var(--volt)':'var(--curr)')+'"/><text x="'+clamp(X(S.w),50,470)+'" y="14" text-anchor="middle" font-size="12" font-weight="500" fill="var(--ink)">w = '+sp(S.w,2)+'</text>';
+  $('nl').innerHTML=o;
+}
+function step3(){
+  var d=D;
+  $('bitsO').textContent=S.bits+' bit'+(S.bits>1?'s':'');
+  var X=function(q){return 30+460*q},o='<line x1="30" x2="490" y1="44" y2="44" stroke="var(--line)" stroke-width="4" stroke-linecap="round"/>',i;
+  for(i=0;i<=d.Lv;i++){var on=i===d.lvl;o+='<line x1="'+X(i/d.Lv)+'" x2="'+X(i/d.Lv)+'" y1="'+(on?28:36)+'" y2="'+(on?60:52)+'" stroke="'+(on?'var(--curr)':'var(--mute)')+'" stroke-width="'+(on?3:1.5)+'"/>'}
+  o+='<circle cx="'+X(d.mag)+'" cy="44" r="6" fill="none" stroke="var(--ink)" stroke-width="2"/><text x="'+clamp(X(d.mag),60,460)+'" y="18" text-anchor="middle" font-size="11" fill="var(--ink)">|w| = '+d.mag.toFixed(2)+'</text>';
+  o+='<text x="'+X(d.q)+'" y="78" text-anchor="middle" font-size="11" font-weight="500" fill="var(--curr)">level '+d.lvl+' = '+d.q.toFixed(3)+'</text>';
+  o+='<text x="30" y="92" font-size="10" fill="var(--mute)">Gmin '+P.gmin+' µS</text><text x="490" y="92" text-anchor="end" font-size="10" fill="var(--mute)">Gmax '+P.gmax+' µS</text>';
+  $('lad').innerHTML=o;
+  var m='<span class="m">levels L = 2^'+S.bits+' = </span>'+d.L+'<span class="m">, so there '+(d.Lv===1?'is':'are')+' </span>'+d.Lv+'<span class="m"> step'+(d.Lv===1?'':'s')+'</span>\n'
+   +'<span class="m">level = round(|w| × '+d.Lv+') = round(</span>'+(d.mag*d.Lv).toFixed(2)+'<span class="m">) = </span><b>'+d.lvl+'</b>\n'
+   +'<span class="m">G_target = Gmin + level / '+d.Lv+' × (Gmax − Gmin)</span>\n'
+   +'<span class="m">         = '+P.gmin+' + '+d.lvl+' / '+d.Lv+' × '+d.span+' = </span><b>'+d.Gt.toFixed(1)+' µS</b>\n'
+   +'<span class="m">weight kept after rounding: </span>'+sp(d.qw,3)+'<span class="m"> (rounding error '+sp(d.qw-S.w,3)+')</span>';
+  $('calc3').innerHTML=m.replace(/\n/g,'<br>').replace(/ {2,}/g,function(s){return '&nbsp;'.repeat(s.length)});
+  $('n3').textContent=d.side==='n'?'A weight of 0 needs no pulses: both cells just stay at Gmin.':'The '+(d.side==='p'?'G⁺':'G⁻')+' cell will be aimed at '+d.Gt.toFixed(1)+' µS. The other cell is aimed at Gmin = '+P.gmin+' µS. Fewer bits mean wider steps and more rounding error. More bits mean smaller steps, but the levels sit closer together and are harder to hit.';
+}
+function step4(){
+  var eE=P.verase*P.verase*P.gmax*P.tp/1000+P.edrv;
+  var o='<line x1="30" x2="490" y1="40" y2="40" stroke="var(--line)"/><text x="24" y="44" text-anchor="end" font-size="10" fill="var(--mute)">0 V</text>';
+  o+='<rect x="190" y="40" width="80" height="62" fill="var(--volt)"/><text x="230" y="118" text-anchor="middle" font-size="11" fill="var(--mute)">−'+P.verase.toFixed(1)+' V for '+P.tp+' ns</text><text x="30" y="16" font-size="11" font-weight="500" fill="var(--ink)">Voltage on the bit line</text>';
+  $('erw').innerHTML=o;
+  $('s4txt').textContent='Both cells now read Gmin = '+P.gmin+' µS. The erase costs about '+fmtE(eE)+' per cell and '+P.tp+' ns, and every cell in the block is erased at once.';
+}
+function chipsHtml(){
+  if(S.method==='open')return '<span class="chip on">Pulses only: replay a fixed train, no reads</span>';
+  var last=R.ev[S.p-1].t,names=[['read','1 Read'],['cmp','2 Compare'],['pulse','3 Pulse']];
+  return names.map(function(c){var on=c[0]==='pulse'?(last==='SET'||last==='RESET'):last===c[0];return '<span class="chip'+(on?' on':'')+'">'+c[1]+'</span>'}).join('');
+}
+function step5(){
+  var d=D,e=R.ev[S.p-1],i,n=R.ev.length;
+  $('tolO').textContent='±'+S.tol.toFixed(1)+'%';$('dvO').textContent=S.dv.toFixed(2)+' V';$('v0O').textContent=S.v0.toFixed(2)+' V';$('sigO').textContent=S.sigma.toFixed(1)+'%';
+  $('chips').innerHTML=chipsHtml();
+  $('bRun').textContent=tmr?'Pause':'Run to finish';
+  $('bAct').disabled=$('bPulse').disabled=S.p>=n;
+  /* log */
+  var rows='';
+  for(i=0;i<S.p;i++){
+    var v=R.ev[i],a='',k='',tx='';
+    if(v.t==='erase'){a='ERASE';tx='RESET all cells to Gmin = '+P.gmin+' µS'}
+    else if(v.t==='read'){a='READ';tx='G = '+v.G.toFixed(1)+' µS'}
+    else if(v.t==='cmp'){a='CHECK';var nx=R.ev[i+1];tx=v.ok?'within ±'+d.tol.toFixed(1)+' of '+d.Gt.toFixed(1)+' µS: done':sg(Math.abs(v.err),1)+' µS too '+(v.err<0?'low':'high')+(nx?' → '+nx.t+' '+nx.V.toFixed(2)+' V':' → pulse limit reached, give up')}
+    else{a=v.t;k=v.t==='SET'?'s':'r';tx=v.V.toFixed(2)+' V, '+P.tp+' ns: G '+v.Gb.toFixed(1)+' → '+v.G.toFixed(1)+' µS'}
+    rows+='<div><span class="k">'+(i+1)+'</span><span class="a '+k+'">'+a+'</span><span>'+tx+'</span></div>';
+  }
+  var lg=$('log');lg.innerHTML=rows;lg.scrollTop=lg.scrollHeight;
+  /* status */
+  var fin=S.p>=n,st='';
+  if(S.p===1)st='Both cells are erased to '+P.gmin+' µS. The aim is '+d.Gt.toFixed(1)+' µS ± '+d.tol.toFixed(1)+' µS. '+(S.method==='open'?'Press Next action to send the first stored pulse.':'Press Next action to read the cell.');
+  else if(fin&&S.method==='open')st='Pulse train finished with no checking. The cell holds '+e.G.toFixed(1)+' µS against an aim of '+d.Gt.toFixed(1)+' µS: '+(R.ok?'inside the tolerance this time.':'off by '+sg(Math.abs(e.G-d.Gt),1)+' µS, outside the tolerance.')+' Press "Try a different cell" to see how much it varies.';
+  else if(e.t==='read')st='The read says G = '+e.G.toFixed(1)+' µS. Next: compare it with the aim.';
+  else if(e.t==='cmp')st=e.ok?'Done. The cell is within tolerance after '+R.pulses+' pulse'+(R.pulses===1?'':'s')+' and '+R.reads+' read'+(R.reads===1?'':'s')+'.':'Not there yet: '+Math.abs(e.err).toFixed(1)+' µS too '+(e.err<0?'low':'high')+'. '+(fin?'The pulse limit ('+S.maxp+') is reached, so the loop gives up with an error.':'Next: a '+R.ev[S.p].t+' pulse.');
+  else st=e.t+' pulse at '+e.V.toFixed(2)+' V moved G from '+e.Gb.toFixed(1)+' to '+e.G.toFixed(1)+' µS. '+(S.method==='open'?'Next: the next stored pulse.':'Next: read it back.');
+  $('s5txt').textContent=st;
+  waveChart();trajChart();
+}
+function waveChart(){
+  var tv=P.tread+P.tadc,tot=0,ev=R.ev;
+  ev.forEach(function(e){tot+=e.t==='read'?tv:(e.t==='cmp'?0:P.tp)});
+  var x0=44,x1=410,yT=22,yB=176,vm=2.6,zy=(yT+yB)/2,ky=(yB-yT)/2/vm;
+  function X(t){return x0+(x1-x0)*t/tot}
+  var o='<text x="'+x0+'" y="12" font-size="11" font-weight="500" fill="var(--ink)">Voltage on the bit line</text>';
+  [-2,0,2].forEach(function(v){var y=zy-v*ky;o+='<line x1="'+x0+'" x2="'+x1+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)" stroke-width="'+(v===0?1.5:1)+'"/><text x="'+(x0-6)+'" y="'+(y+3.5)+'" text-anchor="end" font-size="9.5" fill="var(--mute)">'+(v<0?'−':'')+Math.abs(v)+' V</text>'});
+  var tt=0,j;
+  for(j=0;j<S.p;j++){
+    var e=ev[j],w,V,col;
+    if(e.t==='cmp')continue;
+    if(e.t==='erase'){w=P.tp;V=-P.verase;col='var(--volt)'}
+    else if(e.t==='read'){w=P.tread;V=P.vread;col='var(--mute)'}
+    else if(e.t==='SET'){w=P.tp;V=e.V;col='var(--curr)'}
+    else{w=P.tp;V=-e.V;col='var(--volt)'}
+    var xa=X(tt),wd=Math.max(1.6,X(tt+w)-X(tt));
+    o+='<rect x="'+xa.toFixed(1)+'" y="'+(V>=0?zy-V*ky:zy).toFixed(1)+'" width="'+wd.toFixed(1)+'" height="'+Math.max(1.5,Math.abs(V)*ky).toFixed(1)+'" fill="'+col+'"/>';
+    tt+=e.t==='read'?tv:w;
+  }
+  for(j=0;j<=4;j++){var tx=tot*j/4;o+='<text x="'+X(tx)+'" y="'+(yB+14)+'" text-anchor="'+(j===4?'end':'middle')+'" font-size="9.5" fill="var(--mute)">'+fmtT(tx)+'</text>'}
+  o+='<rect x="'+x0+'" y="206" width="10" height="8" fill="var(--volt)"/><text x="'+(x0+14)+'" y="214" font-size="10" fill="var(--mute)">Erase, RESET</text>';
+  o+='<rect x="'+(x0+104)+'" y="206" width="10" height="8" fill="var(--curr)"/><text x="'+(x0+118)+'" y="214" font-size="10" fill="var(--mute)">SET</text>';
+  o+='<rect x="'+(x0+160)+'" y="206" width="10" height="8" fill="var(--mute)"/><text x="'+(x0+174)+'" y="214" font-size="10" fill="var(--mute)">Verify read</text>';
+  $('wv').innerHTML=o;
+}
+function trajChart(){
+  var d=D,ev=R.ev,x0=44,x1=410,ty0=22,ty1=176,gtop=P.gmax*1.05,j;
+  var npl=ev.filter(function(e){return e.t==='SET'||e.t==='RESET'}).length,nx=Math.max(npl,1);
+  function TX(n){return x0+(x1-x0)*n/nx}
+  function TY(g){return ty1-g/gtop*(ty1-ty0)}
+  var o='<text x="'+x0+'" y="12" font-size="11" font-weight="500" fill="var(--ink)">Conductance after each pulse (µS)</text>';
+  [0,P.gmax/2,P.gmax].forEach(function(g){o+='<line x1="'+x0+'" x2="'+x1+'" y1="'+TY(g)+'" y2="'+TY(g)+'" stroke="var(--line)"/><text x="'+(x0-6)+'" y="'+(TY(g)+3.5)+'" text-anchor="end" font-size="9.5" fill="var(--mute)">'+g.toFixed(0)+'</text>'});
+  o+='<rect x="'+x0+'" y="'+TY(d.Gt+d.tol)+'" width="'+(x1-x0)+'" height="'+Math.max(1,TY(d.Gt-d.tol)-TY(d.Gt+d.tol))+'" fill="var(--ok)" fill-opacity=".18"/>';
+  o+='<line x1="'+x0+'" x2="'+x1+'" y1="'+TY(d.Gt)+'" y2="'+TY(d.Gt)+'" stroke="var(--ok)" stroke-width="1.5" stroke-dasharray="5 4"/>';
+  var pts=[{n:0,g:P.gmin,t:'erase'}],n=0;
+  for(j=0;j<S.p;j++){var e=ev[j];if(e.t==='SET'||e.t==='RESET'){n++;pts.push({n:n,g:e.G,t:e.t})}}
+  o+='<polyline fill="none" stroke="var(--ink)" stroke-width="1.5" points="'+pts.map(function(q){return TX(q.n).toFixed(1)+','+TY(q.g).toFixed(1)}).join(' ')+'"/>';
+  pts.forEach(function(q){o+='<circle cx="'+TX(q.n)+'" cy="'+TY(q.g)+'" r="3" fill="'+(q.t==='RESET'?'var(--volt)':'var(--curr)')+'"/>'});
+  for(j=0;j<=nx;j+=Math.max(1,Math.ceil(nx/8))){o+='<text x="'+TX(j)+'" y="'+(ty1+14)+'" text-anchor="middle" font-size="9.5" fill="var(--mute)">'+j+'</text>'}
+  o+='<text x="'+((x0+x1)/2)+'" y="'+(ty1+28)+'" text-anchor="middle" font-size="10" fill="var(--mute)">pulse number</text>';
+  o+='<line x1="'+x0+'" x2="'+(x0+16)+'" y1="214" y2="214" stroke="var(--ok)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="'+(x0+22)+'" y="217" font-size="10" fill="var(--mute)">Aim and tolerance band</text>';
+  $('tj').innerHTML=o;
+}
+function step6(){
+  var d=D,r=R;
+  var verified=S.method==='verify';
+  $('tiles6').innerHTML=
+    '<div class="tile"><div class="big">'+r.pulses+'</div><div class="sub">write pulses</div></div>'+
+    '<div class="tile"><div class="big">'+(verified?r.reads:'0')+'</div><div class="sub">verify reads'+(verified?'':' (open loop)')+'</div></div>'+
+    '<div class="tile"><div class="big">'+fmtT(r.T)+'</div><div class="sub">time, both cells in parallel</div></div>'+
+    '<div class="tile"><div class="big">'+fmtE(r.Etot)+'</div><div class="sub">energy, both cells</div></div>';
+  var errR=d.qw-S.w,errW=r.stored-d.qw;
+  var t='<thead><tr><th>Stage</th><th class="num">Weight</th><th class="num">Change</th><th>Where the change comes from</th></tr></thead><tbody>'
+   +'<tr><td>The weight you wanted</td><td class="num">'+sp(S.w,3)+'</td><td class="num"></td><td></td></tr>'
+   +'<tr><td>After rounding to a level</td><td class="num">'+sp(d.qw,3)+'</td><td class="num">'+sp(errR,3)+'</td><td>Only '+d.L+' levels (step 3)</td></tr>'
+   +'<tr><td>Actually stored</td><td class="num">'+sp(r.stored,3)+'</td><td class="num '+(Math.abs(errW)>d.tol/d.span?'bad':'good')+'">'+sp(errW,3)+'</td><td>'+(verified?'Tolerance of ±'+S.tol.toFixed(1)+'% and the pulse limit':'No read-back, so device variation lands as is')+'</td></tr></tbody>';
+  $('t6').innerHTML=t;
+  $('xO').textContent=S.x.toFixed(2);
+  var V=S.x*P.vread,Ip=V*r.Gp,Im=V*r.Gm,den=P.vread*d.span,y=(Ip-Im)/den;
+  $('calc6').innerHTML='<span class="m">input x = '+S.x.toFixed(2)+' → V = x × '+P.vread+' V = </span>'+V.toFixed(3)+' V<br>'
+   +'<span class="m">I⁺ = V × G⁺ = '+V.toFixed(3)+' × '+r.Gp.toFixed(1)+' = </span>'+Ip.toFixed(2)+' µA<br>'
+   +'<span class="m">I⁻ = V × G⁻ = '+V.toFixed(3)+' × '+r.Gm.toFixed(1)+' = </span>'+Im.toFixed(2)+' µA<br>'
+   +'<span class="m">(I⁺ − I⁻) / (V_read × (Gmax − Gmin)) = '+sg(Ip-Im,2)+' / '+den.toFixed(1)+' = </span><b>'+sp(y,3)+'</b><br>'
+   +'<span class="m">ideal x × w = '+S.x.toFixed(2)+' × '+sp(S.w,2)+' = </span>'+sp(S.x*S.w,3);
+}
+
+buildList();run();go(1);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ReRAM Reference</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#EBEFF2; --panel:#F8FAFB; --ink:#15212B; --mute:#587080; --line:#C7D1D8;
+  --volt:#1D63C9; --curr:#C2620A; --cell:#22313D; --err:#B3261E; --ok:#1E7B4A; --hl:#FBE9D2;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+    --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+  --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+:root{color-scheme:light}
+html{padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px);scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+a{color:var(--volt)}
+header h1{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,4vw,34px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;max-width:72ch;color:var(--mute)}
+.crumb{font-size:13px;margin:0 0 8px!important;color:var(--ink)!important}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.toc a{border:1px solid var(--line);border-radius:999px;padding:3px 12px;text-decoration:none;color:var(--ink);background:var(--panel);font-size:13px}
+.toc a:hover{border-color:var(--volt)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0;scroll-margin-top:12px}
+h2{font-family:var(--f-display);font-size:18px;font-weight:600;margin:0 0 8px;letter-spacing:.01em}
+h3{font-family:var(--f-display);font-size:15px;font-weight:600;margin:0 0 4px}
+.cap{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--mute);font-weight:600}
+.lead{margin:0 0 12px;max-width:78ch;font-size:14px}
+.note{font-size:12px;color:var(--mute);margin:8px 0 0}
+.card{border:1px solid var(--line);border-radius:6px;padding:12px;background:var(--bg);min-width:0}
+.card p{margin:6px 0 0;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+select,input,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 10px}
+button{cursor:pointer}
+button:hover{border-color:var(--volt)}
+button.set{border-color:var(--curr);color:var(--curr);font-weight:600}
+:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute)}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.s{font-family:var(--f-mono);font-weight:500;white-space:nowrap;color:var(--curr)}
+table.ct td.c{font-weight:600;min-width:130px}
+table.ct td.u{white-space:nowrap;color:var(--mute)}
+table.ct td:nth-child(3){min-width:300px}
+.eqg{grid-template-columns:repeat(auto-fit,minmax(min(100%,430px),1fr))}
+.gh{margin:16px 0 6px}
+details.q{border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0;background:var(--bg)}
+details.q summary{cursor:pointer;font-weight:600}
+details.q p{margin:8px 0 2px}
+.credit{font-size:12px;color:var(--mute);text-align:center;padding-top:6px;border-top:1px solid var(--line)}
+/* signal chain */
+.chain{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:10px 26px}
+.chain li{position:relative;flex:1 1 130px;min-width:0;border:1px solid var(--line);border-radius:6px;padding:10px;background:var(--bg)}
+.chain li::after{content:"\2192";position:absolute;right:-20px;top:50%;transform:translateY(-50%);color:var(--mute);font-size:16px}
+.chain li:last-child::after{content:none}
+.chain .tag{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;border-radius:999px;padding:0 8px;margin-bottom:4px;border:1px solid var(--line);color:var(--mute)}
+.chain .tag.an{border-color:var(--curr);color:var(--curr)}
+.chain .f{font-family:var(--f-mono);font-size:12px;margin-top:4px;color:var(--ink)}
+.chain p{margin:2px 0 0;font-size:12px;color:var(--mute)}
+@media (max-width:640px){.chain li::after{content:none}}
+/* equations */
+pre.eq{margin:6px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);border-radius:6px;font-family:var(--f-mono);font-size:13px;line-height:1.6;overflow-x:auto;white-space:pre;font-variant-numeric:tabular-nums}
+.ex b,.where{color:var(--mute)}
+.where{font-size:12px!important}
+/* glossary */
+.gf{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px}
+.gf input{flex:1 1 240px;min-width:0}
+dl.gl{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:10px}
+.term{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg);min-width:0}
+.term dt{font-weight:600;font-size:13px}
+.term dd{margin:3px 0 0;font-size:13px}
+.refs{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px;max-width:90ch}
+.path{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px}
+.path a.card{text-decoration:none;color:var(--ink)}
+.path a.card:hover{border-color:var(--volt)}
+.path .cap{display:block;margin-bottom:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="crumb"><span class="cap">Reference</span> &nbsp;·&nbsp; <a href="../basics/">Step 1: ReRAM basics</a> &nbsp;·&nbsp; <a href="../write/">Step 2: writing a weight</a> &nbsp;·&nbsp; <a href="../">Step 3: crossbar simulator</a></p>
+    <h1>ReRAM reference</h1>
+    <p>The equations, terms, symbols and settings used across the three steps, in one place. Keep it open next to the simulator, or use it to look something up when a word is new.</p>
+    <nav class="toc" aria-label="On this page">
+      <a href="#path">Learning path</a>
+      <a href="#chain">Signal chain</a>
+      <a href="#eq">Equations</a>
+      <a href="#glossary">Glossary</a>
+      <a href="#symbols">Symbols and units</a>
+      <a href="#controls">Settings</a>
+      <a href="#faq">Questions</a>
+      <a href="#read">Further reading</a>
+    </nav>
+  </header>
+
+  <section class="panel" id="path">
+    <h2>Learning path</h2>
+    <p class="lead">Three short lessons, each building on the one before. If you are new to this, go in order.</p>
+    <div class="path">
+      <a class="card" href="../basics/"><span class="cap">Step 1</span><h3>ReRAM vs an ordinary resistor</h3><p>A cell is a resistor you can reprogram with pulses, and it keeps its value without power. You will SET, RESET and read one.</p></a>
+      <a class="card" href="../write/"><span class="cap">Step 2</span><h3>How a weight gets written</h3><p>From a number to a conductance: choose the cell, round to a level, erase, then pulse and read back until it is close enough.</p></a>
+      <a class="card" href="../"><span class="cap">Step 3</span><h3>The crossbar simulator</h3><p>Put cells in a grid. Voltages in, Ohm's law in every cell, currents added on the wires: a matrix multiply in one read.</p></a>
+    </div>
+  </section>
+
+  <section class="panel" id="chain">
+    <h2>The signal chain in one line</h2>
+    <p class="lead">Everything in the simulator sits somewhere on this path. The middle is analog. The two ends are converters to and from the digital world.</p>
+    <ol class="chain">
+      <li><span class="tag">digital</span><h3>Input x</h3><div class="f">0 to 1</div><p>A number from the model or the previous layer.</p></li>
+      <li><span class="tag">converter</span><h3>DAC</h3><div class="f">V = x × V_read</div><p>Rounds the input and makes a voltage.</p></li>
+      <li><span class="tag an">analog</span><h3>Word lines</h3><div class="f">V_1 … V_M</div><p>One voltage per row, all applied at once.</p></li>
+      <li><span class="tag an">analog</span><h3>Cells</h3><div class="f">I = V × G</div><p>Each cell stores a weight as G and multiplies.</p></li>
+      <li><span class="tag an">analog</span><h3>Bit lines</h3><div class="f">I = Σ V × G</div><p>The currents of a column add on the wire.</p></li>
+      <li><span class="tag an">analog</span><h3>Subtract</h3><div class="f">I⁺ − I⁻</div><p>The pair gives a signed result.</p></li>
+      <li><span class="tag">converter</span><h3>ADC</h3><div class="f">code → y</div><p>Turns the current into an integer, then a number.</p></li>
+    </ol>
+  </section>
+
+  <section class="panel" id="eq">
+    <h2>Key equations</h2>
+    <p class="lead">Each one has a worked example with the simulator's default numbers and a pointer to where you can see it. Equations 8 to 10 describe this teaching model, not a measured device.</p>
+    <div class="grid eqg">
+<div class="card"><h3>1. Ohm&#x27;s law, one cell</h3><pre class="eq">I = V × G      (G = 1 / R)</pre><p>The current through a cell is the voltage across it times its conductance. This is the multiplication.</p><p class="ex"><b>Example.</b> 0.2 V × 50 µS = 10 µA (the same cell is 20 kΩ).</p><p class="where">Used in: Step 1 (read a cell). Step 2 trace table.</p></div>
+<div class="card"><h3>2. Kirchhoff&#x27;s current law, one bit line</h3><pre class="eq">I_j = Σ_i  V_i × G_ij</pre><p>All cells on a bit line feed one wire, and the currents simply add. This is the accumulation.</p><p class="ex"><b>Example.</b> 0.10 V × 60 µS + 0.20 V × 30 µS = 6 + 6 = 12 µA.</p><p class="where">Used in: Step 2, walkthrough step 4 (Sum columns).</p></div>
+<div class="card"><h3>3. Input to voltage (DAC)</h3><pre class="eq">V_i = x_i × V_read</pre><p>An input between 0 and 1 is rounded to one of 2^b − 1 steps and turned into a word-line voltage no larger than the read voltage.</p><p class="ex"><b>Example.</b> x = 0.5 and V_read = 0.2 V give 0.10 V. With a 4-bit DAC the steps are 1/15 apart.</p><p class="where">Used in: Step 2, Input DAC slider.</p></div>
+<div class="card"><h3>4. Weight to conductance</h3><pre class="eq">level = round(|w| × (L − 1))
+G = Gmin + level / (L − 1) × (Gmax − Gmin)
+L = 2^bits</pre><p>The weight magnitude is rounded to one of L levels and mapped linearly onto the window between Gmin and Gmax. The sign picks the G⁺ or G⁻ cell.</p><p class="ex"><b>Example.</b> |w| = 0.62 with 3 bits: level = round(4.34) = 4, so G = 5 + 4/7 × 95 = 59.3 µS.</p><p class="where">Used in: Step 3, step 3 (Round to a level).</p></div>
+<div class="card"><h3>5. Differential read-out</h3><pre class="eq">y = (I⁺ − I⁻) / (V_read × (Gmax − Gmin))</pre><p>Subtract the two bit-line currents of a pair and divide by the scale factor to turn current back into a number. Gmin is in both cells and cancels.</p><p class="ex"><b>Example.</b> x = 0.5, G⁺ = 59.3 µS, G⁻ = 5 µS: I⁺ = 5.93 µA, I⁻ = 0.50 µA, so y = 5.43 / 19 = 0.286 (the ideal for the rounded weight is 0.5 × 0.571 = 0.286).</p><p class="where">Used in: Step 2, Result table. Step 3, step 6.</p></div>
+<div class="card"><h3>5b. Two other ways to store the sign</h3><pre class="eq">G⁺ only + reference column:
+  level = round((w + 1)/2 × L),   G = Gmin + level/L × (Gmax − Gmin)
+  G_ref = Gmin + (Gmax − Gmin)/2   (every row of the reference column)
+  y = 2 × (I − I_ref) / (V_read × (Gmax − Gmin))
+
+Unsigned, negatives clipped:
+  level = round(max(w, 0) × L),   G = Gmin + level/L × (Gmax − Gmin)
+  y = I / (V_read × (Gmax − Gmin))</pre><p>The differential pair spends two cells per weight. These two spend one. With a reference column the weight is shifted into 0 to 1 and the middle conductance stands for zero, so negatives work and the Gmin leakage cancels, but one set of levels covers both signs, so each step in w is twice as coarse. With no subtraction at all, negative weights are lost and the leakage of every cell stays in the sum.</p><p class="ex"><b>Example.</b> x = 0.5 (V = 0.1 V), w = 0.6, L = 15, Gmin = 5 µS, Gmax = 100 µS. Reference column: level 12, G = 81 µS, I = 8.1 µA, I_ref = 0.1 × 52.5 = 5.25 µA, so y = 2 × 2.85 / 19 = 0.300, which is exactly x × w. Unsigned: level 9, G = 62 µS, I = 6.2 µA, so y = 6.2 / 19 = 0.326. The extra 0.026 is the leakage x × Gmin/(Gmax − Gmin).</p><p class="where">Used in: Step 3, Weight sign setting and the worked example.</p></div>
+<div class="card"><h3>6. Output ADC</h3><pre class="eq">step = R / (2^(b−1) − 1)
+R = rows × ADC range</pre><p>The converter has 2^(b−1) − 1 steps on each side of zero between −R and +R. Smaller R gives finer steps, but any output larger than R is clipped. (Default analog layout.)</p><p class="ex"><b>Example.</b> 4 rows, 100% range, 8 bits: R = 4, step = 4 / 127 = 0.031.</p><p class="where">Used in: Step 2, Output ADC and ADC range sliders.</p></div>
+<div class="card"><h3>7. The write loop</h3><pre class="eq">V_n = V_0 + n × ΔV
+stop when  |G − G_target| ≤ tol × (Gmax − Gmin)</pre><p>Each pulse in the same direction is a little stronger than the last. After every pulse the cell is read, and the loop ends when it is close enough or the pulse limit is reached. If a pulse overshoots, the loop switches to the other polarity and restarts from V_0.</p><p class="ex"><b>Example.</b> V_0 = 1.0 V and ΔV = 0.10 V give 1.0, 1.1, 1.2 V. A 2% tolerance on a 95 µS window is ± 1.9 µS.</p><p class="where">Used in: Step 3, step 5. Step 2, write panel.</p></div>
+<div class="card"><h3>8. How a pulse moves the cell (teaching model)</h3><pre class="eq">drive = clamp((V − 0.8) / (2.4 − 0.8), 0, 1)
+SET:    G ← G + 0.45 × drive × (Gmax − G) × f
+RESET:  G ← G − 0.45 × drive × (G − Gmin) × f</pre><p>Pulses below 0.8 V do nothing. Stronger pulses move G a larger fraction of the remaining distance toward Gmax (SET) or Gmin (RESET). f is a random factor near 1 whose spread is set by σ: part of it is fixed per cell and part changes each pulse. This is an illustrative rule, not a measured device equation.</p><p class="ex"><b>Example.</b> G = 5 µS and a 1.0 V SET: drive = 0.125, so G rises by about 0.45 × 0.125 × 95 = 5.3 µS (to about 10.3 µS when f = 1).</p><p class="where">Used in: Step 1 and Step 3, step 5.</p></div>
+<div class="card"><h3>9. Time and energy of a write (teaching model)</h3><pre class="eq">SET pulse:    E = V × I_cc × t_p
+RESET pulse:  E = V² × G × t_p
+Verify read:  E = V_read² × G × t_read + E_ADC
+(+ 0.5 pJ driver energy per pulse)</pre><p>Units work out as volts × µA × ns = femtojoules. Time is t_p per pulse plus (t_read + t_ADC) per verify read. Cells in one row are written in parallel, so a row takes as long as its slowest cell.</p><p class="ex"><b>Example.</b> One 1.0 V SET pulse with I_cc = 50 µA and t_p = 50 ns: 1.0 × 50 × 50 = 2500 fJ = 2.5 pJ, plus 0.5 pJ, so 3.0 pJ.</p><p class="where">Used in: Step 3, step 6. Step 2, write panel.</p></div>
+<div class="card"><h3>10. Compute energy and break-even reuse (teaching model)</h3><pre class="eq">E_crossbar = Σ V × I × t_read
+           + inputs × E_DAC + columns × E_ADC
+E_digital  = (M × N) × (E_MAC + E_fetch)
+break-even = E_write / (E_digital − E_crossbar)</pre><p>The crossbar pays once to write its weights and then a small amount per product. The digital processor pays to fetch every weight on every product. The crossbar only wins on energy after enough products reuse the same weights. The constants in the efficiency panel are ballpark values you can edit.</p><p class="ex"><b>Example.</b> If writing the weights costs 1,400 pJ and each product saves 15 pJ, the break-even is about 93 products.</p><p class="where">Used in: Step 2, efficiency panel.</p></div>
+<div class="card"><h3>11. IR drop</h3><pre class="eq">solved numerically (Gauss-Seidel)</pre><p>There is no short formula. Every wire segment has a resistance R_w, and the simulator solves the whole network of cells and wires. Cells far from the drivers see less than the intended voltage, so their currents come out lower than the ideal. Larger conductances draw more current, so they make the drop worse.</p><p class="ex"><b>Example.</b> With 200 Ω segments the output error in the default example grows from 0.070 (Gmax = 40 µS) to 0.164 (Gmax = 200 µS).</p><p class="where">Used in: Step 2, Wire R slider.</p></div>
+    </div>
+  </section>
+
+  <section class="panel" id="glossary">
+    <h2>Glossary</h2>
+    <p class="lead" style="margin-bottom:8px">Type to filter the 38 terms by name or by anything in the definition.</p>
+    <div class="gf"><label for="gq" class="cap">Search</label><input type="search" id="gq" placeholder="for example: filament, ADC, tolerance" autocomplete="off"><span class="note" id="gc" style="margin:0" aria-live="polite"></span></div>
+    <dl class="gl" id="gl">
+<div class="term" data-t="1t1r one access transistor in series with each cell. the transistor selects the cell to write and limits the current during set. this simulator draws a passive crossbar with no transistors and has a separate set compliance setting for the current limit."><dt>1T1R</dt><dd>One access transistor in series with each cell. The transistor selects the cell to write and limits the current during SET. This simulator draws a passive crossbar with no transistors and has a separate SET compliance setting for the current limit.</dd></div>
+<div class="term" data-t="adc (analog-to-digital converter) turns a bit-line current into an integer code. more bits give finer output steps. in the efficiency model each extra bit doubles the adc&#x27;s energy."><dt>ADC (analog-to-digital converter)</dt><dd>Turns a bit-line current into an integer code. More bits give finer output steps. In the efficiency model each extra bit doubles the ADC&#x27;s energy.</dd></div>
+<div class="term" data-t="bit line (bl) the wire that runs down a column and collects the currents of every cell in it. its total current is the sum of v × g over the column."><dt>Bit line (BL)</dt><dd>The wire that runs down a column and collects the currents of every cell in it. Its total current is the sum of V × G over the column.</dd></div>
+<div class="term" data-t="bit slicing (binary weighted encoding) storing each bit of a weight in its own pair of two-state cells and combining the bit planes with shifts and adds in digital logic. it uses more cells and more adc conversions, but each cell only needs two well-separated states. the cell encoding menu in step 2 offers it."><dt>Bit slicing (binary weighted encoding)</dt><dd>Storing each bit of a weight in its own pair of two-state cells and combining the bit planes with shifts and adds in digital logic. It uses more cells and more ADC conversions, but each cell only needs two well-separated states. The Cell encoding menu in Step 2 offers it.</dd></div>
+<div class="term" data-t="block erase a single strong reset pulse applied to a block of cells so that all of them start from the high-resistance state before writing."><dt>Block erase</dt><dd>A single strong RESET pulse applied to a block of cells so that all of them start from the high-resistance state before writing.</dd></div>
+<div class="term" data-t="compute-in-memory (in-memory computing) doing arithmetic inside the memory array where the data is stored, instead of moving the data to a separate processor."><dt>Compute-in-memory (in-memory computing)</dt><dd>Doing arithmetic inside the memory array where the data is stored, instead of moving the data to a separate processor.</dd></div>
+<div class="term" data-t="conductance (g) how easily a cell passes current. g = 1 / r, measured in siemens (s). the cells here sit between 5 and 100 µs, which is 200 kω down to 10 kω. conductances on a shared wire simply add, which is why weights are stored as conductance and not as resistance."><dt>Conductance (G)</dt><dd>How easily a cell passes current. G = 1 / R, measured in siemens (S). The cells here sit between 5 and 100 µS, which is 200 kΩ down to 10 kΩ. Conductances on a shared wire simply add, which is why weights are stored as conductance and not as resistance.</dd></div>
+<div class="term" data-t="conductive filament a thin channel of oxygen vacancies through the metal-oxide layer. a set pulse builds or widens it and a reset pulse dissolves part of it. its size sets the cell&#x27;s conductance."><dt>Conductive filament</dt><dd>A thin channel of oxygen vacancies through the metal-oxide layer. A SET pulse builds or widens it and a RESET pulse dissolves part of it. Its size sets the cell&#x27;s conductance.</dd></div>
+<div class="term" data-t="crossbar a grid of word lines crossing bit lines, with one memory cell at every crossing."><dt>Crossbar</dt><dd>A grid of word lines crossing bit lines, with one memory cell at every crossing.</dd></div>
+<div class="term" data-t="cycle-to-cycle variation the same cell responds a little differently to the same pulse each time it is written."><dt>Cycle-to-cycle variation</dt><dd>The same cell responds a little differently to the same pulse each time it is written.</dd></div>
+<div class="term" data-t="dac (digital-to-analog converter) turns an input number into a voltage on a word line. the simulator rounds inputs to 2^b − 1 steps."><dt>DAC (digital-to-analog converter)</dt><dd>Turns an input number into a voltage on a word line. The simulator rounds inputs to 2^b − 1 steps.</dd></div>
+<div class="term" data-t="device-to-device variation different cells respond differently to the same pulse, because no two filaments form identically. the σ slider sets how large the spread is."><dt>Device-to-device variation</dt><dd>Different cells respond differently to the same pulse, because no two filaments form identically. The σ slider sets how large the spread is.</dd></div>
+<div class="term" data-t="differential pair (g⁺ / g⁻) two cells that together store one signed weight. the positive part goes in g⁺, the negative part in g⁻, and the read-out subtracts the two currents."><dt>Differential pair (G⁺ / G⁻)</dt><dd>Two cells that together store one signed weight. The positive part goes in G⁺, the negative part in G⁻, and the read-out subtracts the two currents.</dd></div>
+<div class="term" data-t="reference column one extra column of cells, all at the middle conductance, shared by every output. its current is subtracted from each output, so a single cell per weight can still stand for a negative weight."><dt>Reference column</dt><dd>One extra column of cells, all at the middle conductance Gmid, shared by every output. Its current is subtracted from each output, so a single cell per weight can still stand for a negative weight.</dd></div>
+<div class="term" data-t="unsigned encoding (negatives clipped) one cell per weight and no subtraction. a cell cannot be negative, so negative weights are stored as 0, and the gmin leakage of every cell adds a small offset to each output."><dt>Unsigned encoding (negatives clipped)</dt><dd>One cell per weight and no subtraction. A cell cannot be negative, so negative weights are stored as 0, and the Gmin leakage of every cell adds a small offset to each output.</dd></div>
+<div class="term" data-t="drift (retention loss) the stored conductance slowly wanders over time, even with the power off. step 1 has a time slider that shows it."><dt>Drift (retention loss)</dt><dd>The stored conductance slowly wanders over time, even with the power off. Step 1 has a time slider that shows it.</dd></div>
+<div class="term" data-t="endurance how many set and reset cycles a cell survives before its window shrinks or it stops switching. step 1 has a write-cycles slider that shows it."><dt>Endurance</dt><dd>How many SET and RESET cycles a cell survives before its window shrinks or it stops switching. Step 1 has a write-cycles slider that shows it.</dd></div>
+<div class="term" data-t="forming a one-time, higher-voltage step that creates the first filament in many oxide reram cells. this teaching model leaves it out."><dt>Forming</dt><dd>A one-time, higher-voltage step that creates the first filament in many oxide ReRAM cells. This teaching model leaves it out.</dd></div>
+<div class="term" data-t="high-resistance state (hrs) and low-resistance state (lrs) the two extremes of a cell. hrs is the lowest conductance (gmin) and lrs is the highest (gmax). between them the cell can hold intermediate analog levels."><dt>High-resistance state (HRS) and low-resistance state (LRS)</dt><dd>The two extremes of a cell. HRS is the lowest conductance (Gmin) and LRS is the highest (Gmax). Between them the cell can hold intermediate analog levels.</dd></div>
+<div class="term" data-t="ir drop voltage lost along the resistance of the wires. cells far from the drivers see less voltage, so their currents are lower than the ideal. the wire r slider controls it and the simulator solves for it."><dt>IR drop</dt><dd>Voltage lost along the resistance of the wires. Cells far from the drivers see less voltage, so their currents are lower than the ideal. The Wire R slider controls it and the simulator solves for it.</dd></div>
+<div class="term" data-t="ispp (incremental step pulse programming) a write scheme where each new pulse is a little higher in amplitude than the last (v₀ + n × δv), with a read between pulses. the default write method in the simulator."><dt>ISPP (incremental step pulse programming)</dt><dd>A write scheme where each new pulse is a little higher in amplitude than the last (V₀ + n × ΔV), with a read between pulses. The default write method in the simulator.</dd></div>
+<div class="term" data-t="kirchhoff&#x27;s current law the currents flowing into a point add up to the currents flowing out. it is why all the cell currents on one bit line sum into a single current."><dt>Kirchhoff&#x27;s current law</dt><dd>The currents flowing into a point add up to the currents flowing out. It is why all the cell currents on one bit line sum into a single current.</dd></div>
+<div class="term" data-t="level (conductance level) one of the 2^b discrete conductance values a cell is aimed at. level k of l − 1 steps sits at gmin + k / (l − 1) × (gmax − gmin)."><dt>Level (conductance level)</dt><dd>One of the 2^b discrete conductance values a cell is aimed at. Level k of L − 1 steps sits at Gmin + k / (L − 1) × (Gmax − Gmin).</dd></div>
+<div class="term" data-t="matrix-vector multiplication (mvm) y = xᵀw: every output is the dot product of the input vector with one column of weights. it is the main operation inside neural-network layers."><dt>Matrix-vector multiplication (MVM)</dt><dd>y = xᵀW: every output is the dot product of the input vector with one column of weights. It is the main operation inside neural-network layers.</dd></div>
+<div class="term" data-t="memristor a resistor whose value depends on the history of the current through it. leon chua proposed the idea in 1971, and reram cells are often described as memristive devices."><dt>Memristor</dt><dd>A resistor whose value depends on the history of the current through it. Leon Chua proposed the idea in 1971, and ReRAM cells are often described as memristive devices.</dd></div>
+<div class="term" data-t="multiply-accumulate (mac) one multiplication added to a running total. a matrix-vector product is many macs."><dt>Multiply-accumulate (MAC)</dt><dd>One multiplication added to a running total. A matrix-vector product is many MACs.</dd></div>
+<div class="term" data-t="non-volatile keeps its stored state with the power off."><dt>Non-volatile</dt><dd>Keeps its stored state with the power off.</dd></div>
+<div class="term" data-t="ohm&#x27;s law v = i × r, or equivalently i = v × g. it is the multiplication step in the crossbar."><dt>Ohm&#x27;s law</dt><dd>V = I × R, or equivalently I = V × G. It is the multiplication step in the crossbar.</dd></div>
+<div class="term" data-t="on/off ratio (window) gmax / gmin. with the defaults, 100 / 5 = 20. a wider window leaves more room between levels."><dt>On/off ratio (window)</dt><dd>Gmax / Gmin. With the defaults, 100 / 5 = 20. A wider window leaves more room between levels.</dd></div>
+<div class="term" data-t="open-loop write applying a fixed train of pulses without reading the cell back. it is cheap, but device variation lands directly in the stored weight."><dt>Open-loop write</dt><dd>Applying a fixed train of pulses without reading the cell back. It is cheap, but device variation lands directly in the stored weight.</dd></div>
+<div class="term" data-t="program-and-verify (write-verify) writing in a loop: pulse, read back, compare with the target, and repeat until the cell is within tolerance or the pulses run out."><dt>Program-and-verify (write-verify)</dt><dd>Writing in a loop: pulse, read back, compare with the target, and repeat until the cell is within tolerance or the pulses run out.</dd></div>
+<div class="term" data-t="quantization rounding to one of a limited set of values: inputs by the dac, weights to conductance levels, outputs by the adc."><dt>Quantization</dt><dd>Rounding to one of a limited set of values: inputs by the DAC, weights to conductance levels, outputs by the ADC.</dd></div>
+<div class="term" data-t="read disturb a read at too high a voltage nudges the stored state. the read voltage is kept low to avoid it. step 1 shows it."><dt>Read disturb</dt><dd>A read at too high a voltage nudges the stored state. The read voltage is kept low to avoid it. Step 1 shows it.</dd></div>
+<div class="term" data-t="reset a pulse that lowers a cell&#x27;s conductance by dissolving part of the filament. in this model the block erase is a strong reset."><dt>RESET</dt><dd>A pulse that lowers a cell&#x27;s conductance by dissolving part of the filament. In this model the block erase is a strong RESET.</dd></div>
+<div class="term" data-t="set a pulse that raises a cell&#x27;s conductance by building or widening the filament."><dt>SET</dt><dd>A pulse that raises a cell&#x27;s conductance by building or widening the filament.</dd></div>
+<div class="term" data-t="sneak path in a passive crossbar, current that finds a route through other cells instead of the selected one, which corrupts reads and writes. transistors (1t1r) or selector devices suppress it. this simulator does not model sneak paths."><dt>Sneak path</dt><dd>In a passive crossbar, current that finds a route through other cells instead of the selected one, which corrupts reads and writes. Transistors (1T1R) or selector devices suppress it. This simulator does not model sneak paths.</dd></div>
+<div class="term" data-t="tolerance how close to the target counts as done in a verify loop, set as a percent of the gmax − gmin window."><dt>Tolerance</dt><dd>How close to the target counts as done in a verify loop, set as a percent of the Gmax − Gmin window.</dd></div>
+<div class="term" data-t="von neumann bottleneck the time and energy spent moving data between a separate memory and processor. computing in the array avoids moving the weights."><dt>Von Neumann bottleneck</dt><dd>The time and energy spent moving data between a separate memory and processor. Computing in the array avoids moving the weights.</dd></div>
+<div class="term" data-t="weight a number the model learned. here it runs from −1 to +1 and is stored as conductance in one or two cells."><dt>Weight</dt><dd>A number the model learned. Here it runs from −1 to +1 and is stored as conductance in one or two cells.</dd></div>
+<div class="term" data-t="word line (wl) the wire that runs along a row and carries one input voltage to every cell in that row."><dt>Word line (WL)</dt><dd>The wire that runs along a row and carries one input voltage to every cell in that row.</dd></div>
+    </dl>
+    <p class="note" id="gn" hidden>No term matches. Try a shorter word.</p>
+  </section>
+
+  <section class="panel" id="symbols">
+    <h2>Symbols and units</h2>
+    <p class="lead">The defaults are the values the simulator starts with.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th><th>Default or rule</th></tr></thead>
+      <tbody>
+<tr><td class="s">x_i</td><td>Input value for row i</td><td>0 to 1</td><td class="num">set with the input sliders</td></tr>
+<tr><td class="s">V_i</td><td>Voltage on word line i</td><td>V</td><td class="num">x_i × V_read</td></tr>
+<tr><td class="s">V_read</td><td>Read voltage</td><td>V</td><td class="num">0.2</td></tr>
+<tr><td class="s">w_ij</td><td>Weight in row i, output j</td><td>−1 to +1</td><td class="num">set in the weight matrix</td></tr>
+<tr><td class="s">G_ij</td><td>Conductance of one cell</td><td>µS</td><td class="num">Gmin to Gmax</td></tr>
+<tr><td class="s">Gmin, Gmax</td><td>Conductance of the high- and low-resistance states</td><td>µS</td><td class="num">5 and 100</td></tr>
+<tr><td class="s">ΔG</td><td>The window, Gmax − Gmin</td><td>µS</td><td class="num">95</td></tr>
+<tr><td class="s">b, L</td><td>Bits per weight and number of levels, L = 2^b</td><td>bits, count</td><td class="num">4 bits, 16 levels</td></tr>
+<tr><td class="s">M, N</td><td>Rows (inputs) and outputs. There are 2N bit lines</td><td>count</td><td class="num">4 and 4</td></tr>
+<tr><td class="s">I_j</td><td>Current on bit line j</td><td>µA</td><td class="num">Σ V_i × G_ij</td></tr>
+<tr><td class="s">y_j</td><td>Output j after read-out and ADC</td><td>none</td><td class="num">ideal: Σ x_i × w_ij</td></tr>
+<tr><td class="s">σ</td><td>Device variation</td><td>%</td><td class="num">10</td></tr>
+<tr><td class="s">R_w</td><td>Wire resistance per segment</td><td>Ω</td><td class="num">0</td></tr>
+<tr><td class="s">V_0, ΔV</td><td>First write amplitude and step per pulse</td><td>V</td><td class="num">1.0 and 0.10</td></tr>
+<tr><td class="s">tol</td><td>Verify tolerance as a share of ΔG</td><td>%</td><td class="num">2</td></tr>
+<tr><td class="s">t_p</td><td>Write pulse width</td><td>ns</td><td class="num">50</td></tr>
+<tr><td class="s">I_cc</td><td>SET compliance (current limit)</td><td>µA</td><td class="num">50</td></tr>
+<tr><td class="s">t_read, t_ADC</td><td>Read pulse and ADC conversion time</td><td>ns</td><td class="num">10 and 10</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">1 µS = 10⁻⁶ siemens, which is a resistance of 1 MΩ. 100 µS is 10 kΩ. A voltage in volts times a conductance in µS gives a current in µA. A voltage times a current in µA times a time in ns gives energy in fJ (1,000 fJ = 1 pJ).</p>
+  </section>
+
+  <section class="panel" id="controls">
+    <h2>What each setting does</h2>
+    <p class="lead">Each row says what happens when you raise the setting. The numbers are the RMS output error (or the write cost) measured on the simulator's default 4 × 4 example with 10% variation and program-and-verify writing, changing one setting at a time. They are a guide to the direction and size of each effect, and will shift if you change other settings or the simulator is updated.</p>
+<h3 class="gh">Array and signal chain</h3><div class="tw"><table class="ct"><thead><tr><th>Control</th><th>What it is</th><th>Raise it, and what happens</th><th>Used in</th></tr></thead><tbody>
+<tr><td class="c">Array size</td><td>Rows and outputs.</td><td>More rows add more products per read, but also longer wires (more IR drop) and more cells to write.</td><td class="u">Step 2</td></tr>
+<tr><td class="c">Cell encoding</td><td>Analog multi-level (one cell holds any of 2^bits levels) or binary weighted (one 1-bit cell per weight bit, planes combined by shift and add).</td><td>Binary weighted uses as many bit planes as the Weight levels setting, so more cells and more ADC conversions, but each cell only needs two well-separated states and tolerates far more variation.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Weight sign and cells per weight</td><td>Two settings. Weight sign: Signed keeps negative weights, Unsigned stores them as 0. Cells per weight: a G⁺/G⁻ pair (two cells) or G⁺ only (one cell, with a shared reference column when signed).</td><td>The pair uses two cells per weight. The reference column and the unsigned layout use about half as many cells. The reference column keeps negatives but makes each step in w twice as coarse. Unsigned loses negatives and adds a Gmin offset to every output.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Input DAC (1 to 8 bits)</td><td>Resolution of the input voltages.</td><td>Finer inputs and lower error: RMS error 0.090, 0.046 and 0.038 at 2, 4 and 8 bits in the default example. DAC energy doubles with each bit.</td><td class="u">Step 2</td></tr>
+<tr><td class="c">Weight levels (1 to 8 bits)</td><td>How many conductance levels a weight can take.</td><td>Finer weights and lower error: 0.122, 0.046 and 0.032 at 2, 4 and 8 bits. The levels also sit closer together, so they are harder to hit.</td><td class="u">Steps 2, 3</td></tr>
+<tr><td class="c">Output ADC (3 to 12 bits)</td><td>Resolution of the converter on each bit-line pair.</td><td>Lower error: 0.125, 0.046 and 0.039 at 4, 8 and 12 bits. ADC energy doubles with each bit.</td><td class="u">Step 2</td></tr>
+<tr><td class="c">ADC range (20 to 100%)</td><td>Full scale as a share of the number of rows.</td><td>Too small clips large outputs (error 0.288 at 20%). Too large wastes resolution (0.046 at 100% against 0.041 at 50%). Pick a range just above the largest expected output.</td><td class="u">Step 2</td></tr>
+<tr><td class="c">Read voltage (0.05 to 0.3 V)</td><td>Voltage that a full-scale input puts on a word line.</td><td>Scales every current and the array energy. It does not change accuracy in this model. On real devices a high read voltage can disturb the cell (Step 1).</td><td class="u">Steps 1, 2</td></tr>
+<tr><td class="c">Gmin and Gmax</td><td>The two ends of the conductance window.</td><td>Alone they scale the currents and the energy but not the accuracy. Raising Gmax makes IR drop worse (error 0.070, 0.101 and 0.164 at 40, 100 and 200 µS with 200 Ω wires). Raising Gmin narrows the window, so variation matters more (0.088, 0.096 and 0.146 at 1, 5 and 20 µS with ideal writes).</td><td class="u">Steps 1, 2</td></tr>
+<tr><td class="c">Variation σ (0 to 25%)</td><td>Spread in how cells respond.</td><td>With ideal writes it goes straight into the weights (error 0.019, 0.096 and 0.263 at 0, 10 and 25%). Open-loop writes suffer too. Program-and-verify cancels most of it, so what is left is mainly the tolerance.</td><td class="u">Steps 1, 2, 3</td></tr>
+<tr><td class="c">Wire R per segment (0 to 300 Ω)</td><td>Resistance of each wire segment.</td><td>More IR drop and more error: 0.046, 0.056 and 0.146 at 0, 100 and 300 Ω.</td><td class="u">Step 2</td></tr>
+</tbody></table></div>
+<h3 class="gh">Writing the weights</h3><div class="tw"><table class="ct"><thead><tr><th>Control</th><th>What it is</th><th>Raise it, and what happens</th><th>Used in</th></tr></thead><tbody>
+<tr><td class="c">Write method</td><td>Program-and-verify, open loop, or ideal.</td><td>Verify reads back after every pulse. Open loop replays a fixed pulse train, which is cheaper but leaves the variation in. Ideal skips programming and adds only Gaussian variation.</td><td class="u">Steps 2, 3</td></tr>
+<tr><td class="c">Start amplitude (0.8 to 2 V)</td><td>Amplitude of the first pulse.</td><td>Too low wastes pulses, since pulses near 0.8 V barely move the cell (151 pulses at 0.8 V against 105 at 1.0 V). Too high lands coarse and costs more energy (2.0 V: 1,847 pJ against 1,401 pJ, and one cell out of tolerance).</td><td class="u">Steps 2, 3</td></tr>
+<tr><td class="c">Step ΔV (0.02 to 0.3 V)</td><td>How much each pulse is stronger than the last.</td><td>Smaller steps need more pulses (159 at 0.02 V against 95 at 0.3 V) and give a more gradual approach.</td><td class="u">Steps 2, 3</td></tr>
+<tr><td class="c">Verify tolerance (0.5 to 10%)</td><td>How close counts as done.</td><td>Looser is cheaper and less accurate: 178, 105 and 79 pulses and error 0.020, 0.046 and 0.088 at 0.5, 2 and 10%.</td><td class="u">Steps 2, 3</td></tr>
+<tr><td class="c">Max pulses per cell (1 to 60)</td><td>Pulse limit before the loop gives up.</td><td>Too low and cells stop before they arrive (error 0.619, 0.210 and 0.046 at 2, 6 and 30).</td><td class="u">Steps 2, 3</td></tr>
+<tr><td class="c">Pulse width (10 to 500 ns)</td><td>Duration of each write pulse.</td><td>Longer pulses cost more time and energy (1.3 µs and 617 pJ at 10 ns, 21.9 µs and 10.2 nJ at 500 ns). Accuracy is unchanged in this model.</td><td class="u">Step 2</td></tr>
+<tr><td class="c">SET compliance (10 to 200 µA)</td><td>Current limit during SET.</td><td>In this model it only sets the energy of each SET pulse (1,154 pJ at 10 µA, 2,325 pJ at 200 µA). On real devices it also strongly affects the filament.</td><td class="u">Step 2</td></tr>
+<tr><td class="c">Write order</td><td>A row at a time, or one cell at a time.</td><td>Changes write time only (3.0 µs against 8.0 µs for the 4 × 8 default array).</td><td class="u">Step 2</td></tr>
+<tr><td class="c">Block erase first</td><td>Counts the cost of the erase.</td><td>Switching it off removes about 650 pJ from the default array&#x27;s write energy (745 pJ against 1,401 pJ) but the cells then start from old data.</td><td class="u">Steps 2, 3</td></tr>
+</tbody></table></div>
+<h3 class="gh">Efficiency panel</h3><div class="tw"><table class="ct"><thead><tr><th>Control</th><th>What it is</th><th>Raise it, and what happens</th><th>Used in</th></tr></thead><tbody>
+<tr><td class="c">Digital weight source</td><td>Where the processor fetches weights from.</td><td>SRAM costs about 1.3 pJ per weight in the model and DRAM about 160 pJ. DRAM makes the digital side far more expensive, so the crossbar wins sooner.</td><td class="u">Step 2</td></tr>
+<tr><td class="c">MAC lanes and clock</td><td>How many multiply-adds the digital side does at once, and how fast.</td><td>More lanes and a faster clock cut the digital latency. The crossbar&#x27;s latency does not depend on them.</td><td class="u">Step 2</td></tr>
+<tr><td class="c">ReRAM read pulse and ADC conversion</td><td>Time to read the array and to convert the result.</td><td>Together they set the crossbar&#x27;s latency for one product. They do not depend on array size.</td><td class="u">Step 2</td></tr>
+<tr><td class="c">Weight reuse</td><td>How many products reuse one set of written weights.</td><td>Spreads the one-time write cost over more products. The table shows the break-even.</td><td class="u">Step 2</td></tr>
+</tbody></table></div>
+  </section>
+
+  <section class="panel" id="faq">
+    <h2>Common questions</h2>
+<details class="q"><summary>Why store a weight as conductance and not resistance?</summary><p>Because currents on a shared wire add in terms of conductance: I = V × (G₁ + G₂ + ...). Resistances in parallel combine through reciprocals, which does not give a sum. With conductance, the wire does the accumulation for free.</p></details>
+<details class="q"><summary>Why does a weight need two cells?</summary><p>A conductance cannot be negative. One cell holds the positive part and one holds the negative part, and the read-out subtracts them. Step 3 walks through it.</p></details>
+<details class="q"><summary>Does reading a cell erase or change the weight?</summary><p>Not at a small read voltage. The read stays inside the range where the cell acts like a plain resistor. A read at a high voltage can nudge the state, which is called read disturb (Step 1).</p></details>
+<details class="q"><summary>Is the crossbar analog or digital?</summary><p>The array itself is analog: voltages go in, currents add, and a current comes out. The DACs and ADCs at the edges are the interface to the digital system around it.</p></details>
+<details class="q"><summary>If ReRAM is so efficient, why does not every chip use it?</summary><p>Writing is slow and costly, cells vary and drift, endurance is limited, large arrays suffer IR drop and sneak paths, and the converters take energy and area. It suits cases where the same weights are read many times, such as running a trained network. The efficiency panel in Step 2 lets you see where the advantage appears and where it does not.</p></details>
+<details class="q"><summary>Why verify after each pulse?</summary><p>The same pulse moves different cells by different amounts. Reading back lets the controller stop each cell near its target. In Step 3, switch to open loop and press Try a different cell to see the spread.</p></details>
+<details class="q"><summary>Is this simulator a model of a real chip?</summary><p>No. It is a generic teaching model. The device response, the energies and the timings are illustrative values, and it has not been compared against measured hardware or a circuit simulator such as SPICE.</p></details>
+  </section>
+
+  <section class="panel" id="read">
+    <h2>Further reading</h2>
+    <p class="lead">Start with the two review papers. The others are the original sources for ideas used in these pages. Check each publisher page for the final details.</p>
+    <ol class="refs">
+<li>Ielmini, D. and Wong, H.-S. P. &quot;In-memory computing with resistive switching devices.&quot; Nature Electronics 1, 333–343 (2018). <a href="https://link.springer.com/10.1038/s41928-018-0092-2" rel="noopener">Link</a><br><span class="note">A broad review of crossbar computing with ReRAM, including matrix-vector multiplication.</span></li>
+<li>Wong, H.-S. P. et al. &quot;Metal–oxide RRAM.&quot; Proceedings of the IEEE 100(6), 1951–1970 (2012). <a href="https://ieeexplore.ieee.org/document/6226448" rel="noopener">Link</a><br><span class="note">The standard introduction to how oxide ReRAM cells switch.</span></li>
+<li>Alibart, F., Gao, L., Hoskins, B. D. and Strukov, D. B. &quot;High precision tuning of state for memristive devices by adaptable variation-tolerant algorithm.&quot; Nanotechnology 23, 075201 (2012). <a href="https://arxiv.org/abs/1110.1393" rel="noopener">Link</a><br><span class="note">The write-and-verify idea of Step 3, applied to real devices.</span></li>
+<li>Waser, R. and Aono, M. &quot;Nanoionics-based resistive switching memories.&quot; Nature Materials 6, 833–840 (2007).<br><span class="note">Physics of the filament mechanism. Search the title to find the publisher page.</span></li>
+<li>Sebastian, A. et al. &quot;Memory devices and applications for in-memory computing.&quot; Nature Nanotechnology 15, 529–544 (2020).<br><span class="note">Survey of memory devices used for computing. Search the title to find the publisher page.</span></li>
+<li>Hu, M. et al. &quot;Dot-product engine for neuromorphic computing: programming 1T1M crossbar to accelerate matrix-vector multiplication.&quot; Design Automation Conference (DAC), 2016.<br><span class="note">Matrix-vector multiplication on a memristor crossbar and how it is programmed.</span></li>
+<li>Prezioso, M. et al. &quot;Training and operation of an integrated neuromorphic network based on metal-oxide memristors.&quot; Nature 521, 61–64 (2015).<br><span class="note">A small neural network built on a memristor crossbar.</span></li>
+<li>Strukov, D. B. et al. &quot;The missing memristor found.&quot; Nature 453, 80–83 (2008).<br><span class="note">The paper that linked resistive switching devices to the memristor idea.</span></li>
+<li>Chua, L. O. &quot;Memristor: the missing circuit element.&quot; IEEE Transactions on Circuit Theory 18(5), 507–519 (1971).<br><span class="note">Where the memristor was first proposed.</span></li>
+    </ol>
+  </section>
+
+  <footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>
+</div>
+<script>
+(function(){
+var q=document.getElementById('gq'),items=Array.prototype.slice.call(document.querySelectorAll('#gl .term')),c=document.getElementById('gc'),n=document.getElementById('gn');
+function f(){
+  var v=q.value.trim().toLowerCase(),shown=0;
+  items.forEach(function(t){var m=!v||t.getAttribute('data-t').indexOf(v)>-1;t.hidden=!m;if(m)shown++});
+  c.textContent=v?shown+' of '+items.length+' terms':'';
+  n.hidden=shown>0;
+}
+q.addEventListener('input',f);
+})();
+</script>
+</body>
+</html>
