@@ -9,7 +9,10 @@ Personal site with browser simulators for my chip projects. Each simulator is on
 | `index.html` | Landing page linking to all projects |
 | `agila32/index.html` | AgilA32 simulator (RV32I CPU with RP2040-style PIO) |
 | `mc14500b/index.html` | MC14500B simulator (1-bit SoC) |
-| `reram/index.html` | ReRAM crossbar compute-in-memory simulator |
+| `reram/basics/index.html` | ReRAM lesson, Step 1: a ReRAM cell vs an ordinary resistor |
+| `reram/write/index.html` | ReRAM lesson, Step 2: how a weight gets written into a cell |
+| `reram/index.html` | ReRAM crossbar compute-in-memory simulator (Step 3) |
+| `reram/reference/index.html` | ReRAM reference: equations, glossary, symbols, settings, FAQ |
 
 ## AgilA32 browser simulator
 
@@ -48,7 +51,11 @@ Not verified against the Verilog in a simulator: the page was checked by running
 
 `reram/index.html` is a generic, textbook model of analog ReRAM compute-in-memory. It is plain HTML and JavaScript with no build. Weights are stored as differential conductance pairs (G+ and G-) in a passive crossbar, inputs are applied as word-line voltages, and each bit line sums its cell currents (Ohm's law per cell, Kirchhoff's current law per column). The pair is subtracted and digitized by an ADC, then compared with the ideal floating-point product.
 
-Two-step lesson: `reram/basics/index.html` is Step 1, meant to be read before the crossbar simulator (Step 2). It compares a ReRAM cell with an ordinary resistor: a cell you can SET, RESET, read (including read disturb) and power off, an I-V loop with a read-range band, a variation, drift and endurance demo, a section on what SET and RESET pulses do inside the cell (SET and RESET are opposite-polarity pulses across the top and bottom electrodes; a toggle and amplitude slider show the oxygen-ion drift, the filament before and after one pulse, the pulse shape against the 0.8 V threshold, a seven-rung ladder of filament states showing how weights are dialled in pulse by pulse, and how the pulse is injected in a 1T1R cell and in a passive crossbar with the V/2 scheme, warning when the half-selected cells would be disturbed), a comparison table, a preview of what each difference means in the simulator, and six check-yourself questions. The two pages and the home page link to each other.
+Three-step lesson: `reram/basics/index.html` is Step 1, meant to be read before the write walkthrough (Step 2) and the crossbar simulator (Step 3). It compares a ReRAM cell with an ordinary resistor: a cell you can SET, RESET, read (including read disturb) and power off, an I-V loop with a read-range band, a variation, drift and endurance demo, a first section that is one live cell figure: a pulse generator wired across the electrodes, oxygen-ion dots, the O²⁻ arrow and a dashed outline of the filament before the last pulse, with the SET/RESET polarity explained under it (SET and RESET are opposite-polarity pulses across the top and bottom electrodes; the SET, RESET, Read, Erase and power buttons and the amplitude slider drive it, and the pulse is checked against the 0.8 V threshold), a second section with a seven-rung ladder of filament states showing how weights are dialled in pulse by pulse, and how the pulse is injected in a 1T1R cell and in a passive crossbar with the V/2 scheme, warning when the half-selected cells would be disturbed), a comparison table, a preview of what each difference means in the simulator, and six check-yourself questions. 
+
+`reram/write/index.html` (Step 2) follows one weight from a number to a conductance in six steps: start with a weight, pick the cell (differential pair), round to a level, erase, pulse-read-compare until close enough (with a step-by-step log, waveform and trajectory charts), and the result with time, energy and accuracy. Sliders set bits, tolerance, start voltage, voltage step, pulse limit and device variation.
+
+`reram/reference/index.html` is the study sheet for all three steps: a learning path, the signal chain, eleven equations with worked examples, a filterable glossary, a symbols and units table, what each simulator setting does, FAQ and further reading. All four pages and the home page link to each other.
 
 Page order in the simulator: the crossbar and its five-step walkthrough come first, then the three examples, then the controls, the write panel, the results and the efficiency panel, then the references.
 

@@ -73,7 +73,8 @@ table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
 th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute)}
 td:first-child{font-weight:600;white-space:nowrap}
-#cellSvg,#resSvg{max-width:340px;margin-left:auto;margin-right:auto}
+#cellSvg{max-width:540px;margin-left:auto;margin-right:auto}
+#resSvg{max-width:340px;margin-left:auto;margin-right:auto}
 #gauge,#gauge2{max-width:340px;margin-left:auto;margin-right:auto}
 .cmp td:first-child{white-space:normal}
 @media (max-width:600px){.cmp th,.cmp td{padding:6px 6px;font-size:12px}}
@@ -93,12 +94,12 @@ details.q p{margin:8px 0 2px}
 <body>
 <div class="wrap">
   <header>
-    <p class="crumb"><span class="cap">Step 1 of 2</span> &nbsp;·&nbsp; ReRAM basics &nbsp;·&nbsp; <a href="../">Next: the crossbar simulator &rarr;</a></p>
+    <p class="crumb"><span class="cap">Step 1 of 3</span> &nbsp;·&nbsp; ReRAM basics &nbsp;·&nbsp; <a href="../write/">Next: how a weight gets written into a cell &rarr;</a> &nbsp;·&nbsp; <a href="../reference/">Reference</a></p>
     <h1>ReRAM vs an ordinary resistor</h1>
     <p>An ordinary resistor has a fixed value. A ReRAM cell is a resistor whose value you can change with electrical pulses, and which then keeps that value with the power off. Everything in the crossbar simulator follows from that one difference. This page lets you poke at it before you meet the array.</p>
     <nav class="toc" aria-label="On this page">
       <a href="#cell">1. Write a cell</a>
-      <a href="#pulses">2. What a pulse does</a>
+      <a href="#pulses">2. Pulses and wiring</a>
       <a href="#iv">3. The I-V loop</a>
       <a href="#flaws">4. Why it is not perfect</a>
       <a href="#table">5. Side by side</a>
@@ -120,10 +121,11 @@ details.q p{margin:8px 0 2px}
   <section class="panel" id="cell">
     <h2>1. Write a cell</h2>
     <p class="lead">Both cells below start at about the same value. Send the same pulses to both. The resistor ignores them. The ReRAM cell changes, one step per pulse, and then holds the new value. Try cutting the power.</p>
+    <p class="lead"><b>Is a SET pulse the same as a RESET pulse? No.</b> In the usual (bipolar) oxide ReRAM they have <b>opposite polarity</b>: a SET pulse makes the top electrode positive compared with the bottom one, and a RESET pulse makes it negative. The pulse generator on the left is wired <b>across the cell</b>, between its two electrodes. The filament is not drawn or erased by a tool: the electric field pushes oxygen ions through the oxide, and that rearranges the conducting path. The dashed outline shows the filament before the last pulse.</p>
     <div class="two">
       <div class="card">
         <h3>ReRAM cell</h3>
-        <svg id="cellSvg" viewBox="0 0 330 210" role="img" aria-label="Cross section of a ReRAM cell with a filament that grows and shrinks"></svg>
+        <svg id="cellSvg" viewBox="0 0 440 240" role="img" aria-label="A pulse generator wired across the top and bottom electrodes of a ReRAM cell, with the ion movement and the filament before and after the last pulse"></svg>
         <div class="read" id="cellRead"></div>
         <svg id="gauge" viewBox="0 0 330 50" role="img" aria-label="Conductance gauge"></svg>
       </div>
@@ -145,47 +147,38 @@ details.q p{margin:8px 0 2px}
       <button id="bErase">Erase to high R</button>
     </div>
     <p class="status" id="cellMsg" aria-live="polite"></p>
-    <p class="note">Pulses below about 0.8 V do nothing (below the switching threshold). Stronger pulses move the filament further. Reading above about 0.8 V starts to behave like a weak SET pulse, which is called read disturb. The step size model is the same illustrative one the write panel in the simulator uses. The next section shows what a pulse does inside the cell and where it is applied.</p>
+    <p class="status" id="pmText" aria-live="polite" style="min-height:5.5em"></p>
+    <h3 style="font-family:var(--f-display);font-size:15px;margin:10px 0 4px">SET and RESET side by side</h3>
+    <div class="tw">
+    <table class="cmp">
+      <thead><tr><th></th><th>SET</th><th>RESET</th></tr></thead>
+      <tbody>
+        <tr><td>Voltage across the cell (top − bottom)</td><td>Positive</td><td>Negative (opposite polarity)</td></tr>
+        <tr><td>What moves</td><td>O²⁻ ions drift toward the top electrode, leaving oxygen vacancies that line up</td><td>O²⁻ ions drift back into the oxide and refill vacancies at the filament tip</td></tr>
+        <tr><td>Filament</td><td>Grows and bridges the oxide</td><td>Partly dissolves, a gap opens next to the top electrode</td></tr>
+        <tr><td>Resistance</td><td>Falls (G rises)</td><td>Rises (G falls)</td></tr>
+        <tr><td>Current limit</td><td>Needed (the “compliance”)</td><td>Not needed</td></tr>
+        <tr><td>What sets the level</td><td>Compliance current, amplitude, width, number of pulses</td><td>Amplitude, width, number of pulses</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="note">Pulses below about 0.8 V do nothing (below the switching threshold). Stronger pulses move the filament further. Reading above about 0.8 V starts to behave like a weak SET pulse, which is called read disturb. The step size model is the same illustrative one the write panel in the simulator uses. This is the usual bipolar picture (for example HfOx). Which electrode is positive for SET depends on the material stack, and some cell types (unipolar) use the same polarity for both and tell them apart by amplitude and length. The simulator uses the bipolar picture, and its numbers are illustrative. The next section shows how single pulses add up to a weight and where the pulse is applied in an array.</p>
   </section>
 
   <section class="panel" id="pulses">
-    <h2>2. What a pulse does inside the cell, and where it goes</h2>
-    <p class="lead"><b>Is a SET pulse the same as a RESET pulse? No.</b> In the usual (bipolar) oxide ReRAM they have <b>opposite polarity</b>: a SET pulse makes the top electrode positive compared with the bottom one, and a RESET pulse makes it negative. The pulse is applied <b>across the cell</b>, between its two electrodes. The filament is not drawn on or erased by a tool: the electric field pushes oxygen ions through the oxide, and that rearranges the conducting path. Pick a pulse type and an amplitude below.</p>
+    <h2>2. Pulse by pulse, and where the pulse goes</h2>
+
+    <h3 style="font-family:var(--f-display);font-size:15px;margin:6px 0 4px">A. Pulse by pulse: how a weight gets dialled in</h3>
+    <p class="lead" style="font-size:13px">One pulse moves the filament only a little, so the conductance climbs or falls in steps. Each SET pulse thickens the filament and raises G, each RESET pulse widens the gap and lowers G. Writing a weight means stopping on the right rung. That is why the simulator&rsquo;s write loop sends a pulse, reads the cell back and decides whether to send another SET or RESET pulse.</p>
+    <svg id="ladSvg" viewBox="0 0 560 218" role="img" aria-label="Seven filament states from high resistance to low resistance, with SET pulses moving right and RESET pulses moving left" style="max-width:720px"></svg>
+
+    <h3 style="font-family:var(--f-display);font-size:15px;margin:16px 0 4px">B. Where the pulse is injected</h3>
+    <p class="lead" style="font-size:13px">The pulse always goes <b>between the top and bottom electrode</b> of the one cell you want to change. In an array you reach that cell through the wires and, in many designs, a transistor. Choose the pulse type and how the cell is wired:</p>
     <div class="btns" role="group" aria-label="Pulse type">
       <button class="set on" type="button" id="pmSet" aria-pressed="true">SET pulse</button>
       <button class="reset" type="button" id="pmReset" aria-pressed="false">RESET pulse</button>
     </div>
     <div class="row" style="max-width:520px"><label for="pmAmp">Pulse amplitude |V|</label><input type="range" id="pmAmp" min="0.5" max="2.4" step="0.05" value="1.6"><output id="pmAmpO">1.60 V</output></div>
-    <div class="two">
-      <div>
-        <h3 style="font-family:var(--f-display);font-size:15px;margin:6px 0 4px">A. One pulse, before and after</h3>
-        <svg id="pmSvg" viewBox="0 0 460 292" role="img" aria-label="A pulse generator connected across the top and bottom electrodes of a ReRAM cell, with the filament before and after one pulse"></svg>
-      </div>
-      <div>
-        <p class="status" id="pmText" aria-live="polite" style="min-height:8em"></p>
-        <div class="tw">
-        <table class="cmp">
-          <thead><tr><th></th><th>SET</th><th>RESET</th></tr></thead>
-          <tbody>
-            <tr><td>Voltage across the cell (top − bottom)</td><td>Positive</td><td>Negative (opposite polarity)</td></tr>
-            <tr><td>What moves</td><td>O²⁻ ions drift toward the top electrode, leaving oxygen vacancies that line up</td><td>O²⁻ ions drift back into the oxide and refill vacancies at the filament tip</td></tr>
-            <tr><td>Filament</td><td>Grows and bridges the oxide</td><td>Partly dissolves, a gap opens next to the top electrode</td></tr>
-            <tr><td>Resistance</td><td>Falls (G rises)</td><td>Rises (G falls)</td></tr>
-            <tr><td>Current limit</td><td>Needed (the “compliance”)</td><td>Not needed</td></tr>
-            <tr><td>What sets the level</td><td>Compliance current, amplitude, width, number of pulses</td><td>Amplitude, width, number of pulses</td></tr>
-          </tbody>
-        </table>
-        </div>
-      </div>
-    </div>
-    <p class="note">This is the usual bipolar picture (for example HfOx). Which electrode is positive for SET depends on the material stack, and some cell types (unipolar) use the same polarity for both and tell them apart by amplitude and length. The simulator uses the bipolar picture, and its numbers are illustrative.</p>
-
-    <h3 style="font-family:var(--f-display);font-size:15px;margin:16px 0 4px">B. Pulse by pulse: how a weight gets dialled in</h3>
-    <p class="lead" style="font-size:13px">One pulse moves the filament only a little, so the conductance climbs or falls in steps. Each SET pulse thickens the filament and raises G, each RESET pulse widens the gap and lowers G. Writing a weight means stopping on the right rung. That is why the simulator&rsquo;s write loop sends a pulse, reads the cell back and decides whether to send another SET or RESET pulse.</p>
-    <svg id="ladSvg" viewBox="0 0 560 218" role="img" aria-label="Seven filament states from high resistance to low resistance, with SET pulses moving right and RESET pulses moving left" style="max-width:720px"></svg>
-
-    <h3 style="font-family:var(--f-display);font-size:15px;margin:16px 0 4px">C. Where the pulse is injected</h3>
-    <p class="lead" style="font-size:13px">The pulse always goes <b>between the top and bottom electrode</b> of the one cell you want to change. In an array you reach that cell through the wires and, in many designs, a transistor. Choose how the cell is wired:</p>
     <div class="btns" role="group" aria-label="Wiring">
       <button class="on" type="button" id="pcT" aria-pressed="true">1T1R: one transistor + one cell</button>
       <button type="button" id="pcX" aria-pressed="false">Passive crossbar (as in the simulator)</button>
@@ -254,7 +247,7 @@ details.q p{margin:8px 0 2px}
 
   <section class="panel" id="sim">
     <h2>6. What you will meet in the simulator</h2>
-    <p class="lead">Step 2 is the crossbar simulator. Each difference above explains one of its controls, so here is a preview of what to look for there.</p>
+    <p class="lead">Step 2 shows how a weight is written into a cell, and Step 3 is the crossbar simulator. Each difference above explains one of their controls, so here is a preview of what to look for.</p>
     <div class="mapgrid">
       <div class="card"><h3>The write panel</h3><p>Erase, SET and RESET pulses, program-and-verify and the pulse-count map exist only because ReRAM must be programmed. A resistor array would skip all of it. <a href="../#prog">Open the write panel</a>.</p></div>
       <div class="card"><h3>The variation σ slider</h3><p>The σ slider and the write-noise model represent ReRAM's imprecision (section 4 above). A resistor array would mainly have small, static mismatch. <a href="../#prog">See it in the write map</a>.</p></div>
@@ -276,8 +269,8 @@ details.q p{margin:8px 0 2px}
   </section>
 
   <section class="panel" id="next" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
-    <div><span class="cap">Step 2 of 2</span><h2 style="margin:2px 0 0">Ready for the crossbar?</h2><p class="note" style="margin:4px 0 0;font-size:13px;max-width:60ch">Now that a cell is a resistor you can program, put thousands of them in a grid: voltages in, Ohm's law per cell, currents add on the bit lines, and the multiply-accumulate is done.</p></div>
-    <a href="../" style="text-decoration:none"><button class="set" type="button" style="padding:10px 18px;font-size:15px">Open the crossbar simulator &rarr;</button></a>
+    <div><span class="cap">Step 2 of 3</span><h2 style="margin:2px 0 0">Ready to write a weight?</h2><p class="note" style="margin:4px 0 0;font-size:13px;max-width:60ch">Now that a cell is a resistor you can program, follow one weight from a number to a conductance: pick the cell, round to a level, erase, then pulse and read back until it is close enough. After that, the crossbar puts thousands of these cells in a grid.</p></div>
+    <a href="../write/" style="text-decoration:none"><button class="set" type="button" style="padding:10px 18px;font-size:15px">Follow one weight, step by step &rarr;</button></a>
   </section>
 
   <footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>
@@ -296,22 +289,63 @@ function rng(seed){var a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=
 function gauss(r){var u=r()||1e-9,v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
 
 /* ---------- 1. write a cell ---------- */
-var C={s:0.12,power:true,msg:'Start by pressing SET a few times.'};
+var C={s:0.12,power:true,msg:'Start by pressing SET a few times.',last:{type:'none'}};
 var DOTS=[[60,70],[90,110],[130,60],[170,120],[210,75],[250,105],[280,65],[100,95],[240,130],[150,95],[200,55],[270,115],[75,125],[185,100]];
 function drawCell(){
-  var s=C.s,top=46,bot=156,H=bot-top,yt=bot-s*H,wb=8+22*s,wt=4+12*s,cx=130,o='';
-  o+='<g transform="translate(-12 0)">';
-  o+='<rect x="30" y="16" width="200" height="30" rx="3" fill="var(--mute)" opacity=".55"/><text x="130" y="36" text-anchor="middle" font-size="13" fill="var(--ink)">top electrode</text>';
-  o+='<rect x="30" y="'+top+'" width="200" height="'+H+'" fill="var(--line)" opacity=".7"/>';
-  DOTS.forEach(function(d){o+='<circle cx="'+d[0]+'" cy="'+(top+8+(d[1]-55)*1.35)+'" r="2.2" fill="var(--mute)" opacity=".5"/>'});
+  var s=C.s,L=C.last||{type:'none'},type=L.type,o='',cx=250,top=52,bot=152,H=bot-top,xL=165,W=170;
+  var isRead=type==='read',pulsed=(type==='set'||type==='reset'||type==='erase'),active=pulsed||isRead;
+  var topPos=(type==='set'||isRead),v=L.v||0,pos='var(--curr)',neg='var(--volt)',idle='var(--mute)';
+  var topc=!active?idle:(topPos?pos:neg),botc=!active?idle:(topPos?neg:pos),sw=isRead?1.8:3;
+  var yt=bot-s*H,wb=8+22*s,wt=4+12*s,gap=yt-top,k;
+  /* pulse generator, with a small scope that shows the pulse shape */
+  o+='<rect x="4" y="56" width="92" height="94" rx="8" fill="var(--bg)" stroke="var(--line)"/>';
+  o+='<text x="50" y="74" text-anchor="middle" font-size="12" fill="var(--ink)">pulse</text><text x="50" y="88" text-anchor="middle" font-size="12" fill="var(--ink)">generator</text>';
+  o+='<rect x="12" y="96" width="76" height="38" rx="3" fill="var(--panel)" stroke="var(--line)"/>';
+  o+='<line x1="16" x2="84" y1="108.4" y2="108.4" stroke="var(--mute)" stroke-dasharray="3 3" opacity=".8"/><line x1="16" x2="84" y1="119.6" y2="119.6" stroke="var(--mute)" stroke-dasharray="3 3" opacity=".8"/>';
+  var Y=114-(topPos?1:-1)*Math.min(v,2.4)*7;
+  o+='<line x1="14" x2="86" y1="114" y2="114" stroke="var(--ink)" stroke-width="1" opacity=".55"/>';
+  if(active)o+='<polyline points="14,114 30,114 30,'+Y.toFixed(1)+' 70,'+Y.toFixed(1)+' 70,114 86,114" fill="none" stroke="'+topc+'" stroke-width="2.5"/>';
+  o+='<circle cx="96" cy="66" r="3.5" fill="'+topc+'"/><circle cx="96" cy="141" r="3.5" fill="'+botc+'"/>';
+  o+='<text x="84" y="71" text-anchor="end" font-size="16" font-weight="700" fill="'+topc+'">'+(!active?'':(topPos?'+':'−'))+'</text><text x="84" y="146" text-anchor="end" font-size="16" font-weight="700" fill="'+botc+'">'+(!active?'':(topPos?'−':'+'))+'</text>';
+  o+='<path d="M96 66 H130 V38 H'+xL+'" fill="none" stroke="'+topc+'" stroke-width="'+sw+'"/><path d="M96 141 H130 V166 H'+xL+'" fill="none" stroke="'+botc+'" stroke-width="'+sw+'"/>';
+  o+='<text x="123" y="47" text-anchor="end" font-size="12" fill="'+topc+'">'+(active&&topPos?'+'+v.toFixed(2)+' V':'0 V')+'</text><text x="123" y="161" text-anchor="end" font-size="12" fill="'+botc+'">'+(active&&!topPos?'+'+v.toFixed(2)+' V':'0 V')+'</text>';
+  /* electrodes, oxide, ions, filament */
+  o+='<rect x="'+xL+'" y="24" width="'+W+'" height="28" rx="3" fill="var(--mute)" opacity=".55"/><text x="'+cx+'" y="42" text-anchor="middle" font-size="13" fill="var(--ink)">top electrode</text>';
+  o+='<rect x="'+xL+'" y="'+top+'" width="'+W+'" height="'+H+'" fill="var(--line)" opacity=".7"/>';
   o+='<polygon points="'+(cx-wb/2)+','+bot+' '+(cx+wb/2)+','+bot+' '+(cx+wt/2)+','+yt.toFixed(1)+' '+(cx-wt/2)+','+yt.toFixed(1)+'" fill="var(--curr)" opacity="'+(0.25+0.75*s).toFixed(2)+'"/>';
-  o+='<rect x="30" y="'+bot+'" width="200" height="30" rx="3" fill="var(--mute)" opacity=".55"/><text x="130" y="'+(bot+20)+'" text-anchor="middle" font-size="13" fill="var(--ink)">bottom electrode</text>';
-  o+='<text x="238" y="'+(top+15)+'" font-size="13" fill="var(--ink)">metal oxide</text><text x="238" y="'+(top+31)+'" font-size="12" fill="var(--mute)">(e.g. HfOx)</text>';
-  o+='<text x="'+(cx+wb/2+8)+'" y="'+(Math.min(Math.max(yt+12,top+52),bot-4))+'" font-size="12" fill="var(--curr)">filament</text>';
-  if(s<0.97)o+='<text x="'+(cx+16)+'" y="'+((top+yt)/2+4)+'" font-size="12" fill="var(--mute)">gap</text>';
-  o+='</g>';
-  if(!C.power)o+='<rect x="0" y="0" width="330" height="210" fill="var(--bg)" opacity=".55"/><text x="165" y="104" text-anchor="middle" font-size="16" fill="var(--ink)">power off, filament still there</text>';
+  for(k=0;k<4;k++){
+    var ix=cx+(k-1.5)*W*0.15,iy=gap>16?top+6+(gap-12)*((k*0.37)%1):top+6;
+    o+='<circle cx="'+ix.toFixed(1)+'" cy="'+iy.toFixed(1)+'" r="3.2" fill="var(--volt)" opacity=".85"/>';
+  }
+  if(L.s0!=null&&Math.abs(L.s0-s)>0.004){
+    var y0=bot-L.s0*H,b0=8+22*L.s0,t0=4+12*L.s0;
+    o+='<polygon points="'+(cx-b0/2)+','+bot+' '+(cx+b0/2)+','+bot+' '+(cx+t0/2)+','+y0.toFixed(1)+' '+(cx-t0/2)+','+y0.toFixed(1)+'" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-dasharray="4 3"/>';
+  }
+  o+='<rect x="'+xL+'" y="'+bot+'" width="'+W+'" height="28" rx="3" fill="var(--mute)" opacity=".55"/><text x="'+cx+'" y="171" text-anchor="middle" font-size="13" fill="var(--ink)">bottom electrode</text>';
+  o+='<text x="343" y="66" font-size="13" fill="var(--ink)">metal oxide</text><text x="343" y="82" font-size="12" fill="var(--mute)">(e.g. HfOx)</text>';
+  o+='<text x="'+(cx+wb/2+8)+'" y="'+(Math.min(Math.max(yt+12,top+50),bot-4))+'" font-size="12" fill="var(--curr)">filament</text>';
+  if(gap>=20)o+='<text x="'+(cx+44)+'" y="'+((top+yt)/2+4)+'" font-size="12" fill="var(--mute)">gap</text>';
+  /* ion drift arrow: toward the positive electrode */
+  var moved=pulsed?!L.below:(isRead&&L.s0!=null&&Math.abs(L.s0-s)>0.004);
+  if(active){
+    var down=!topPos,op=moved?1:0.3;
+    o+='<g opacity="'+op+'">'+pmArrow(176,down?62:141,176,down?141:62,'var(--volt)',2)+'<text x="186" y="104" font-size="12" fill="var(--volt)">O²⁻</text></g>';
+  }
+  /* legend */
+  o+='<circle cx="172" cy="206" r="3.2" fill="var(--volt)"/><text x="182" y="210" font-size="12" fill="var(--mute)">oxygen ion O²⁻</text><rect x="300" y="200" width="14" height="10" fill="var(--curr)" opacity=".8"/><text x="320" y="210" font-size="12" fill="var(--mute)">filament</text>';
+  o+='<line x1="165" x2="187" y1="228" y2="228" stroke="var(--ink)" stroke-width="1.8" stroke-dasharray="4 3"/><text x="193" y="232" font-size="12" fill="var(--mute)">filament before the last pulse</text>';
+  if(!C.power)o+='<rect x="0" y="0" width="440" height="240" fill="var(--bg)" opacity=".6"/><text x="220" y="120" text-anchor="middle" font-size="16" fill="var(--ink)">power off, filament still there</text>';
   $('cellSvg').innerHTML=o;
+}
+function physText(){
+  var L=C.last||{type:'none'},t=L.type,v=L.v||0,g0,g1,ch;
+  if(t==='none')return 'Press <b>SET</b> or <b>RESET</b>. The pulse generator is wired across the top and bottom electrode of this one cell. SET makes the top electrode positive and RESET makes it negative, and the field moves the oxygen ions that build or break the filament.';
+  g0=gOf(L.s0).toFixed(1);g1=gOf(C.s).toFixed(1);ch=Math.abs(L.s0-C.s)>0.004;
+  if(t==='read')return '<b>Read at +'+v.toFixed(2)+' V.</b> A small positive voltage is put across the cell and the current is measured. '+(ch?'This is above the switching threshold, so the field starts to move ions and the read disturbed the cell (G '+g0+' to '+g1+' µS).':'This is below the switching threshold, so the ions barely move and the filament is unchanged. The cell just follows I = V × G.');
+  if(L.below)return '<b>'+(t==='set'?'SET at +':'RESET at −')+v.toFixed(2)+' V:</b> the pulse is below the switching threshold (0.8 V, the dashed lines on the scope), so the ions barely move and the filament stays as it was. Raise the amplitude.';
+  if(t==='set')return '<b>SET at +'+v.toFixed(2)+' V.</b> The top electrode is positive, so the field pulls oxygen ions (O²⁻) toward it and leaves oxygen vacancies behind. The vacancies line up into a conducting filament that grows from the bottom electrode toward the top. This pulse took G from '+g0+' to '+g1+' µS. A SET needs a current limit (the compliance), otherwise the filament keeps growing and becomes too thick to dissolve again.';
+  if(t==='reset')return '<b>RESET at −'+v.toFixed(2)+' V.</b> The polarity is reversed, so the field pushes the oxygen ions back into the oxide. They refill vacancies at the tip of the filament, next to the top electrode, and break it: a gap opens and blocks the current. This pulse took G from '+g0+' to '+g1+' µS. A larger |V| or a longer pulse opens the gap further.';
+  return '<b>Erase.</b> A strong RESET pulse (−'+v.toFixed(2)+' V) breaks the whole filament, so G went from '+g0+' to '+g1+' µS. The simulator does this to the whole array before it writes any weights.';
 }
 function gaugeSvg(id,g,label,col){
   var x0=14,x1=316,X=function(v){return x0+(x1-x0)*(v-GMIN)/(GMAX-GMIN)};
@@ -332,6 +366,7 @@ function renderCell(){
   $('resRead').innerHTML='<span class="big">'+fmtR(GRES)+'</span><br>G = <b>'+GRES.toFixed(1)+' µS</b> · same value always';
   gaugeSvg('gauge2',GRES,'','var(--ink)');
   $('cellMsg').textContent=C.msg;
+  $('pmText').innerHTML=physText();
   $('bSet').disabled=$('bReset').disabled=$('bRead').disabled=$('bErase').disabled=!C.power;
   $('bPower').textContent=C.power?'Cut the power':'Power back on';
   $('bPower').setAttribute('aria-pressed',C.power?'false':'true');
@@ -342,19 +377,22 @@ $('cAmp').addEventListener('input',function(e){$('cAmpO').textContent=parseFloat
 $('cRd').addEventListener('input',function(e){$('cRdO').textContent=parseFloat(e.target.value).toFixed(2)+' V'});
 $('bSet').addEventListener('click',function(){
   var v=parseFloat($('cAmp').value),d=drive(v);
+  C.last={type:'set',v:v,s0:C.s,below:d===0};
   if(d===0){C.msg='A '+v.toFixed(2)+' V pulse is below the switching threshold ('+VTH+' V), so the filament does not move.'}
   else{var before=gOf(C.s);C.s=clamp(C.s+A*d*(1-C.s),0,1);C.msg='SET at '+v.toFixed(2)+' V: the filament grows, G went from '+before.toFixed(1)+' to '+gOf(C.s).toFixed(1)+' µS. Press again for another step.'}
   setRes('Same pulse sent: no change.');renderCell();
 });
 $('bReset').addEventListener('click',function(){
   var v=parseFloat($('cAmp').value),d=drive(v);
+  C.last={type:'reset',v:v,s0:C.s,below:d===0};
   if(d===0){C.msg='A '+v.toFixed(2)+' V pulse is below the switching threshold ('+VTH+' V), so the filament does not move.'}
   else{var before=gOf(C.s);C.s=clamp(C.s-A*d*C.s,0,1);C.msg='RESET at −'+v.toFixed(2)+' V: the filament partly dissolves, G went from '+before.toFixed(1)+' to '+gOf(C.s).toFixed(1)+' µS.'}
   setRes('Same pulse sent: no change.');renderCell();
 });
-$('bErase').addEventListener('click',function(){C.s=0;C.msg='Block erase: the filament is fully broken. This is what the simulator does to the whole array before it writes any weights.';setRes('');renderCell()});
+$('bErase').addEventListener('click',function(){C.last={type:'erase',v:2.0,s0:C.s};C.s=0;C.msg='Block erase: the filament is fully broken. This is what the simulator does to the whole array before it writes any weights.';setRes('');renderCell()});
 $('bRead').addEventListener('click',function(){
   var v=parseFloat($('cRd').value),g=gOf(C.s),I=g*v;
+  C.last={type:'read',v:v,s0:C.s};
   var m='Read at '+v.toFixed(2)+' V: I = V·G = '+I.toFixed(1)+' µA.';
   if(v>VTH){var d=drive(v),b=g;C.s=clamp(C.s+0.1*d*(1-C.s),0,1);m+=' That is above the threshold, so the read disturbed the cell and nudged G from '+b.toFixed(1)+' to '+gOf(C.s).toFixed(1)+' µS.'}
   else if(v>0.5){m+=' Getting close to the switching threshold; real devices already show some disturb here.'}
@@ -367,7 +405,7 @@ $('bPower').addEventListener('click',function(){
   renderCell();
 });
 
-/* ---------- 2. pulse lab: what SET and RESET do, and where the pulse goes ---------- */
+/* ---------- 2. pulse by pulse, and where the pulse goes (the single-pulse picture now lives in section 1) ---------- */
 var PM={mode:'set',ctx:'t'};
 function pmAmp(){return parseFloat($('pmAmp').value)}
 function pmArrow(x1,y1,x2,y2,col,w){
@@ -393,38 +431,7 @@ function cellShape(x,y,w,teh,H,s,o){
   return r;
 }
 function pmDraw(){
-  var set=PM.mode==='set',v=pmAmp(),d=drive(v),s0=set?0.1:0.9,s1=set?clamp(s0+A*d*(1-s0),0,1):clamp(s0-A*d*s0,0,1);
-  var o='',pos='var(--curr)',neg='var(--volt)',topc=set?pos:neg,botc=set?neg:pos;
-  /* generator */
-  o+='<rect x="6" y="52" width="76" height="62" rx="6" fill="var(--bg)" stroke="var(--line)"/>';
-  o+='<text x="44" y="80" text-anchor="middle" font-size="10" fill="var(--ink)">pulse</text><text x="44" y="93" text-anchor="middle" font-size="10" fill="var(--ink)">generator</text>';
-  o+='<text x="70" y="67" text-anchor="middle" font-size="14" font-weight="700" fill="'+topc+'">'+(set?'+':'−')+'</text><text x="70" y="109" text-anchor="middle" font-size="14" font-weight="700" fill="'+botc+'">'+(set?'−':'+')+'</text>';
-  o+='<circle cx="82" cy="62" r="3" fill="'+topc+'"/><circle cx="82" cy="104" r="3" fill="'+botc+'"/>';
-  o+='<path d="M82 62 H112 V32 H150" fill="none" stroke="'+topc+'" stroke-width="2.5"/><path d="M82 104 H112 V146 H150" fill="none" stroke="'+botc+'" stroke-width="2.5"/>';
-  o+='<text x="92" y="26" font-size="10" fill="'+topc+'">'+(set?'+'+v.toFixed(2)+' V':'0 V')+'</text><text x="92" y="162" font-size="10" fill="'+botc+'">'+(set?'0 V':'+'+v.toFixed(2)+' V')+'</text>';
-  /* cells */
-  o+='<text x="198" y="12" text-anchor="middle" font-size="11" fill="var(--mute)">before</text><text x="388" y="12" text-anchor="middle" font-size="11" fill="var(--mute)">after one pulse</text>';
-  o+=cellShape(150,20,96,24,90,s0,{text:true,ions:true})+cellShape(340,20,96,24,90,s1,{ions:true});
-  var ax=232,ay1=set?100:62,ay2=set?62:100;
-  o+=pmArrow(ax,ay1,ax,ay2,'var(--volt)',2)+'<text x="'+(ax-4)+'" y="86" text-anchor="end" font-size="10" fill="var(--volt)">O²⁻</text>';
-  o+=pmArrow(262,89,326,89,set?pos:neg,2.5)+'<text x="294" y="80" text-anchor="middle" font-size="10" fill="var(--ink)">one pulse</text><text x="294" y="106" text-anchor="middle" font-size="10" fill="var(--mute)">'+(set?'+':'−')+v.toFixed(2)+' V</text>';
-  o+='<text x="198" y="178" text-anchor="middle" font-size="11" fill="var(--ink)">G = '+gOf(s0).toFixed(1)+' µS</text><text x="388" y="178" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">G = '+gOf(s1).toFixed(1)+' µS</text>';
-  o+='<text x="198" y="194" text-anchor="middle" font-size="10" fill="var(--mute)">across the cell: '+(set?'+':'−')+v.toFixed(2)+' V</text>';
-  /* ion legend */
-  o+='<circle cx="156" cy="232" r="3.2" fill="var(--volt)"/><text x="164" y="236" font-size="10" fill="var(--mute)">oxygen ion O²⁻</text><rect x="258" y="226" width="14" height="9" fill="var(--curr)" opacity=".8"/><text x="278" y="235" font-size="10" fill="var(--mute)">filament (vacancies)</text>';
-  /* waveform */
-  var by=252,k=13,a=v*k,sgn=set?-1:1;
-  o+='<text x="6" y="214" font-size="10" fill="var(--mute)">pulse shape: V(top) − V(bottom)</text>';
-  o+='<line x1="10" x2="128" y1="'+by+'" y2="'+by+'" stroke="var(--mute)" stroke-width="1"/>';
-  o+='<line x1="10" x2="128" y1="'+(by-0.8*k)+'" y2="'+(by-0.8*k)+'" stroke="var(--mute)" stroke-dasharray="3 3" opacity=".7"/><line x1="10" x2="128" y1="'+(by+0.8*k)+'" y2="'+(by+0.8*k)+'" stroke="var(--mute)" stroke-dasharray="3 3" opacity=".7"/>';
-  o+='<polyline points="10,'+by+' 38,'+by+' 38,'+(by+sgn*a)+' 100,'+(by+sgn*a)+' 100,'+by+' 128,'+by+'" fill="none" stroke="'+(set?pos:neg)+'" stroke-width="2.5"/>';
-  o+='<text x="8" y="'+(by-0.8*k-3)+'" font-size="9" fill="var(--mute)">+0.8 V</text><text x="8" y="'+(by+0.8*k+10)+'" font-size="9" fill="var(--mute)">−0.8 V threshold</text>';
-  $('pmSvg').innerHTML=o;
-  var g0=gOf(s0).toFixed(1),g1=gOf(s1).toFixed(1),t;
-  if(d===0)t='<b>'+(set?'SET':'RESET')+' at '+(set?'+':'−')+v.toFixed(2)+' V:</b> the pulse is below the switching threshold (0.8 V, the dashed lines), so the ions barely move and the filament stays as it was. Raise the amplitude.';
-  else if(set)t='<b>SET at +'+v.toFixed(2)+' V.</b> The top electrode is positive, so the field pulls oxygen ions (O²⁻) toward it and leaves oxygen vacancies behind. The vacancies line up into a conducting filament that grows from the bottom electrode toward the top. One pulse took G from '+g0+' to '+g1+' µS. A SET needs a current limit (the compliance), otherwise the filament keeps growing and becomes too thick to dissolve again.';
-  else t='<b>RESET at −'+v.toFixed(2)+' V.</b> The polarity is reversed, so the field pushes the oxygen ions back into the oxide. They refill vacancies at the tip of the filament, next to the top electrode, and break it: a gap opens and blocks the current. One pulse took G from '+g0+' to '+g1+' µS. A larger |V| or a longer pulse opens the gap further.';
-  $('pmText').innerHTML=t;
+  var set=PM.mode==='set',v=pmAmp();
   $('pmAmpO').textContent=v.toFixed(2)+' V';
   [['pmSet',set],['pmReset',!set],['pcT',PM.ctx==='t'],['pcX',PM.ctx==='x']].forEach(function(q){var b=$(q[0]);b.classList.toggle('on',q[1]);b.setAttribute('aria-pressed',q[1]?'true':'false')});
 }
