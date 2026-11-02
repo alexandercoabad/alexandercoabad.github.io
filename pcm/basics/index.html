@@ -237,8 +237,8 @@ details.q p{margin:8px 0 2px}
 
     <h3 class="sub">A. Pulse by pulse: how a weight gets dialled in</h3>
     <p class="lead" style="font-size:13px">One gentle SET pulse shrinks the amorphous dome only a little, so the conductance climbs in steps. Writing a weight means stopping on the right rung. But the ladder only works in one direction. RESET does not walk back down one rung at a time: the melt-quench rebuilds the whole dome in one go. To lower a weight you either RESET and climb again, or let a second cell take the other side of a differential pair. The simulator&rsquo;s write loop therefore erases first, then sends SET pulses and reads the cell back after each one.</p>
-    <svg id="ladSvg" viewBox="0 0 560 234" role="img" aria-label="Seven dome sizes from fully amorphous to fully crystalline, with SET pulses moving right in small steps and one RESET pulse jumping back to the left" style="max-width:720px"></svg>
-    <p class="note" style="max-width:80ch">The dome shrinks in equal steps, but conductance changes by a constant <b>factor</b> per rung (×2.2 here), not a constant amount, because current has to pass through the glass and its resistance grows exponentially with its thickness. The last rung is therefore a big jump in G and the first rung is a tiny one. That non-linear ladder is why PCM weight levels are not evenly spaced in conductance. The dashed box marks where the cell in section 1 is now.</p>
+    <svg id="ladSvg" viewBox="0 0 560 256" role="img" aria-label="Seven dome sizes from fully amorphous to fully crystalline, with SET pulses moving right in small steps and one RESET pulse jumping back to the left" style="max-width:720px"></svg>
+    <p class="note" style="max-width:80ch">The dome shrinks in equal steps, but conductance changes by a constant <b>factor</b> per rung (×2.2 here), not a constant amount, because current has to pass through the glass and its resistance grows exponentially with its thickness. The last rung is therefore a big jump in G and the first rung is a tiny one. That non-linear ladder is why PCM weight levels are not evenly spaced in conductance. The long red curved arrow along the bottom is the RESET: it jumps from the fully crystalline end straight back to the fully amorphous end in one step, instead of walking down the rungs. The dashed box marks where the cell in section 1 is now.</p>
 
     <h3 class="sub" style="margin-top:16px">B. Where the pulse is injected</h3>
     <p class="lead" style="font-size:13px">The pulse always goes <b>through the heater of the one cell you want to change</b>, and what you get depends on its amplitude and width. In an array you reach that cell through the wires and, almost always, an access device. Choose the pulse type and how the cell is wired:</p>
@@ -695,8 +695,8 @@ function ladDraw(){
   }
   o+='<text x="280" y="11" text-anchor="middle" font-size="11" fill="var(--curr)">SET pulses (gentle, many): dome a little smaller each time, G × 2.2 per rung</text>';
   o+=pmArrow(20,22,540,22,'var(--curr)',2.5);
-  o+='<path d="M506 176 C 506 216, 38 216, 38 184" fill="none" stroke="var(--err)" stroke-width="2.5"/><polygon points="38,180 33,190 43,190" fill="var(--err)"/>';
-  o+='<text x="272" y="226" text-anchor="middle" font-size="11" fill="var(--err)">RESET (one strong, short pulse): the whole dome is rebuilt, G collapses in one step</text>';
+  o+='<path d="M506 176 C 506 226, 38 226, 38 190" fill="none" stroke="var(--err)" stroke-width="2.5"/><polygon points="38,177 32,191 44,191" fill="var(--err)"/>';
+  o+='<text x="280" y="234" text-anchor="middle" font-size="11" fill="var(--err)">RESET (one strong, short pulse)</text><text x="280" y="248" text-anchor="middle" font-size="10" fill="var(--err)">the whole dome is rebuilt, G collapses in one step</text>';
   $('ladSvg').innerHTML=o;
 }
 function pmDraw(){
