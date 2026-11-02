@@ -14,7 +14,7 @@ Personal site with browser simulators for my chip projects. Each simulator is on
 | `reram/index.html` | ReRAM crossbar compute-in-memory simulator (Step 3) |
 | `reram/reference/index.html` | ReRAM reference: equations, glossary, symbols, settings, FAQ |
 | `pcm/index.html` | PCM overview: lesson plan and status of the PCM series |
-| `pcm/basics/index.html` | PCM lesson, Step 1: a phase-change cell vs an ordinary resistor |
+| `pcm/basics/index.html` | PCM lesson, Step 1: a phase-change cell compared with a ReRAM cell |
 
 ## AgilA32 browser simulator
 
@@ -91,7 +91,7 @@ This is a teaching model, not a novel architecture and not a model of a specific
 
 ## PCM lesson (in progress)
 
-The PCM series mirrors the ReRAM one: `pcm/basics/` (Step 1, published), `pcm/write/` (Step 2), `pcm/index.html` (Step 3, the crossbar simulator) and `pcm/reference/`. Until Step 3 exists, `pcm/index.html` is a small overview page listing the steps and their status. When Step 3 is ready, replace that page with the simulator, and when Step 2 and the reference are ready, re-enable the links in `pcm/basics/index.html` (the crumb line and the button in the "Ready to write a weight?" panel) and update the overview, the root `index.html` and the table above.
+`pcm/basics/` compares PCM with ReRAM (rather than with an ordinary resistor, as the ReRAM basics page does): both cells get the same pulses, the I-V plot overlays the PCM snap and the ReRAM SET half, and the strip chart shows both technologies' variation, drift and wear. The ReRAM cell model is the one from `reram/basics/`. The PCM series mirrors the ReRAM one: `pcm/basics/` (Step 1, published), `pcm/write/` (Step 2), `pcm/index.html` (Step 3, the crossbar simulator) and `pcm/reference/`. Until Step 3 exists, `pcm/index.html` is a small overview page listing the steps and their status. When Step 3 is ready, replace that page with the simulator, and when Step 2 and the reference are ready, re-enable the links in `pcm/basics/index.html` (the crumb line and the button in the "Ready to write a weight?" panel) and update the overview, the root `index.html` and the table above.
 
 ## Adding another project
 
