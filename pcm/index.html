@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PCM compute-in-memory | Alexander Co Abad</title>
+<meta name="description" content="Browser lessons on phase-change memory (PCM) compute-in-memory: cell basics, writing a weight, and a crossbar simulator.">
+<style>
+:root{--bg:#eef1f0;--surface:#f8faf9;--ink:#14201f;--muted:#5b6b69;--line:#cdd7d5;--accent:#0a7c76;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1514;--surface:#151e1d;--ink:#e3ecea;--muted:#8fa19e;--line:#26332f;--accent:#3cc4b8;color-scheme:dark}}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--font);padding-inline:16px;padding-block:32px 48px}
+main{max-width:720px;margin-inline:auto;display:flex;flex-direction:column;gap:24px}
+h1{font-size:26px;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:4px 0 0}
+.crumb{font-size:13px;margin:0 0 8px;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.item a{color:var(--accent);font-weight:600;text-decoration:none}
+.item a:hover{text-decoration:underline}
+.item p{margin:4px 0 0;color:var(--muted)}
+.item.todo{opacity:.7}
+.tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 6px;margin-left:6px;font-weight:500}
+a{color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+footer{color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="crumb"><a href="../">Home</a></p>
+    <h1>PCM compute-in-memory</h1>
+    <p class="sub">A three-step lesson on phase-change memory, mirroring the <a href="../reram/">ReRAM series</a>. Each page is self-contained and runs in the browser.</p>
+  </header>
+
+  <ol class="list" style="padding:0">
+    <li class="item"><a href="basics/">Step 1: PCM vs an ordinary resistor</a>
+      <p>Write a cell with RESET and SET pulses, sweep its I-V curve, and see drift, variation and wear.</p></li>
+    <li class="item todo"><strong>Step 2: How a weight gets written into a cell</strong><span class="tag">in development</span>
+      <p>Follow one weight from a number to a conductance with SET pulses and read-back.</p></li>
+    <li class="item todo"><strong>Step 3: PCM crossbar simulator</strong><span class="tag">in development</span>
+      <p>Matrix-vector multiply with Ohm's and Kirchhoff's laws, including drift and the write model.</p></li>
+    <li class="item todo"><strong>PCM reference</strong><span class="tag">in development</span>
+      <p>Equations, glossary, symbols and settings for all three steps.</p></li>
+  </ol>
+
+  <footer>Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>
+</main>
+</body>
+</html>

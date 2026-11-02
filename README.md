@@ -13,6 +13,8 @@ Personal site with browser simulators for my chip projects. Each simulator is on
 | `reram/write/index.html` | ReRAM lesson, Step 2: how a weight gets written into a cell |
 | `reram/index.html` | ReRAM crossbar compute-in-memory simulator (Step 3) |
 | `reram/reference/index.html` | ReRAM reference: equations, glossary, symbols, settings, FAQ |
+| `pcm/index.html` | PCM overview: lesson plan and status of the PCM series |
+| `pcm/basics/index.html` | PCM lesson, Step 1: a phase-change cell vs an ordinary resistor |
 
 ## AgilA32 browser simulator
 
@@ -86,6 +88,10 @@ The write panel models how the weights get into the array. A controller block-er
 The efficiency panel compares the crossbar with a digital multiply-accumulate (MAC) processor for latency and energy at the current size, at 256 x 256, and across array sizes from 4 x 4 to 512 x 512. Array energy comes from the simulated currents (V x I x read pulse). The digital MAC energy, memory fetch energy, DAC and ADC energies and timings are illustrative ballpark values that you can edit, not measurements of any chip. Programming is included as a one-time cost spread over a reuse count you choose, with an energy break-even point. The model leaves out sneak paths, routing and digital post-processing, so small arrays can favor digital.
 
 This is a teaching model, not a novel architecture and not a model of a specific chip. It has not been compared against measured ReRAM hardware or a circuit simulator such as SPICE.
+
+## PCM lesson (in progress)
+
+The PCM series mirrors the ReRAM one: `pcm/basics/` (Step 1, published), `pcm/write/` (Step 2), `pcm/index.html` (Step 3, the crossbar simulator) and `pcm/reference/`. Until Step 3 exists, `pcm/index.html` is a small overview page listing the steps and their status. When Step 3 is ready, replace that page with the simulator, and when Step 2 and the reference are ready, re-enable the links in `pcm/basics/index.html` (the crumb line and the button in the "Ready to write a weight?" panel) and update the overview, the root `index.html` and the table above.
 
 ## Adding another project
 

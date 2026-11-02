@@ -109,7 +109,7 @@ details.q p{margin:8px 0 2px}
 </svg>
 <div class="wrap">
   <header>
-    <p class="crumb"><span class="cap">Step 1 of 3</span> &nbsp;·&nbsp; PCM basics &nbsp;·&nbsp; <a href="../write/">Next: how a weight gets written into a cell &rarr;</a> &nbsp;·&nbsp; <a href="../reference/">Reference</a></p>
+    <p class="crumb"><span class="cap">Step 1 of 3</span> &nbsp;·&nbsp; PCM basics &nbsp;·&nbsp; <a href="../">PCM home</a> &nbsp;·&nbsp; <span title="Not published yet">Next: how a weight gets written into a cell (in development)</span></p>
     <h1>PCM vs an ordinary resistor</h1>
     <p>An ordinary resistor has a fixed value. A phase-change memory (PCM) cell is a resistor whose value you change with heat: a short, strong electrical pulse melts a tiny region into a glass-like state that blocks current, and a longer, gentler pulse lets it crystallize again. The cell then keeps its value with the power off, but that value slowly drifts. Everything in the crossbar simulator follows from those differences. This page lets you poke at them before you meet the array.</p>
     <nav class="toc" aria-label="On this page">
@@ -341,7 +341,7 @@ details.q p{margin:8px 0 2px}
 
   <section class="panel" id="next" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
     <div><span class="cap">Step 2 of 3</span><h2 style="margin:2px 0 0">Ready to write a weight?</h2><p class="note" style="margin:4px 0 0;font-size:13px;max-width:60ch">Now that a cell is a resistor you can program with heat, follow one weight from a number to a conductance: pick the cell, round to a level, erase to the amorphous state, then send SET pulses and read back until it is close enough. After that, the crossbar puts thousands of these cells in a grid.</p></div>
-    <a href="../write/" style="text-decoration:none"><button class="set" type="button" style="padding:10px 18px;font-size:15px">Follow one weight, step by step &rarr;</button></a>
+    <button class="set" type="button" disabled style="padding:10px 18px;font-size:15px;opacity:.55;cursor:not-allowed" title="Step 2 is in development">Step 2 is in development</button>
   </section>
 
   <section class="panel" id="reading">
