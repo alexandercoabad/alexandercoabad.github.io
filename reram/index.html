@@ -265,7 +265,7 @@ tfoot td{font-weight:500;border-bottom:0}
 <body>
 <div class="wrap">
   <header>
-    <p style="margin:0 0 6px;font-size:13px"><span class="cap">Step 3 of 3</span> &nbsp;·&nbsp; <a href="basics/">Step 1: ReRAM vs an ordinary resistor</a> &nbsp;·&nbsp; <a href="write/">&larr; Step 2: how a weight gets written into a cell (read these first)</a> &nbsp;·&nbsp; <a href="reference/">Reference</a></p>
+    <p style="margin:0 0 6px;font-size:13px"><span class="cap">Step 3 of 3</span> &nbsp;·&nbsp; <a href="basics/">Step 1: ReRAM vs an ordinary resistor</a> &nbsp;·&nbsp; <a href="write/">&larr; Step 2: how a weight gets written into a cell (read these first)</a> &nbsp;·&nbsp; <a href="reference/">Reference</a> &nbsp;·&nbsp; <a href="../pcm/crossbar/">Compare with PCM</a></p>
     <h1>ReRAM Crossbar Simulator</h1>
     <p>A crossbar is a grid of ReRAM cells. Each word line (a row) carries an input voltage, each bit line (a column) collects current, and a cell sits at every crossing with its stored conductance G.</p>
     <p>Weights are stored as conductances in a resistive-RAM crossbar. Input voltages on the word lines produce bit-line currents that already equal the matrix product, <span class="eq">Iⱼ = Σᵢ Vᵢ·Gᵢⱼ</span>, so the multiply and the sum both happen inside the array.</p>
@@ -617,7 +617,7 @@ tfoot td{font-weight:500;border-bottom:0}
   </div>
   <section class="panel" id="next" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
     <div><span class="cap">Where to look things up</span><h2 style="margin:2px 0 0">Equations, terms and settings</h2><p class="note" style="margin:4px 0 0;font-size:13px;max-width:62ch">The reference page collects the equations with worked examples, a searchable glossary, symbols and units, and what every setting on this page does. To see how a single weight reaches a cell, go back to Step 2.</p></div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px"><a href="reference/" style="text-decoration:none"><button type="button" style="border:1px solid var(--curr);color:var(--curr);font-weight:600;padding:10px 18px;font-size:15px;background:var(--bg);border-radius:5px;cursor:pointer">Open the reference &rarr;</button></a><a href="write/" style="text-decoration:none"><button type="button" style="padding:10px 18px;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;cursor:pointer">Step 2: write a weight</button></a></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px"><a href="reference/" style="text-decoration:none"><button type="button" style="border:1px solid var(--curr);color:var(--curr);font-weight:600;padding:10px 18px;font-size:15px;background:var(--bg);border-radius:5px;cursor:pointer">Open the reference &rarr;</button></a><a href="write/" style="text-decoration:none"><button type="button" style="padding:10px 18px;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;cursor:pointer">Step 2: write a weight</button></a><a href="../pcm/crossbar/" style="text-decoration:none"><button type="button" style="padding:10px 18px;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;cursor:pointer">Compare: the PCM crossbar</button></a></div>
   </section>
 
   <footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5).</footer>
