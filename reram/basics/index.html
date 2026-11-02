@@ -97,7 +97,7 @@ details.q p{margin:8px 0 2px}
 <body>
 <div class="wrap">
   <header>
-    <p class="crumb"><span class="cap">Step 1 of 3</span> &nbsp;·&nbsp; ReRAM basics &nbsp;·&nbsp; <a href="../write/">Next: how a weight gets written into a cell &rarr;</a> &nbsp;·&nbsp; <a href="../reference/">Reference</a> &nbsp;·&nbsp; <a href="../../pcm/basics/">Compare with PCM</a></p>
+    <p class="crumb"><span class="cap">Step 1 of 3</span> &nbsp;·&nbsp; ReRAM basics &nbsp;·&nbsp; <a href="../write/">Next: how a weight gets written into a cell &rarr;</a> &nbsp;·&nbsp; <a href="../reference/">Reference</a> &nbsp;·&nbsp; <a href="../">ReRAM home</a> &nbsp;·&nbsp; <a href="../../pcm/basics/">Compare with PCM</a></p>
     <h1>ReRAM vs an ordinary resistor</h1>
     <p>An ordinary resistor has a fixed value. A ReRAM cell is a resistor whose value you can change with electrical pulses, and which then keeps that value with the power off. Everything in the crossbar simulator follows from that one difference. This page lets you poke at it before you meet the array.</p>
     <nav class="toc" aria-label="On this page">
@@ -292,12 +292,12 @@ details.q p{margin:8px 0 2px}
     <h2>6. What you will meet in the simulator</h2>
     <p class="lead">Step 2 shows how a weight is written into a cell, and Step 3 is the crossbar simulator. Each difference above explains one of their controls, so here is a preview of what to look for.</p>
     <div class="mapgrid">
-      <div class="card"><h3>The write panel</h3><p>Erase, SET and RESET pulses, program-and-verify and the pulse-count map exist only because ReRAM must be programmed. A resistor array would skip all of it. Step 2 walks through it. The array-level write panel comes later in <a href="../#prog">Step 3</a>.</p></div>
-      <div class="card"><h3>The variation σ slider</h3><p>The σ slider and the write-noise model represent ReRAM's imprecision (section 4 above). A resistor array would mainly have small, static mismatch. <a href="../#prog">See it in the write map</a>.</p></div>
+      <div class="card"><h3>The write panel</h3><p>Erase, SET and RESET pulses, program-and-verify and the pulse-count map exist only because ReRAM must be programmed. A resistor array would skip all of it. Step 2 walks through it. The array-level write panel comes later in <a href="../crossbar/#prog">Step 3</a>.</p></div>
+      <div class="card"><h3>The variation σ slider</h3><p>The σ slider and the write-noise model represent ReRAM's imprecision (section 4 above). A resistor array would mainly have small, static mismatch. <a href="../crossbar/#prog">See it in the write map</a>.</p></div>
       <div class="card"><h3>Gmin and Gmax</h3><p>They represent the high-resistance and low-resistance states. A real resistor has one value, not two states, so a resistor array has no such range.</p></div>
       <div class="card"><h3>Weight levels</h3><p>A ReRAM cell has to be written to one of several conductance levels in between its two extremes. A resistor array would need a different resistor value for every weight, fixed at manufacture.</p></div>
       <div class="card"><h3>Read voltage</h3><p>The read voltage is kept small (0.2 V by default) so that the cell stays inside the band where it acts like a plain resistor and the crossbar math holds (section 3).</p></div>
-      <div class="card"><h3>Efficiency panel</h3><p>The weights never move: they are the devices. That is where the energy saving over a digital multiply-accumulate comes from. You will see it in the efficiency panel at the end of <a href="../#eff">Step 3</a>.</p></div>
+      <div class="card"><h3>Efficiency panel</h3><p>The weights never move: they are the devices. That is where the energy saving over a digital multiply-accumulate comes from. You will see it in the efficiency panel at the end of <a href="../crossbar/#eff">Step 3</a>.</p></div>
     </div>
   </section>
 
@@ -331,7 +331,7 @@ details.q p{margin:8px 0 2px}
 <li>Chua, L. O. Memristor — the missing circuit element. <i>IEEE Transactions on Circuit Theory</i> 18, 507–519 (1971).
             <span class="why">Proposes the memristor as a fourth basic circuit element, in effect a resistor with memory.</span></li>
     </ol>
-    <p class="note" style="max-width:80ch">Want to see how a different device does the same job? <a href="../../pcm/basics/">PCM vs ReRAM</a> puts a phase-change cell next to the ReRAM cell on this page. The full, grouped list is at the end of the <a href="../#refs">crossbar simulator</a>. Links can change, so searching the title and DOI always works.</p>
+    <p class="note" style="max-width:80ch">Want to see how a different device does the same job? <a href="../../pcm/basics/">PCM vs ReRAM</a> puts a phase-change cell next to the ReRAM cell on this page. The full, grouped list is at the end of the <a href="../crossbar/#refs">crossbar simulator</a>. Links can change, so searching the title and DOI always works.</p>
   </section>
 
   <footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>

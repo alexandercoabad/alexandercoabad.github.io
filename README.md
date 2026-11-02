@@ -11,10 +11,11 @@ Personal site with browser simulators for my chip projects. Each simulator is on
 | `mc14500b/index.html` | MC14500B simulator (1-bit SoC) |
 | `reram/basics/index.html` | ReRAM lesson, Step 1: a ReRAM cell vs an ordinary resistor |
 | `reram/write/index.html` | ReRAM lesson, Step 2: how a weight gets written into a cell |
-| `reram/index.html` | ReRAM crossbar compute-in-memory simulator (Step 3) |
+| `reram/index.html` | ReRAM overview: lesson plan linking the three steps and the reference |
+| `reram/crossbar/index.html` | ReRAM crossbar compute-in-memory simulator (Step 3) |
 | `reram/reference/index.html` | ReRAM reference: equations, glossary, symbols, settings, FAQ |
 | `pcm/index.html` | PCM overview: lesson plan linking the three steps and the reference |
-| `pcm/crossbar/index.html` | PCM lesson, Step 3: the PCM crossbar simulator (derived from `reram/index.html`, with the PCM write model and drift) |
+| `pcm/crossbar/index.html` | PCM lesson, Step 3: the PCM crossbar simulator (derived from `reram/crossbar/index.html`, with the PCM write model and drift) |
 | `pcm/basics/index.html` | PCM lesson, Step 1: a phase-change cell compared with a ReRAM cell |
 | `pcm/write/index.html` | PCM lesson, Step 2: how a weight gets written into a PCM cell |
 | `pcm/reference/index.html` | PCM reference: equations, glossary, symbols and units, settings, questions, further reading |
@@ -54,7 +55,7 @@ Not verified against the Verilog in a simulator: the page was checked by running
 
 ## ReRAM crossbar simulator
 
-`reram/index.html` is a generic, textbook model of analog ReRAM compute-in-memory. It is plain HTML and JavaScript with no build. Weights are stored as differential conductance pairs (G+ and G-) in a passive crossbar, inputs are applied as word-line voltages, and each bit line sums its cell currents (Ohm's law per cell, Kirchhoff's current law per column). The pair is subtracted and digitized by an ADC, then compared with the ideal floating-point product.
+`reram/crossbar/index.html` is a generic, textbook model of analog ReRAM compute-in-memory. It is plain HTML and JavaScript with no build. Weights are stored as differential conductance pairs (G+ and G-) in a passive crossbar, inputs are applied as word-line voltages, and each bit line sums its cell currents (Ohm's law per cell, Kirchhoff's current law per column). The pair is subtracted and digitized by an ADC, then compared with the ideal floating-point product.
 
 Three-step lesson: `reram/basics/index.html` is Step 1, meant to be read before the write walkthrough (Step 2) and the crossbar simulator (Step 3). It compares a ReRAM cell with an ordinary resistor: a cell you can SET, RESET, read (including read disturb) and power off, an I-V loop with a read-range band, a variation, drift and endurance demo, a first section that is one live cell figure: a pulse generator wired across the electrodes, oxygen-ion dots, the O²⁻ arrow and a dashed outline of the filament before the last pulse, with the SET/RESET polarity explained under it (SET and RESET are opposite-polarity pulses across the top and bottom electrodes; the SET, RESET, Read, Erase and power buttons and the amplitude slider drive it, and the pulse is checked against the 0.8 V threshold), a second section with a seven-rung ladder of filament states showing how weights are dialled in pulse by pulse, and how the pulse is injected in a 1T1R cell and in a passive crossbar with the V/2 scheme, warning when the half-selected cells would be disturbed), a comparison table, a preview of what each difference means in the simulator, and six check-yourself questions. 
 
@@ -96,7 +97,7 @@ This is a teaching model, not a novel architecture and not a model of a specific
 
 `pcm/basics/` compares PCM with ReRAM (rather than with an ordinary resistor, as the ReRAM basics page does): both cells get the same pulses, the I-V plot overlays the PCM snap and the ReRAM SET half, and the strip chart shows both technologies' variation, drift and wear. The ReRAM cell model is the one from `reram/basics/`. The PCM series mirrors the ReRAM one: `pcm/basics/` (Step 1, published), `pcm/write/` (Step 2, published: RESET, SET staircase with program-and-verify, overshoot restart, and drift after the write), `pcm/crossbar/` (Step 3, the crossbar simulator; `pcm/index.html` is the overview page) and `pcm/reference/`. `pcm/crossbar/index.html` is the simulator (published). It is the ReRAM crossbar page without the ReRAM-specific tutorial sections (warm-up, worked 2×2 example, extension examples), with the PCM write model from Step 2 (RESET, adaptive SET pulses, overshoot restart) and two added settings: time since write (power-law drift, ν = 0.005 + 0.095·a) and a global drift gain. `pcm/reference/` (published) is the PCM counterpart of `reram/reference/`: same layout and searchable glossary, with the cell equations rewritten (dome fraction, temperature-driven SET and RESET, adaptive write loop, drift) and the settings table re-measured on the PCM simulator. If the PCM simulator changes, re-measure the numbers in its "What each setting does" tables.
 
-The ReRAM and PCM series are cross-linked page for page: each ReRAM page (`reram/basics/`, `reram/write/`, `reram/` for the crossbar, `reram/reference/`) has a "Compare with PCM" link to its PCM counterpart (`pcm/basics/`, `pcm/write/`, `pcm/crossbar/`, `pcm/reference/`), and the PCM pages link back. Keep both directions when adding or moving a page.
+The ReRAM and PCM series are cross-linked page for page: each ReRAM page (`reram/basics/`, `reram/write/`, `reram/crossbar/` for the crossbar, `reram/reference/`) has a "Compare with PCM" link to its PCM counterpart (`pcm/basics/`, `pcm/write/`, `pcm/crossbar/`, `pcm/reference/`), and the PCM pages link back. Keep both directions when adding or moving a page.
 
 ## Adding another project
 
