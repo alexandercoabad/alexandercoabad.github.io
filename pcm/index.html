@@ -2,50 +2,1250 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PCM compute-in-memory | Alexander Co Abad</title>
-<meta name="description" content="Browser lessons on phase-change memory (PCM) compute-in-memory: cell basics, writing a weight, and a crossbar simulator.">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PCM Crossbar Simulator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-:root{--bg:#eef1f0;--surface:#f8faf9;--ink:#14201f;--muted:#5b6b69;--line:#cdd7d5;--accent:#0a7c76;
-  --font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1514;--surface:#151e1d;--ink:#e3ecea;--muted:#8fa19e;--line:#26332f;--accent:#3cc4b8;color-scheme:dark}}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--font);padding-inline:16px;padding-block:32px 48px}
-main{max-width:720px;margin-inline:auto;display:flex;flex-direction:column;gap:24px}
-h1{font-size:26px;margin:0;letter-spacing:-.01em}
-.sub{color:var(--muted);margin:4px 0 0}
-.crumb{font-size:13px;margin:0 0 8px;color:var(--muted)}
-.list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
-.item{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
-.item a{color:var(--accent);font-weight:600;text-decoration:none}
-.item a:hover{text-decoration:underline}
-.item p{margin:4px 0 0;color:var(--muted)}
-.item.todo{opacity:.7}
-.tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 6px;margin-left:6px;font-weight:500}
-a{color:var(--accent)}
-a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-footer{color:var(--muted);font-size:13px}
+/* Layout: control rail on the left, live crossbar and results on the right; stacks on phones. */
+:root{
+  --bg:#EBEFF2; --panel:#F8FAFB; --ink:#15212B; --mute:#587080; --line:#C7D1D8;
+  --volt:#1D63C9; --curr:#C2620A; --cell:#22313D; --cellText:#F8FAFB; --err:#B3261E; --ok:#1E7B4A; --hl:#FBE9D2;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+    --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --cellText:#0E1318; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+  --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --cellText:#0E1318; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+:root{color-scheme:light}
+html{padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header h1{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,4vw,34px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;max-width:68ch;color:var(--mute)}
+.eq{font-family:var(--f-mono);color:var(--ink)}
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;align-items:start}
+.grid.one{grid-template-columns:minmax(0,1fr)}
+@media (max-width:900px){#xgrid .rail{order:2}}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0}
+.rail{display:flex;flex-direction:column;gap:14px;min-width:0}
+.main{display:flex;flex-direction:column;gap:14px;min-width:0}
+h2{font-family:var(--f-display);font-size:15px;font-weight:600;margin:0 0 10px;letter-spacing:.01em}
+.cap{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--mute);font-weight:600}
+.row{display:flex;align-items:center;gap:10px;margin:7px 0}
+.row label{flex:0 0 108px;font-size:13px}
+.row input[type=range]{flex:1;min-width:0;accent-color:var(--volt)}
+.row output{flex:0 0 74px;text-align:right;font-family:var(--f-mono);font-size:12px}
+select,button,input[type=number]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:5px 8px}
+button{cursor:pointer}
+button:hover{border-color:var(--volt)}
+button.on{background:var(--volt);border-color:var(--volt);color:var(--bg)}
+:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.wgrid{display:grid;gap:4px;margin-top:6px}
+.wgrid input.neg{border-color:var(--err);color:var(--err);background:color-mix(in srgb,var(--err) 10%,var(--bg))}
+.wgrid input{width:100%;min-width:0;padding:4px 2px;text-align:center;font-family:var(--f-mono);font-size:12px}
+.sizes{display:flex;gap:12px;flex-wrap:wrap}
+.sizes label{display:flex;gap:6px;align-items:center;font-size:13px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--mute);margin-bottom:8px}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:6px;border-radius:2px}
+.steps{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+.stepnote{font-size:13px;margin:0 0 10px;min-height:2.9em;max-width:80ch}
+.xbar{overflow-x:auto}
+.xbar svg{display:block;width:100%;min-width:520px;height:auto}
+.xbar svg#xsvg{max-width:620px;min-width:440px;margin-left:auto;margin-right:auto}
+svg text{font-family:var(--f-mono)}
+.wire-r{stroke:var(--volt);stroke-width:2;fill:none}
+.wire-c{stroke:var(--curr);stroke-width:2;fill:none}
+.flow{stroke-dasharray:7 6;animation:dash .7s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-13}}
+@media (prefers-reduced-motion:reduce){.flow{animation:none}}
+.fade{transition:opacity .25s}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:1100px){.two{grid-template-columns:minmax(0,1fr)}}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums}
+th,td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-family:var(--f-body);font-weight:600;color:var(--mute);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+th:first-child,td:first-child{text-align:left}
+tfoot td{font-weight:500;border-bottom:0}
+.bad{color:var(--err)} .good{color:var(--ok)}
+.stats{display:flex;gap:22px;flex-wrap:wrap;margin-top:10px;font-size:13px}
+.stats b{font-family:var(--f-mono);font-weight:500}
+.chart{width:100%;height:auto;display:block}
+.figrow{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;margin-top:6px}
+.figrow>div{min-width:0;max-width:100%}
+#pWave,#pTraj{overflow:visible}
+.fgb{width:300px}.fgf{width:240px}.fgw{width:310px}
+.note{font-size:12px;color:var(--mute);margin:8px 0 0}
+.sgq{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:10px 0;font-size:13px;line-height:1.45}
+.sgq>div{border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.sgt{font-family:inherit;font-size:12.5px}
+.sgw{overflow-x:auto}
+.sgt th,.sgt td{white-space:normal;min-width:70px;padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.sgt th{text-transform:none;font-weight:600}
+.sgt tr.cur td{background:var(--hl)}
+.sgt td.bad{color:var(--err)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:12px 0}
+.tile{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg)}
+.tile .big{font-family:var(--f-display);font-weight:700;font-size:28px;line-height:1.1;letter-spacing:-.01em}
+.tile .sub{font-size:12px;color:var(--mute);margin-top:3px}
+.effctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(400px,100%),1fr));gap:0 28px}
+.effctl .row label{flex-basis:120px}
+.pgrid{display:grid;gap:4px;align-items:center;overflow-x:auto;padding-bottom:4px}
+#pgrid{max-width:640px;font-size:11px}
+#pgrid .pc{padding:3px 2px;font-size:11px}
+.pgrid .lab{color:var(--mute);font-size:inherit;text-align:center;font-family:var(--f-mono)}
+.pc{padding:5px 2px;text-align:center;border:1px solid var(--line);border-radius:4px;background:var(--bg);font-family:var(--f-mono);font-size:12px;cursor:pointer;min-width:0}
+.pc.sel{outline:2px solid var(--volt);outline-offset:1px}
+.pc.fail{border-color:var(--err);color:var(--err)}
+.pc.dim{opacity:.3}
+.sub2{margin:14px 0 6px}
+.chk{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:13px}
+.credit{font-size:12px;color:var(--mute);text-align:center;padding-top:6px;border-top:1px solid var(--line)}
+.exgrid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:760px){.exgrid{grid-template-columns:minmax(0,1fr)}}
+.expix{display:grid;grid-template-columns:repeat(2,68px);grid-auto-rows:68px;gap:6px;margin:8px 0 10px}
+.expix button{font-family:var(--f-mono);font-size:18px;padding:0;border-radius:6px}
+.expix button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+#exT td,#exT th{text-align:left;white-space:normal;vertical-align:middle}
+#exT tr.win td{background:var(--hl)}
+.mini{display:inline-grid;grid-template-columns:repeat(2,20px);gap:4px;padding:2px}
+.mini b{display:block;height:20px;line-height:20px;text-align:center;font-size:13px;font-weight:600;border-radius:3px;color:var(--bg)}
+.mini .p{background:var(--volt)} .mini .n{background:var(--curr)} .mini .z{background:var(--line);color:var(--ink)}
+.mini .lit{outline:2px solid var(--ink);outline-offset:1px}
+.exbar{position:relative;display:inline-block;width:110px;height:10px;border:1px solid var(--line);background:var(--bg);vertical-align:middle;margin-left:8px}
+.exbar i{position:absolute;top:0;bottom:0}
+.exbar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--mute)}
+.exverdict{font-family:var(--f-display);font-size:18px;font-weight:600;margin:10px 0 2px}
+.xorflow{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:12px 0}
+#xCards{display:contents}
+.xcard{flex:1 1 190px;border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg);min-width:0}
+.xcard .cap{display:block;margin-bottom:6px}
+.xarrow{flex:0 0 auto;align-self:center;color:var(--mute);font-size:20px}
+@media (max-width:760px){.xarrow{display:none}}
+.xin{display:flex;gap:8px;margin:2px 0 8px}
+.xin button{font-family:var(--f-mono);font-size:15px;min-width:64px;padding:8px 6px}
+.xin button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.xg{display:grid;gap:3px;align-items:center;font-family:var(--f-mono);font-size:11px;margin:4px 0 8px}
+.xg .gc{display:block;height:24px;border-radius:3px;background:var(--cell)}
+.xg .lab{color:var(--mute);text-align:right;padding-right:4px;white-space:nowrap}
+.xg .hd{color:var(--mute);text-align:center}
+.xline{font-family:var(--f-mono);font-size:12px;margin:4px 0}
+.xbit{display:inline-block;min-width:1.7em;text-align:center;border-radius:4px;padding:0 5px;font-weight:600;background:var(--ink);color:var(--bg)}
+.xbit.z{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+.xbig{font-family:var(--f-display);font-weight:700;font-size:38px;line-height:1.1}
+#xorT td,#xorT th{text-align:center;white-space:nowrap}
+#xorT tr.sel td{background:var(--hl)}
+.xwed{display:flex;flex-wrap:wrap;gap:22px;margin:6px 0}
+.xwg{display:grid;gap:4px;align-items:center;font-family:var(--f-mono);font-size:12px;margin-top:4px}
+.xwg input{width:100%;min-width:0;padding:4px 2px;text-align:center;font-family:var(--f-mono);font-size:12px}
+.xwg .hd{color:var(--mute);text-align:center}
+.xwg .lab{color:var(--mute);text-align:right;padding-right:4px}
+.vmin{display:flex;flex-wrap:wrap;gap:26px;align-items:center;margin:6px 0 10px}
+.vmin .mat{display:grid;gap:4px}
+.vmin .mat input{width:70px;text-align:center;font-family:var(--f-mono);font-size:13px;padding:6px 4px}
+.vmin .lab{font-family:var(--f-mono);font-size:12px;color:var(--mute);align-self:center}
+.vmin .cap{display:block;margin-bottom:4px}
+.vmin button:disabled,.btns button:disabled{opacity:.5;cursor:not-allowed}
+.row[hidden]{display:none}
+.vmcellg .vmhlr{fill:none;stroke:var(--curr);stroke-width:2.5;opacity:0;pointer-events:none}
+.vmcellg.hl .vmhlr{opacity:1}
+.hlon .vmcellg:not(.hl){opacity:.35}
+.vmin .mat input.hl{box-shadow:0 0 0 2px var(--curr);background:var(--hl)}
+.vmhlnote{min-height:3.4em;margin:6px 0 8px;font-size:12.5px;max-width:90ch}
+.vmhlnote b{color:var(--ink)}
+.vmhlnote .cap{margin-right:6px}
+.xbar svg#wuSvg{min-width:0}
+.wugrid{display:flex;flex-wrap:wrap;gap:6px 24px;align-items:flex-start}
+.wuctl{flex:1 1 320px;max-width:560px}
+.wuview{flex:1 1 380px;min-width:0}
+.wueq{margin-top:8px}
+.wueq .ln{font-family:var(--f-mono);font-size:12px;line-height:1.55;color:var(--mute);padding:3px 0;border-bottom:1px dashed var(--line);overflow-wrap:anywhere}
+.wueq .ln:last-child{border-bottom:0}
+.wueq .ln b{color:var(--ink);font-weight:600}
+.vmpredbox{border:1px solid var(--line);border-radius:6px;background:var(--bg);margin:10px 0;padding:0 12px}
+.vmpredbox summary{cursor:pointer;padding:9px 0;font-family:var(--f-display);font-size:14px;font-weight:600}
+.pq{border-top:1px solid var(--line);padding:10px 0}
+.pqt{margin:0 0 6px;font-size:13px;max-width:80ch}
+.pqo{display:flex;flex-wrap:wrap;gap:6px}
+.pqb:disabled{cursor:default}
+.pqb.good{border-color:var(--ok);color:var(--ok);font-weight:600}
+.pqb.bad{border-color:var(--err);color:var(--err)}
+.pqf{margin-top:6px;padding:8px 10px;border-left:3px solid var(--volt);background:var(--panel);border-radius:0 6px 6px 0}
+.pqf p{margin:0 0 6px;font-size:12.5px;color:var(--mute);max-width:80ch}
+.pqf p b{color:var(--ink)}
+.vmkey{font-size:12.5px;color:var(--mute);margin:0 0 6px;max-width:82ch}
+.vmkey b{color:var(--ink)}
+.vmcellg{cursor:pointer}
+.vmcellg:hover rect.vmhit{stroke:var(--volt);stroke-width:1.5}
+.vmlive{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg);margin:10px 0}
+.vmlive h3{font-family:var(--f-display);font-size:14px;margin:0 0 2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vmlive .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block}
+.vmlive .lastchg{font-size:12.5px;color:var(--mute);margin:0 0 8px}
+.vmlive .lastchg b{color:var(--ink)}
+.vmlgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:720px){.vmlgrid{grid-template-columns:minmax(0,1fr)}}
+.vmlb{border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--panel);min-width:0}
+.vmlb .cap{display:block;margin-bottom:4px}
+.vmlb .ln{font-family:var(--f-mono);font-size:12px;line-height:1.55;color:var(--mute);padding:3px 0;border-bottom:1px dashed var(--line);overflow-wrap:anywhere}
+.vmlb .ln:last-child{border-bottom:0}
+.vmlb .ln b{color:var(--ink);font-weight:600}
+.vmlb .res{color:var(--ink)}
+.lv{border-radius:3px;padding:0 2px}
+.lv.chg{animation:vmflash 1.6s ease-out}
+@keyframes vmflash{0%,35%{background:var(--hl);outline:1px solid var(--curr)}100%{background:transparent;outline:1px solid transparent}}
+@media (prefers-reduced-motion:reduce){.lv.chg{animation:none;background:var(--hl)}}
+.vmcell{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:flex-start;border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg);margin:10px 0}
+.vmcell .vmpic{flex:0 0 auto}
+.vmcell .vmtxt{flex:1 1 340px;min-width:0}
+.vmcell h3{font-family:var(--f-display);font-size:14px;margin:0 0 6px}
+.vmcell ul{margin:0;padding:0;list-style:none;font-size:12.5px;color:var(--mute)}
+.vmcell li{margin:0 0 7px}
+.vmcell li b{color:var(--ink)}
+.vmcell .vmG{color:var(--ink)} .vmcell .vmI{color:var(--curr)} .vmcell .vmV{color:var(--volt)}
+.vmcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px;margin:12px 0}
+.vmc{overflow-x:auto;border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg);min-width:0}
+.vmc h3{font-family:var(--f-display);font-size:14px;margin:0 0 4px}
+.vmc p{margin:0 0 8px;font-size:12.5px;color:var(--mute)}
+.vmc p b,.vmc p .eq{color:var(--ink)}
+.vmc table{font-size:12px}
+.vmc th,.vmc td{padding:4px 6px}
+.vmc th,#vm th{text-transform:none;letter-spacing:0;font-size:12px}
+.vmg{display:inline-block;min-width:3.6em;text-align:center;border-radius:3px;padding:2px 6px;font-family:var(--f-mono);font-size:12px;border:1px solid var(--line)}
+.vmd{font-size:11px;color:var(--mute)}
+.vmsum{font-size:13px;margin:8px 0 0}
+.vmwide{grid-column:1/-1}
+.vmtop{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:0 28px;align-items:start}
+.vmleft,.vmright{min-width:0}
+.vmright .vmkey{margin-top:0}
+@media (max-width:1000px){.vmtop{grid-template-columns:minmax(0,1fr)}}
+@media (min-width:1100px){
+  .vmcards{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .vmwide{grid-column:span 2}
+  #vmPred{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px}
+  #vmPred .btns{grid-column:1/-1}
+}
+#xor summary{cursor:pointer;font-weight:600;margin:14px 0 6px}
+.xscore{font-family:var(--f-display);font-size:18px;font-weight:600;margin:8px 0 2px}
+.wrgrid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:760px){.wrgrid{grid-template-columns:minmax(0,1fr)}}
+.wrmat{display:grid;gap:4px}
+.wrmat button{font-family:var(--f-mono);font-size:12px;padding:8px 2px;min-width:0}
+.wrmat button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.wrtext{font-size:14px;line-height:1.5;min-height:5.5em;margin:4px 0 10px;max-width:64ch}
+.wrg{display:grid;grid-template-columns:64px minmax(0,1fr) 74px;gap:8px;align-items:center;margin:6px 0;font-family:var(--f-mono);font-size:12px}
+.wrg .lab{color:var(--mute)} .wrg .val{text-align:right}
+.trk{position:relative;height:18px;border:1px solid var(--line);background:var(--bg);overflow:hidden}
+.trk i{position:absolute;top:0;bottom:0}
+.trk .band{background:var(--hl)}
+.trk .fill{left:0;top:4px;bottom:4px;min-width:2px;background:var(--curr);transition:width .35s}
+.trk .tick{width:2px;margin-left:-1px;background:var(--ink)}
+@media (prefers-reduced-motion:reduce){.trk .fill{transition:none}}
+.wrscale{display:flex;justify-content:space-between;margin:0 74px 6px 72px;font-family:var(--f-mono);font-size:10.5px;color:var(--mute)}
+.refs{margin:6px 0 4px;padding-left:24px;font-size:13px;line-height:1.5;max-width:92ch}
+.refs li{margin:8px 0}
+.refs .why{display:block;color:var(--mute);font-size:12px;margin-top:2px}
+#refs a{color:var(--volt);text-underline-offset:2px;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
-<main>
+<div class="wrap">
   <header>
-    <p class="crumb"><a href="../">Home</a></p>
-    <h1>PCM compute-in-memory</h1>
-    <p class="sub">A three-step lesson on phase-change memory, mirroring the <a href="../reram/">ReRAM series</a>. Each page is self-contained and runs in the browser.</p>
+    <p style="margin:0 0 6px;font-size:13px"><span class="cap">Step 3 of 3</span> &nbsp;·&nbsp; <a href="basics/">Step 1: PCM vs ReRAM</a> &nbsp;·&nbsp; <a href="write/">&larr; Step 2: how a weight gets written into a PCM cell (read these first)</a> &nbsp;·&nbsp; <a href="../reram/">Compare: the ReRAM crossbar</a></p>
+    <h1>PCM Crossbar Simulator</h1>
+    <p>A crossbar is a grid of phase-change cells. Each word line (a row) carries an input voltage, each bit line (a column) collects current, and a cell sits at every crossing with its stored conductance G.</p>
+    <p>Input voltages on the word lines produce bit-line currents that already equal the matrix product, <span class="eq">Iⱼ = Σᵢ Vᵢ·Gᵢⱼ</span>, so the multiply and the sum both happen inside the array. The array behaves like the PCM one, with two PCM differences you can switch on here: weights are written with the one-directional SET staircase from Step 2, and the stored conductances <b>drift</b> after the write.</p>
+    <p>This is a generic, textbook model of analog PCM compute-in-memory: a passive crossbar with differential conductance pairs, a quantized DAC and ADC, Gaussian device variation, wire IR drop, a pulse-and-verify write model and power-law drift. It is meant for learning and quick experiments, not as a model of any specific chip.</p>
+    <p class="note" style="font-size:13px;max-width:80ch"><b>Path through this page:</b> 1) Choose the array and encoding. 2) Set the inputs and weights. 3) Watch the crossbar compute, step by step. 4) Writing the weights and what it costs. 5) Age the array with <i>Time since write</i> and see the outputs slide away from the ideal answer, then try the global gain. 6) Efficiency against a digital multiply-accumulate.</p>
   </header>
 
-  <ol class="list" style="padding:0">
-    <li class="item"><a href="basics/">Step 1: PCM vs ReRAM</a>
-      <p>Send the same pulses to a PCM cell and a ReRAM cell, compare their I-V curves, and see drift, variation and wear.</p></li>
-    <li class="item"><a href="write/">Step 2: How a weight gets written into a cell</a>
-      <p>Follow one weight from a number to a conductance: RESET, then SET pulses with read-back, and what happens when a pulse overshoots.</p></li>
-    <li class="item todo"><strong>Step 3: PCM crossbar simulator</strong><span class="tag">in development</span>
-      <p>Matrix-vector multiply with Ohm's and Kirchhoff's laws, including drift and the write model.</p></li>
-    <li class="item todo"><strong>PCM reference</strong><span class="tag">in development</span>
-      <p>Equations, glossary, symbols and settings for all three steps.</p></li>
-  </ol>
 
-  <footer>Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>
-</main>
+    <section class="panel">
+      <h2>Array size and cell encoding</h2>
+      <div class="sizes">
+        <label>Inputs (rows) <select id="selM"></select></label>
+        <label>Outputs (cols) <select id="selN"></select></label>
+        <label>Cell encoding <select id="selArch"><option value="diff">Analog multi-level cells</option><option value="bin">Binary weighted PCM (1-bit cells)</option></select></label>
+        <label>Weight sign <select id="selSign"><option value="signed">Signed (negatives allowed)</option><option value="unsigned">Unsigned (negatives clipped to 0)</option></select></label>
+        <label>Cells per weight <select id="selCells"><option value="pair">G⁺/G⁻ pair (two cells)</option><option value="one">G⁺ only (one cell)</option></select></label>
+      </div>
+      <p class="note" id="archNote"></p>
+    </section>
+
+
+
+    <div class="grid" id="xgrid">
+    <aside class="rail">
+      <section class="panel">
+        <h2>Input vector x <span class="cap">0 to 1</span></h2>
+        <div id="xs"></div>
+      </section>
+      <section class="panel">
+        <h2>Weight matrix W <span class="cap">−1 to 1</span></h2>
+        <div id="wg" class="wgrid"></div>
+        <div class="btns">
+          <button id="bRand">Randomize weights</button>
+          <button id="bReset">Reset example</button>
+          <button id="bAbs" hidden>Make weights positive</button>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Device and circuit</h2>
+        <div id="settings"></div>
+        <p class="note" style="font-size:12px;margin:6px 0 0">Time since write is 10<sup>x</sup> seconds: 0 is just written, 7 is about 4 months, 9 is about 32 years. The global gain multiplies every output by t<sup>0.03</sup>, the kind of single correction a chip can apply. It only fits cells whose drift exponent is near 0.03: nearly crystalline cells drift less, so some outputs end up over-corrected.</p>
+        <div class="btns"><button id="bSeed">Resample device variation</button></div>
+      </section>
+    </aside>
+      <section class="panel">
+      <h2>Crossbar</h2>
+      <p class="note" style="margin:0 0 10px;font-size:13px;max-width:80ch">A crossbar is a grid of PCM cells. Each word line (a row) carries an input voltage, each bit line (a column) collects current, and a cell sits at every crossing with its stored conductance G. Press Play to watch the five stages: write the weights, drive the rows, let each cell apply Ohm&rsquo;s law, let each column sum its currents, then digitize the result. Use the controls beside the crossbar (below it on a narrow screen) to change the inputs, weights and device settings.</p>
+      <div class="steps" id="steps"></div>
+      <p class="stepnote" id="stepnote"></p>
+      <div class="legend">
+        <span><i style="background:var(--volt)"></i>Word-line voltage</span>
+        <span><i style="background:var(--curr)"></i>Bit-line current</span>
+        <span><i style="background:var(--cell)"></i>Cell conductance (darker is higher G)</span>
+        <span>Cell label <select id="selShow"><option value="g">Conductance µS</option><option value="i">Current µA</option><option value="n">None</option></select></span>
+      </div>
+      <div class="xbar"><svg id="xsvg" role="img" aria-label="PCM crossbar array with word lines, bit lines and ADCs"></svg></div>
+    </section>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+      <section class="panel" id="signDisc">
+      <details><summary style="cursor:pointer;font-weight:600;font-size:15px">Negative weights: signed or unsigned, one cell or two? <span class="cap">read when you reach negative weights</span></summary>
+      <p class="note" style="margin:0 0 8px;font-size:13px;max-width:80ch">A PCM cell is a conductance G, and G can never be negative, so a current I = V·G can never be negative either. A weight is the number that scales an input, and weights are often negative as well as positive. Two separate design choices decide how the array copes, and you can set each one with the drop-downs above.</p>
+      <div class="sgq">
+        <div><b>1. Weight sign: are negative weights needed?</b><br><i>Signed</i> keeps them, so the output can go below zero. <i>Unsigned</i> gives up on them: a negative weight is stored as 0. That is fine when every weight is naturally positive (pixel intensities, counts, probabilities), and wrong when it is not.</div>
+        <div><b>2. Cells per weight: how is a signed weight stored?</b><br><i>G⁺/G⁻ pair</i> uses two cells: one holds the positive part, one the negative part, and the column pair&rsquo;s currents are subtracted. <i>G⁺ only</i> uses one cell. To keep negatives anyway it shifts the weight into 0 to 1 and subtracts a shared <i>reference column</i> that stands for zero.</div>
+      </div>
+      <div class="sgw"><table class="sgt" id="sgTable">
+        <thead><tr><th>Weight sign</th><th>Cells per weight</th><th>How a weight is stored</th><th>Negatives</th><th>Gmin leakage</th><th>Weight step</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr data-s="diff"><td>Signed</td><td>Pair (G⁺, G⁻)</td><td>w &gt; 0 goes in G⁺, w &lt; 0 in G⁻, the other cell sits at Gmin. y = (I⁺ − I⁻) / (V<sub>read</sub>·ΔG)</td><td>Kept</td><td>Cancels (both cells leak equally)</td><td>1/L</td><td>2 cells per weight, 2 bit lines per output</td></tr>
+          <tr data-s="ref"><td>Signed</td><td>G⁺ only</td><td>u = (w+1)/2 in 0 to 1, so w = 0 sits at the middle conductance. y = 2·(I − I<sub>ref</sub>) / (V<sub>read</sub>·ΔG)</td><td>Kept</td><td>Cancels (the reference column leaks too)</td><td>2/L (twice as coarse)</td><td>1 cell per weight, plus one shared reference column</td></tr>
+          <tr data-s="clip"><td>Unsigned</td><td>G⁺ only</td><td>w &ge; 0 stored as is, w &lt; 0 stored as 0. y = I / (V<sub>read</sub>·ΔG)</td><td class="bad">Lost</td><td class="bad">Adds an offset ≈ Σx·Gmin/ΔG to every output</td><td>1/L</td><td>1 cell per weight, no subtraction (simplest hardware)</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note" style="max-width:80ch">L is the number of conductance levels minus one (set by &ldquo;Weight levels&rdquo;) and ΔG = Gmax − Gmin. The fourth combination, unsigned with a pair, is not offered: G⁻ would stay at Gmin and the second cell would buy nothing.</p>
+      <div class="sgq">
+        <div><b>Why not always use the pair?</b> It is the most accurate way to keep negatives, but it doubles the cells, the bit lines and the ADCs. If area or energy is tight, one cell per weight is attractive.</div>
+        <div><b>Why does the reference column halve the resolution?</b> One cell has to cover weights from −1 to +1, so the same conductance range is spread over twice the span. Each level now means a change of 2/L in w instead of 1/L.</div>
+        <div><b>What does unsigned really cost?</b> Negative weights turn into 0 and the leakage current of every cell piles up in the sum. The error is large when many weights are negative and small when none are.</div>
+      </div>
+      <p class="note" style="max-width:80ch"><b>Try it.</b> (1) Press Randomize with <i>Signed, pair</i>, note y₁, then switch to <i>Unsigned</i>: negative weights turn red and y₁ moves. (2) Press &ldquo;Make weights positive&rdquo; and the unsigned result now differs from ideal only by the leakage offset. (3) Set σ = 0 and the ADC to 8 bits, then compare <i>Signed, pair</i> and <i>Signed, G⁺ only</i>: the same ideal answer, but the second is coarser when Weight levels is small. (4) Combine with <i>Binary weighted</i> cells to see the same three layouts at bit level.</p>
+    </details>
+    </section>
+
+  <div class="grid one">
+
+    <main class="main">
+
+      <section class="panel" id="prog">
+        <h2>Writing the weights into the array</h2>
+        <p class="note" style="margin:0 0 10px;font-size:13px">Before any multiply, each weight has to be written as a conductance. The controller first RESETs the array to the amorphous, high-resistance state, then crystallizes each cell a little at a time with SET pulses, reading it back after every pulse and stopping when it is within tolerance of its target. A SET can only raise G, so if a pulse overshoots the cell is RESET and the climb starts again. The conductances this produces are the ones the crossbar uses, and they start to drift as soon as the write ends.</p>
+        <div class="effctl">
+          <div class="row"><label for="pMode">Write method</label><select id="pMode"><option value="verify">Program-and-verify (adaptive pulse)</option><option value="fixed">Program-and-verify (same pulse every time)</option><option value="single">Open loop, no verify</option><option value="ideal">Ideal (skip programming)</option></select></div>
+          <div class="row"><label for="pV0">Fixed SET pulse</label><input type="range" id="pV0" min="1" max="1.9" step="0.05" value="1.3"><output id="pV0O">1.30 V</output></div>
+          <div class="row"><label for="pTol">Verify tolerance</label><input type="range" id="pTol" min="0.5" max="10" step="0.5" value="2"><output id="pTolO">±2.0%</output></div>
+          <div class="row"><label for="pMax">Max pulses per cell</label><input type="range" id="pMax" min="1" max="60" step="1" value="40"><output id="pMaxO">40</output></div>
+          <div class="row"><label for="pTp">Pulse width</label><input type="range" id="pTp" min="10" max="500" step="10" value="50"><output id="pTpO">50 ns</output></div>
+          <div class="row"><label for="pPar">Write order</label><select id="pPar"><option value="1">Row at a time, columns in parallel</option><option value="0">One cell at a time</option></select></div>
+          <label class="chk"><input type="checkbox" id="pErase" checked> Block erase first (cost counted)</label>
+        </div>
+        <p class="note" id="pNote"></p>
+        <div class="tiles" id="ptiles"></div>
+        <h2 class="sub2">Pulse sequence for one cell</h2>
+        <div class="steps">
+          <label for="psRow">Row</label><select id="psRow"></select>
+          <label for="psCol">Bit line</label><select id="psCol"></select>
+          <button id="bPB">Play sequence</button>
+        </div>
+        <p class="stepnote" id="pCap"></p>
+        <div class="figrow">
+          <div class="fgb"><div class="cap">Programming circuitry</div><svg id="pBlock" class="chart" viewBox="0 0 410 306" role="img" aria-label="Block diagram of the PCM write and verify circuitry"></svg></div>
+          <div class="fgf"><div class="cap">Program-and-verify loop</div><svg id="pFlow" class="chart" viewBox="0 0 352 372" role="img" aria-label="Flowchart of the program-and-verify loop"></svg></div>
+          <div class="fgw"><svg id="pWave" class="chart" viewBox="0 0 420 222" role="img" aria-label="Voltage waveform of the write pulses and verify reads"></svg></div>
+          <div class="fgw"><svg id="pTraj" class="chart" viewBox="0 0 420 222" role="img" aria-label="Conductance after each pulse compared with the target"></svg></div>
+        </div>
+        <h2 class="sub2">Array write map</h2>
+        <div class="steps"><label for="pSeed">Variation seed</label><input type="number" id="pSeed" min="0" max="99999" step="1" style="width:84px" title="Same seed, same map. Type a number to reproduce a map in class."><button id="bPA">Program array row by row</button><span class="note" id="pGridNote" style="margin:0"></span></div>
+        <div class="pgrid" id="pgrid"></div>
+        <p class="note">Each number is how many write pulses that cell needed. Darker means more. Cells aimed at the lowest conductance stay at their erased value and need none. That is why every G⁺/G⁻ pair has a 0: a positive weight is written into the G⁺ cell and a negative one into the G⁻ cell, and the other cell of the pair rests at Gmin. The counts come from this page&rsquo;s illustrative write model with seeded random variation, so they show the shape of the effect, not the figures of a real device. The counts depend only on where each target sits between Gmin and Gmax, not on their µS values, so moving Gmin or Gmax changes the targets in µS but leaves these counts the same. Click a cell to inspect its pulse sequence. A red outline marks a cell that never reached its tolerance.</p>
+      </section>
+
+      <div class="two">
+        <section class="panel">
+          <h2>Result y = xᵀW</h2>
+          <div class="tw"><table id="res"></table></div>
+          <div class="stats" id="stats"></div>
+          <svg id="chart" class="chart" viewBox="0 0 420 210" role="img" aria-label="Bar chart comparing ideal and PCM outputs"></svg>
+        </section>
+        <section class="panel">
+          <h2>Trace one output</h2>
+          <div class="row"><label for="colsel" style="flex-basis:auto">Column</label><select id="colsel"></select></div>
+          <div class="tw"><table id="trace"></table></div>
+          <p class="note" id="traceNote"></p>
+        </section>
+      </div>
+
+      <section class="panel" id="eff">
+        <h2>Efficiency versus digital multiply-accumulate</h2>
+        <p class="note" style="margin:0 0 10px;font-size:13px">A conventional processor fetches every weight from memory and performs the M×N multiply-adds one batch at a time. The crossbar keeps the weights where they are and finishes all of them in a single read. The figures come from an illustrative energy and timing model, so adjust the assumptions to match a design you care about.</p>
+        <div class="effctl">
+          <div class="row"><label for="eMem">Digital weight source</label><select id="eMem"><option value="sram">On-chip SRAM</option><option value="dram">Off-chip DRAM</option></select></div>
+          <div class="row"><label for="eLanes">Parallel MAC lanes</label><input type="range" id="eLanes" min="1" max="256" step="1" value="8"><output id="eLanesO">8</output></div>
+          <div class="row"><label for="eClk">Digital clock</label><input type="range" id="eClk" min="0.5" max="3" step="0.1" value="1"><output id="eClkO">1.0 GHz</output></div>
+          <div class="row"><label for="eRead">PCM read pulse</label><input type="range" id="eRead" min="2" max="100" step="1" value="10"><output id="eReadO">10 ns</output></div>
+          <div class="row"><label for="eReuse">Weight reuse</label><input type="range" id="eReuse" min="0" max="7" step="0.5" value="3"><output id="eReuseO">1,000×</output></div>
+          <div class="row"><label for="eAdc">ADC conversion</label><input type="range" id="eAdc" min="2" max="100" step="1" value="10"><output id="eAdcO">10 ns</output></div>
+        </div>
+        <div class="tiles" id="tiles"></div>
+        <div class="tw"><table id="effT"></table></div>
+        <div class="two" style="margin-top:12px">
+          <svg id="chLat" class="chart" viewBox="0 0 420 230" role="img" aria-label="Latency versus array size, digital and PCM"></svg>
+          <svg id="chEn" class="chart" viewBox="0 0 420 230" role="img" aria-label="Energy versus array size, digital and PCM"></svg>
+        </div>
+        <p class="note" id="effNote"></p>
+      </section>
+    <section class="panel" id="refs">
+        <h2>References and further reading</h2>
+        <p class="note" style="margin:0 0 6px;font-size:13px;max-width:80ch">This simulator is a teaching model. Its device behaviour (pulse response, variation, drift, energy and timing figures) is illustrative, not taken from a measured device. These papers describe the real systems it imitates. Links can change, so searching the title and DOI always works.</p>
+
+        <h2 class="sub2">Phase-change memory and PCM weights <span class="cap">supports the device settings, the write panels and drift</span></h2>
+        <ol class="refs" start="1">
+      <li>Wong, H.-S. P., Raoux, S., Kim, S., Liang, J., Reifenberg, J. P., Rajendran, B., Asheghi, M. &amp; Goodson, K. E. Phase change memory. <i>Proceedings of the IEEE</i> 98, 2201–2227 (2010). <a href="https://ieeexplore.ieee.org/document/5609179">IEEE Xplore</a>
+        <span class="why">A review of the device physics, the materials, the scaling and the reliability of PCM, with a focus on memory use.</span></li>
+      <li>Raoux, S. et al. Phase-change random access memory: a scalable technology. <i>IBM Journal of Research and Development</i> 52 (2008). <a href="https://ieeexplore.ieee.org/document/5388621">IEEE Xplore</a>
+        <span class="why">Explains the mushroom cell, the SET and RESET operations and why the technology scales to small sizes.</span></li>
+      <li>Wuttig, M. &amp; Yamada, N. Phase-change materials for rewriteable data storage. <i>Nature Materials</i> 6, 824–832 (2007). <a href="https://doi.org/10.1038/nmat2009">doi:10.1038/nmat2009</a>
+        <span class="why">Why some alloys switch between glass and crystal so quickly, and how the same materials are used in optical discs and in memory.</span></li>
+      <li>Le Gallo, M. &amp; Sebastian, A. An overview of phase-change memory device physics. <i>Journal of Physics D: Applied Physics</i> (2020). <a href="https://doi.org/10.1088/1361-6463/ab7794">doi:10.1088/1361-6463/ab7794</a>
+        <span class="why">A recent overview of threshold switching, crystallization, resistance drift and noise, written with in-memory computing in mind.</span></li>
+      <li>Burr, G. W. et al. Experimental demonstration and tolerancing of a large-scale neural network (165,000 synapses) using phase-change memory as the synaptic weight element. <i>IEEE Transactions on Electron Devices</i> (2015). <a href="https://doi.org/10.1109/TED.2015.2439635">doi:10.1109/TED.2015.2439635</a>
+        <span class="why">An early experiment that stored neural-network weights in a pair of PCM cells each, and what it took to tolerate their imperfections.</span></li>
+      <li>Le Gallo, M. et al. A 64-core mixed-signal in-memory compute chip based on phase-change memory for deep neural network inference. <i>Nature Electronics</i> 6, 680–693 (2023). <a href="https://doi.org/10.1038/s41928-023-01010-1">doi:10.1038/s41928-023-01010-1</a>
+        <span class="why">A chip that does what the crossbar simulator in Step 3 models, built with PCM weights, and the drift and noise problems it had to handle.</span></li>
+      <li>Wong, H.-S. P. et al. Metal–oxide RRAM. <i>Proceedings of the IEEE</i> 100, 1951–1970 (2012). <a href="https://doi.org/10.1109/JPROC.2012.2190369">doi:10.1109/JPROC.2012.2190369</a>
+            <span class="why">A review of metal-oxide ReRAM: the switching mechanism, the materials and the electrical behaviour, with a focus on memory use.</span></li>
+      <li>Waser, R. &amp; Aono, M. Nanoionics-based resistive switching memories. <i>Nature Materials</i> 6, 833–840 (2007). <a href="https://doi.org/10.1038/nmat2023">doi:10.1038/nmat2023</a>
+            <span class="why">A review of the physics behind resistive switching, where the movement of ions inside the material changes the cell’s resistance.</span></li>
+    </ol>
+<h2 class="sub2">Crossbars, vector-matrix multiplication and in-memory computing <span class="cap">supports the crossbar and the efficiency panel</span></h2>
+        <ol class="refs" start="9">
+          <li>Hu, M. et al. Dot-product engine for neuromorphic computing: programming 1T1M crossbar to accelerate matrix-vector multiplication. <i>53rd ACM/EDAC/IEEE Design Automation Conference (DAC)</i>, 1–6 (2016). <a href="https://doi.org/10.1145/2897937.2898010">doi:10.1145/2897937.2898010</a>
+            <span class="why">An analog memristor-crossbar accelerator for matrix-vector multiplication, with a method for mapping matrix values onto device conductances. The abstract reports results with only 4-bit DACs and ADCs.</span></li>
+          <li>Ielmini, D. &amp; Wong, H.-S. P. In-memory computing with resistive switching devices. <i>Nature Electronics</i> 1, 333–343 (2018). <a href="https://doi.org/10.1038/s41928-018-0092-2">doi:10.1038/s41928-018-0092-2</a>
+            <span class="why">A review of in-memory computing with resistive devices, covering digital, analogue and stochastic schemes and the challenges that remain.</span></li>
+          <li>Sebastian, A., Le Gallo, M., Khaddam-Aljameh, R. &amp; Eleftheriou, E. Memory devices and applications for in-memory computing. <i>Nature Nanotechnology</i> 15, 529–544 (2020). <a href="https://doi.org/10.1038/s41565-020-0655-z">doi:10.1038/s41565-020-0655-z</a> · <a href="https://zenodo.org/records/3969876">free version</a>
+            <span class="why">A broad overview of the memory devices used for in-memory computing and the computational primitives they enable, from signal processing to deep learning.</span></li>
+        </ol><h2 class="sub2">Writing the weights <span class="cap">supports the Programming panel</span></h2>
+        <ol class="refs" start="12">
+          <li>Alibart, F., Gao, L., Hoskins, B. D. &amp; Strukov, D. B. High precision tuning of state for memristive devices by adaptable variation-tolerant algorithm. <i>Nanotechnology</i> 23, 075201 (2012). <a href="https://doi.org/10.1088/0957-4484/23/7/075201">doi:10.1088/0957-4484/23/7/075201</a> · <a href="https://arxiv.org/abs/1110.1393">arXiv:1110.1393</a>
+            <span class="why">A feedback write algorithm that tuned the conductance of titanium-oxide devices to about 1% relative accuracy (roughly 7 bits) despite large variation in switching. The idea behind program-and-verify.</span></li>
+        </ol><h2 class="sub2">Splitting weights across several cells <span class="cap">supports the Binary weighted cell encoding</span></h2>
+        <ol class="refs" start="13">
+          <li>Shafiee, A. et al. ISAAC: a convolutional neural network accelerator with in-situ analog arithmetic in crossbars. <i>ACM SIGARCH Computer Architecture News</i> 44(3) (2016); presented at ISCA 2016. <a href="https://doi.org/10.1145/3007787.3001139">doi:10.1145/3007787.3001139</a> · <a href="https://users.cs.utah.edu/~rajeev/pubs/isca16.pdf">author copy</a>
+            <span class="why">A crossbar accelerator that spreads each 16-bit weight over several memristor cells in the same row (2 bits per cell in the paper) and merges the columns with shifts and adds. The Binary weighted option is the 1-bit-per-cell extreme of the same idea.</span></li>
+        </ol>
+      </section>      </section>
+    </main>
+  </div>
+  <section class="panel" id="next" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
+    <div><span class="cap">Where to go from here</span><h2 style="margin:2px 0 0">Compare with ReRAM</h2><p class="note" style="margin:4px 0 0;font-size:13px;max-width:62ch">Open the ReRAM crossbar next to this one and give both the same weights and σ. Then age the PCM array and watch the outputs move. A PCM reference page (equations, glossary, settings) is in development.</p></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px"><a href="../reram/" style="text-decoration:none"><button type="button" style="border:1px solid var(--curr);color:var(--curr);font-weight:600;padding:10px 18px;font-size:15px;background:var(--bg);border-radius:5px;cursor:pointer">Open the ReRAM crossbar &rarr;</button></a><a href="write/" style="text-decoration:none"><button type="button" style="padding:10px 18px;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;cursor:pointer">&larr; Step 2</button></a></div>
+  </section>
+
+  <footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>
+</div>
+
+<script>
+(function(){
+var W0=[[0.8,-0.4,0.2,0.6,-0.7,0.3],[-0.5,0.9,0.1,-0.3,0.4,-0.8],[0.3,0.2,-0.9,0.5,0.6,-0.1],[0.7,-0.6,0.4,-0.2,-0.5,0.9],[-0.3,0.5,0.7,0.1,-0.9,0.2],[0.6,-0.1,-0.4,0.8,0.3,-0.6],
+  [0.2,-0.7,0.5,0.1,0.8,-0.4],[-0.6,0.3,0.9,-0.8,0.2,0.5],[0.4,0.6,-0.3,0.7,-0.1,-0.9]];
+var X0=[0.8,0.3,0.6,1.0,0.5,0.2,0.7,0.1,0.9];
+var S={arch:'diff',sign:'diff',M:4,N:4,dacBits:4,gBits:4,adcBits:8,adcRange:100,vread:0.2,gmin:0.5,gmax:50,age:0,comp:0,sigma:10,rw:0,seed:7,show:'g',phase:5,col:0,wmode:'verify',v0:1.3,tol:2,maxp:40,tp:50,icc:50,par:1,erase:1,pr:0,pc:0};
+var W=W0.map(function(r){return r.slice()}), X=X0.slice(), Z=[];
+var SUB=['₁','₂','₃','₄','₅','₆','₇','₈','₉'];
+var timer=null;
+function $(id){return document.getElementById(id)}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function f(v,d){return (v<0?'−':'')+Math.abs(v).toFixed(d)}
+/* Cell encoding ('arch'): 'diff' = analog multi-level, 'bin' = binary weighted (one 1-bit cell per weight bit).
+   Signed weight encoding ('sign'): 'diff' = G+/G- pair of cells, 'ref' = one cell per weight plus one shared reference column at the middle conductance,
+   'clip' = one cell per weight, unsigned weights only (0 to 1, negative weights are stored as 0). */
+function isBin(){return S.arch==='bin'}
+function nc(){return S.sign==='diff'?2:1}                 /* cells per bit plane */
+function planesN(){return isBin()?S.gBits:1}              /* bit planes per output */
+function cpo(){return planesN()*nc()}                     /* bit lines per output */
+function hasRef(){return S.sign==='ref'}
+function ncols(){return S.N*cpo()+(hasRef()?1:0)}
+function refCol(){return hasRef()?S.N*cpo():-1}
+function gmid(){return (S.gmin+S.gmax)/2}
+function encodeW(w,bin){
+  var B=S.gBits,Lv=Math.pow(2,B)-1,span=S.gmax-S.gmin,gm=gmid(),sc=S.sign,pl=[],l,wq,code,q;
+  if(sc==='clip')w=Math.max(w,0);
+  if(!bin){
+    if(sc==='ref'){l=Math.round((w+1)/2*Lv);wq=2*l/Lv-1;pl.push({b:0,pw:1,gain:2,Gt:[S.gmin+l/Lv*span]});return {planes:pl,wq:wq,level:l,w:w}}
+    l=Math.round(Math.abs(w)*Lv);wq=(w<0?-1:1)*l/Lv;
+    if(sc==='diff')pl.push({b:0,pw:1,gain:1,Gt:[S.gmin+(w>0?l/Lv:0)*span,S.gmin+(w<0?l/Lv:0)*span]});
+    else pl.push({b:0,pw:1,gain:1,Gt:[S.gmin+wq*span]});
+    return {planes:pl,wq:wq,level:l,w:w};
+  }
+  if(sc==='ref'){code=Math.round((w+1)/2*Lv);wq=2*code/Lv-1}
+  else{code=Math.round(Math.abs(w)*Lv);wq=(w<0?-1:1)*code/Lv}
+  for(q=0;q<B;q++){
+    var b=B-1-q,bit=(code>>b)&1,pw=Math.pow(2,b)/Lv;
+    if(sc==='diff')pl.push({b:b,bit:bit,pw:pw,gain:1,Gt:[S.gmin+(bit&&w>0?1:0)*span,S.gmin+(bit&&w<0?1:0)*span]});
+    else pl.push({b:b,bit:bit,pw:pw,gain:sc==='ref'?2:1,Gt:[S.gmin+bit*span]});
+  }
+  return {planes:pl,wq:wq,level:code,w:w};
+}
+function colInfo(k){
+  var c=cpo(),n=nc();
+  if(hasRef()&&k===refCol())return {ref:true};
+  var j=Math.floor(k/c),r=k%c,q=Math.floor(r/n);
+  return {ref:false,j:j,q:q,c:r%n,b:isBin()?S.gBits-1-q:0};
+}
+function colLabel(k){
+  var ci=colInfo(k);if(ci.ref)return 'ref';
+  var s='y'+SUB[ci.j];
+  if(isBin())s+='·b'+ci.b;
+  if(S.sign==='diff')s+=(ci.c?'⁻':'⁺');
+  return s;
+}
+function colDesc(k){
+  var ci=colInfo(k);if(ci.ref)return 'the shared reference column (Gmid)';
+  var s=isBin()?'output y'+SUB[ci.j]+', bit '+ci.b:'bit line '+(ci.j+1);
+  if(S.sign==='diff')s+=(ci.c?' (G⁻)':' (G⁺)');
+  return s;
+}
+function schemeName(){
+  var a=isBin()?'binary weighted':'analog multi-level';
+  return a+', '+(S.sign==='diff'?'differential pair':S.sign==='ref'?'reference column':'unsigned');
+}
+function rng(seed){var a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function makeZ(){var r=rng(S.seed*9973+11);Z=[];for(var i=0;i<9;i++){Z[i]=[];for(var k=0;k<12;k++){var u=r()||1e-9,v=r();Z[i][k]=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}}
+  var r2=rng(S.seed*9973+977);for(i=0;i<9;i++)for(k=12;k<96;k++){var u2=r2()||1e-9,v2=r2();Z[i][k]=Math.sqrt(-2*Math.log(u2))*Math.cos(2*Math.PI*v2)}}
+
+/* Crossbar solve. G in siemens, Vin in volts. Returns bit-line currents (A) and per-cell currents (A). */
+function solve(Vin,G,rw){
+  var M=Vin.length,C=G[0].length,i,j,it;
+  var Ic=[],cell=[];
+  for(i=0;i<M;i++){cell[i]=[]}
+  if(rw<=0){
+    for(j=0;j<C;j++){var s=0;for(i=0;i<M;i++){cell[i][j]=Vin[i]*G[i][j];s+=cell[i][j]}Ic[j]=s}
+    return {Ic:Ic,cell:cell};
+  }
+  var gw=1/rw,Vr=[],Vc=[];
+  for(i=0;i<M;i++){Vr[i]=[];Vc[i]=[];for(j=0;j<C;j++){Vr[i][j]=Vin[i];Vc[i][j]=0}}
+  for(it=0;it<800;it++){
+    var md=0;
+    for(i=0;i<M;i++)for(j=0;j<C;j++){
+      var g=G[i][j],num=g*Vc[i][j]+gw*(j===0?Vin[i]:Vr[i][j-1]),den=g+gw;
+      if(j<C-1){num+=gw*Vr[i][j+1];den+=gw}
+      var nv=num/den;md=Math.max(md,Math.abs(nv-Vr[i][j]));Vr[i][j]=nv;
+    }
+    for(i=0;i<M;i++)for(j=0;j<C;j++){
+      var g2=G[i][j],n2=g2*Vr[i][j]+gw*(i===M-1?0:Vc[i+1][j]),d2=g2+gw;
+      if(i>0){n2+=gw*Vc[i-1][j];d2+=gw}
+      var nv2=n2/d2;md=Math.max(md,Math.abs(nv2-Vc[i][j]));Vc[i][j]=nv2;
+    }
+    if(md<1e-11)break;
+  }
+  for(j=0;j<C;j++){Ic[j]=gw*Vc[M-1][j];for(i=0;i<M;i++)cell[i][j]=G[i][j]*(Vr[i][j]-Vc[i][j])}
+  return {Ic:Ic,cell:cell};
+}
+
+function compute(){
+  var M=S.M,N=S.N,bin=isBin(),B=S.gBits,P=planesN(),ncell=nc(),cp=cpo(),C=ncols(),rc=refCol(),i,j,k,q,c;
+  var span=S.gmax-S.gmin,Lv=Math.pow(2,S.gBits)-1,dl=Math.pow(2,S.dacBits)-1;
+  var xq=[],Vin=[];
+  for(i=0;i<M;i++){xq[i]=Math.round(X[i]*dl)/dl;Vin[i]=xq[i]*S.vread}
+  var Gt=[],Gid=[],Ga=[],GaS=[];
+  for(i=0;i<M;i++){Gt[i]=[];Gid[i]=[];Ga[i]=[];GaS[i]=[];
+    for(j=0;j<N;j++){
+      var e=encodeW(W[i][j],bin);
+      for(q=0;q<P;q++)for(c=0;c<ncell;c++){
+        k=j*cp+q*ncell+c;
+        Gt[i][k]=e.planes[q].Gt[c];
+        Gid[i][k]=Math.max(0.05,Gt[i][k]*(1+S.sigma/100*Z[i][k]));
+      }
+    }
+    if(rc>=0){Gt[i][rc]=gmid();Gid[i][rc]=Math.max(0.05,Gt[i][rc]*(1+S.sigma/100*Z[i][rc]))}
+  }
+  var tcl=Math.max(Math.pow(10,S.age),1),dg=S.comp?Math.pow(tcl,PC.NUREF):1;
+  var pr=progArray(Gt,M,C,S.wmode==='single'?'single':'verify');
+  for(i=0;i<M;i++)for(k=0;k<C;k++){
+    var g=S.wmode==='ideal'?Gid[i][k]:Math.max(0.05,pr.cells[i][k].G);
+    var gdr=g*Math.pow(tcl,-nuOf(aOfG(g)));Ga[i][k]=gdr;GaS[i][k]=gdr*1e-6;
+  }
+  var sol=solve(Vin,GaS,S.rw);
+  var Ic=sol.Ic.map(function(a){return a*1e6*dg});
+  var cellI=sol.cell.map(function(r){return r.map(function(a){return a*1e6*dg})});
+  var Iref=rc>=0?Ic[rc]:null,gain=S.sign==='ref'?2:1;
+  var raw=[],ideal=[],code=[],out=[],err=[],planes=[];
+  var R=M*S.adcRange/100,lv=Math.pow(2,S.adcBits-1)-1;
+  for(j=0;j<N;j++){
+    var id=0;for(i=0;i<M;i++)id+=X[i]*W[i][j];ideal[j]=id;
+    var pl=[],rs=0,cs=0,os=0;
+    for(q=0;q<P;q++){
+      var kk=j*cp+q*ncell,b=bin?B-1-q:0,pw=bin?Math.pow(2,b)/Lv:1;
+      var Ip=Ic[kk],Im=ncell===2?Ic[kk+1]:(rc>=0?Iref:null);
+      var val=ncell===2?(Ip-Im)/(S.vread*span):(rc>=0?gain*(Ip-Iref)/(S.vread*span):Ip/(S.vread*span));
+      var pCode=clamp(Math.round(val/R*lv),-lv,lv);
+      pl.push({b:b,pw:pw,Ip:Ip,Im:Im,raw:val,code:pCode});
+      rs+=pw*val;cs+=bin?pCode*Math.pow(2,b):pCode;os+=pw*pCode*R/lv;
+    }
+    planes[j]=pl;raw[j]=rs;code[j]=cs;out[j]=os;err[j]=os-id;
+  }
+  var rms=Math.sqrt(err.reduce(function(a,e){return a+e*e},0)/N);
+  var maxAbs=ideal.reduce(function(a,v){return Math.max(a,Math.abs(v))},0)||1;
+  return {prog:pr,Gt:Gt,xq:xq,Vin:Vin,Ga:Ga,Ic:Ic,cellI:cellI,raw:raw,ideal:ideal,code:code,out:out,err:err,rms:rms,rel:rms/maxAbs,R:R,span:span,bin:bin,B:B,P:P,ncell:ncell,cp:cp,C:C,rc:rc,Iref:Iref,planes:planes,sign:S.sign};
+}
+
+/* ---------- rendering ---------- */
+function renderSVG(d){
+  var M=S.M,N=S.N,C=d.C,bin=d.bin,B=d.B,np=d.P,ncl=d.ncell,cp=d.cp,rc=d.rc,hasR=rc>=0,P=bin?44:60,L=124,T=bin?56:36,gw=C*P,gh=M*P,ph=S.phase;
+  var off=hasR?20:0,Wd=L+gw+26,H=T+gh+(bin?208:168)+off;
+  function op(n){return ph>=n?1:0.14}
+  var o='';
+  var rowFlow=(ph===2||ph===3)?' flow':'',colFlow=(ph===4)?' flow':'';
+  var i,j,k,u,NU=N*np;
+  function ux(u){return L+u*ncl*P+ncl*P/2}                   /* centre of a bit-plane unit */
+  // headers
+  o+='<g class="fade" opacity="'+op(1)+'">';
+  for(k=0;k<C;k++){
+    var xx=L+k*P+P/2,lab=(k===rc)?'Gref':(ncl===2?(k%2===0?'G⁺':'G⁻'):'G');
+    o+='<text x="'+xx+'" y="'+(T-12)+'" text-anchor="middle" font-size="12" fill="var(--mute)">'+lab+'</text>';
+  }
+  if(bin){
+    for(u=0;u<NU;u++)o+='<text x="'+ux(u)+'" y="'+(T-27)+'" text-anchor="middle" font-size="11" fill="var(--ink)">bit '+(B-1-(u%np))+'</text>';
+    for(j=0;j<N;j++){var xa=L+j*cp*P+4,xe=L+(j+1)*cp*P-4;o+='<path d="M'+xa+' '+(T-40)+' H'+xe+'" stroke="var(--ink)" stroke-width="1.5" fill="none"/><text x="'+((xa+xe)/2)+'" y="'+(T-45)+'" text-anchor="middle" font-size="12" font-weight="500" fill="var(--ink)">y'+SUB[j]+' = Σ bit·2ᵇ</text>'}
+  }
+  o+='</g>';
+  // rows
+  o+='<g class="fade" opacity="'+op(2)+'">';
+  for(i=0;i<M;i++){
+    var y=T+i*P+P/2;
+    o+='<line class="wire-r'+rowFlow+'" x1="'+(L-14)+'" y1="'+y+'" x2="'+(L+gw-6)+'" y2="'+y+'"/>';
+    o+='<text x="'+(L-22)+'" y="'+(y-3)+'" text-anchor="end" font-size="11" fill="var(--mute)">x'+SUB[i]+' '+X[i].toFixed(2)+'→'+d.xq[i].toFixed(2)+'</text>';
+    o+='<text x="'+(L-22)+'" y="'+(y+11)+'" text-anchor="end" font-size="12" font-weight="500" fill="var(--volt)">V'+SUB[i]+' '+(d.Vin[i]*1000).toFixed(0)+' mV</text>';
+  }
+  o+='</g>';
+  // columns
+  o+='<g class="fade" opacity="'+op(4)+'">';
+  var y0=T+gh+34;
+  for(k=0;k<C;k++){
+    var cx=L+k*P+P/2;
+    o+='<line class="wire-c'+colFlow+'" x1="'+cx+'" y1="'+(T+6)+'" x2="'+cx+'" y2="'+y0+'"/>';
+    o+='<text x="'+cx+'" y="'+(y0+15)+'" text-anchor="middle" font-size="'+(bin?9:10.5)+'" fill="var(--curr)">'+d.Ic[k].toFixed(1)+(bin?'':'µA')+'</text>';
+  }
+  o+='</g>';
+  // cells
+  o+='<g class="fade" opacity="'+op(1)+'">';
+  for(i=0;i<M;i++)for(k=0;k<C;k++){
+    var cx2=L+k*P+P/2,cy=T+i*P+P/2;
+    var t=clamp((d.Ga[i][k]-S.gmin)/d.span,0,1),a=0.1+0.9*t;
+    o+='<rect x="'+(cx2-15)+'" y="'+(cy-15)+'" width="30" height="30" rx="3" fill="var(--cell)" fill-opacity="'+a.toFixed(3)+'" stroke="var(--cell)" stroke-opacity=".5"'+(k===rc?' stroke-dasharray="3 2" stroke-width="1.5"':'')+'><title>'+(k===rc?'Reference cell':'Cell')+' ['+(i+1)+','+(k+1)+'] G='+d.Ga[i][k].toFixed(1)+' µS, I='+d.cellI[i][k].toFixed(2)+' µA</title></rect>';
+    if(S.show!=='n'){
+      var lab2=S.show==='g'?d.Ga[i][k].toFixed(0):d.cellI[i][k].toFixed(1);
+      var dim=(S.show==='i'&&ph<3)?0.15:1;
+      var tc=a>0.55?'var(--cellText)':'var(--ink)';
+      o+='<text x="'+cx2+'" y="'+(cy+1)+'" text-anchor="middle" font-size="11" fill="'+tc+'" opacity="'+dim+'">'+lab2+'</text>';
+      o+='<text x="'+cx2+'" y="'+(cy+11)+'" text-anchor="middle" font-size="7.5" fill="'+tc+'" opacity="'+(dim*0.85)+'">'+(S.show==='g'?'µS':'µA')+'</text>';
+    }
+  }
+  o+='</g>';
+  // subtraction / ADC stage
+  o+='<g class="fade" opacity="'+op(5)+'">';
+  var yb=y0+42,aw=Math.min(bin?62:(ncl===2?76:64),ncl*P-6),nar=(!bin&&ncl===1),adf=(bin&&ncl===1)?9:(bin?10:(nar?10:11));
+  if(hasR){
+    var xr=L+rc*P+P/2,ybus=yb+50;
+    o+='<path d="M'+xr+' '+(y0+22)+' V'+ybus+' H'+ux(0)+'" fill="none" stroke="var(--curr)" stroke-width="2"/>';
+    o+='<text x="'+(xr-6)+'" y="'+(ybus-5)+'" text-anchor="end" font-size="10" fill="var(--curr)">Iref</text>';
+  }
+  for(u=0;u<NU;u++){
+    var xu=ux(u),jj=Math.floor(u/np),qq=u%np,pln=d.planes[jj][qq];
+    if(ncl===2){
+      var xp=L+(2*u)*P+P/2,xm=xp+P;
+      o+='<path d="M'+xp+' '+(y0+22)+' V'+yb+' H'+xm+' V'+(y0+22)+' M'+xu+' '+yb+' V'+(yb+12)+'" fill="none" stroke="var(--curr)" stroke-width="2"/>';
+      o+='<text x="'+(xu-P/2+1)+'" y="'+(yb-4)+'" text-anchor="middle" font-size="11" fill="var(--curr)">+</text>';
+      o+='<text x="'+(xu+P/2-1)+'" y="'+(yb-4)+'" text-anchor="middle" font-size="11" fill="var(--curr)">−</text>';
+    }else{
+      o+='<path d="M'+xu+' '+(y0+22)+' V'+(yb+12)+'" fill="none" stroke="var(--curr)" stroke-width="2"/>';
+      o+='<text x="'+(xu-9)+'" y="'+(yb+5)+'" text-anchor="end" font-size="11" fill="var(--curr)">+</text>';
+      if(hasR){
+        o+='<path d="M'+xu+' '+(yb+50)+' V'+(yb+38)+'" fill="none" stroke="var(--curr)" stroke-width="2"/>';
+        o+='<circle cx="'+xu+'" cy="'+(yb+50)+'" r="2.5" fill="var(--curr)"/>';
+        o+='<text x="'+(xu+8)+'" y="'+(yb+46)+'" font-size="11" fill="var(--curr)">−</text>';
+      }
+    }
+    o+='<rect x="'+(xu-aw/2)+'" y="'+(yb+12)+'" width="'+aw+'" height="'+(bin?24:26)+'" rx="4" fill="none" stroke="var(--ink)" stroke-width="1.5"/>';
+    o+='<text x="'+xu+'" y="'+(yb+(bin?28:29))+'" text-anchor="middle" font-size="'+adf+'" fill="var(--ink)">ADC '+S.adcBits+'b</text>';
+    if(!bin){
+      o+='<text x="'+xu+'" y="'+(yb+56+off)+'" text-anchor="middle" font-size="'+(nar?12:14)+'" font-weight="500" fill="var(--ink)">y'+SUB[jj]+(nar?'=':' = ')+f(d.out[jj],2)+'</text>';
+      o+='<text x="'+xu+'" y="'+(yb+71+off)+'" text-anchor="middle" font-size="'+(nar?8.5:10.5)+'" fill="var(--mute)">ideal '+f(d.ideal[jj],2)+'</text>';
+    }else{
+      o+='<text x="'+xu+'" y="'+(yb+50+off)+'" text-anchor="middle" font-size="10.5" fill="var(--ink)">'+(pln.code<0?'−':'')+Math.abs(pln.code)+'</text>';
+      o+='<text x="'+xu+'" y="'+(yb+63+off)+'" text-anchor="middle" font-size="10.5" fill="var(--mute)">×'+Math.pow(2,pln.b)+'</text>';
+      o+='<path d="M'+xu+' '+(yb+68+off)+' V'+(yb+76+off)+'" stroke="var(--ink)" stroke-width="1.2" fill="none"/>';
+    }
+  }
+  if(bin){
+    for(j=0;j<N;j++){
+      var xa2=ux(j*np),xe2=ux(j*np+np-1),ym=yb+76+off,xc=(xa2+xe2)/2;
+      o+='<path d="M'+xa2+' '+ym+' H'+xe2+' M'+xc+' '+ym+' V'+(ym+10)+'" stroke="var(--ink)" stroke-width="1.2" fill="none"/>';
+      o+='<text x="'+xc+'" y="'+(ym+27)+'" text-anchor="middle" font-size="14" font-weight="500" fill="var(--ink)">y'+SUB[j]+' = '+f(d.out[j],2)+'</text>';
+      o+='<text x="'+xc+'" y="'+(ym+42)+'" text-anchor="middle" font-size="10.5" fill="var(--mute)">shift+add · ideal '+f(d.ideal[j],2)+'</text>';
+    }
+  }
+  o+='</g>';
+  var svg=$('xsvg');
+  svg.setAttribute('viewBox','0 0 '+Wd+' '+H);
+  svg.style.minWidth=(bin?Wd:Math.min(Wd,820))+'px';
+  svg.innerHTML=o;
+}
+
+function renderTables(d){
+  var N=S.N,M=S.M,j,i,h='<thead><tr><th>Out</th><th>Ideal</th><th>Analog</th><th>Code</th><th>Digital</th><th>Error</th></tr></thead><tbody>';
+  for(j=0;j<N;j++){
+    var big=Math.abs(d.err[j])>0.05*Math.max(1,Math.abs(d.ideal[j]));
+    h+='<tr><td>y'+SUB[j]+'</td><td>'+f(d.ideal[j],3)+'</td><td>'+f(d.raw[j],3)+'</td><td>'+d.code[j]+'</td><td>'+f(d.out[j],3)+'</td><td class="'+(big?'bad':'good')+'">'+f(d.err[j],3)+'</td></tr>';
+  }
+  $('res').innerHTML=h+'</tbody>';
+  $('stats').innerHTML='<span>RMS error <b>'+d.rms.toFixed(3)+'</b></span><span>Relative to largest output <b>'+(d.rel*100).toFixed(1)+'%</b></span><span>ADC full scale <b>±'+d.R.toFixed(2)+'</b></span>';
+  var c=S.col;if(c>=N)c=S.col=0;
+  var t,sc=S.sign,span=d.span,rc=d.rc,cp=d.cp,Lv=Math.pow(2,S.gBits)-1;
+  if(!d.bin){
+    var k0=c*cp;
+    if(sc==='diff'){
+      t='<thead><tr><th>Row</th><th>Vᵢ mV</th><th>G⁺ µS</th><th>I⁺ µA</th><th>G⁻ µS</th><th>I⁻ µA</th></tr></thead><tbody>';
+      for(i=0;i<M;i++)t+='<tr><td>'+(i+1)+'</td><td>'+(d.Vin[i]*1000).toFixed(0)+'</td><td>'+d.Ga[i][k0].toFixed(1)+'</td><td>'+d.cellI[i][k0].toFixed(2)+'</td><td>'+d.Ga[i][k0+1].toFixed(1)+'</td><td>'+d.cellI[i][k0+1].toFixed(2)+'</td></tr>';
+      t+='</tbody><tfoot><tr><td>Sum</td><td></td><td></td><td>'+d.Ic[k0].toFixed(2)+'</td><td></td><td>'+d.Ic[k0+1].toFixed(2)+'</td></tr>';
+      t+='<tr><td>I⁺ − I⁻</td><td></td><td></td><td colspan="3">'+f(d.Ic[k0]-d.Ic[k0+1],2)+' µA → y = '+f(d.raw[c],3)+'</td></tr></tfoot>';
+      $('traceNote').textContent='Each cell current is Vᵢ·Gᵢⱼ (Ohm). The bit line adds them (Kirchhoff). The two bit lines of a pair are subtracted, then scaled by Vread·(Gmax−Gmin) to recover the weighted sum.';
+    }else if(sc==='ref'){
+      t='<thead><tr><th>Row</th><th>Vᵢ mV</th><th>G µS</th><th>I µA</th><th>Gref µS</th><th>Iref µA</th></tr></thead><tbody>';
+      for(i=0;i<M;i++)t+='<tr><td>'+(i+1)+'</td><td>'+(d.Vin[i]*1000).toFixed(0)+'</td><td>'+d.Ga[i][k0].toFixed(1)+'</td><td>'+d.cellI[i][k0].toFixed(2)+'</td><td>'+d.Ga[i][rc].toFixed(1)+'</td><td>'+d.cellI[i][rc].toFixed(2)+'</td></tr>';
+      t+='</tbody><tfoot><tr><td>Sum</td><td></td><td></td><td>'+d.Ic[k0].toFixed(2)+'</td><td></td><td>'+d.Ic[rc].toFixed(2)+'</td></tr>';
+      t+='<tr><td>I − Iref</td><td></td><td></td><td colspan="3">'+f(d.Ic[k0]-d.Ic[rc],2)+' µA → y = '+f(d.raw[c],3)+'</td></tr></tfoot>';
+      $('traceNote').textContent='Each cell holds Gmid plus or minus an offset for its weight. The reference column holds Gmid in every row, so subtracting its current removes the Gmid part and leaves Vᵢ times the offset. The difference is scaled by Vread·(Gmax−Gmin)/2.';
+    }else{
+      t='<thead><tr><th>Row</th><th>Vᵢ mV</th><th>G µS</th><th>I µA</th></tr></thead><tbody>';
+      for(i=0;i<M;i++)t+='<tr><td>'+(i+1)+'</td><td>'+(d.Vin[i]*1000).toFixed(0)+'</td><td>'+d.Ga[i][k0].toFixed(1)+'</td><td>'+d.cellI[i][k0].toFixed(2)+'</td></tr>';
+      var offs=0;for(i=0;i<M;i++)offs+=d.xq[i]*S.gmin/span;
+      t+='</tbody><tfoot><tr><td>Sum</td><td></td><td></td><td>'+d.Ic[k0].toFixed(2)+'</td></tr>';
+      t+='<tr><td>I scaled</td><td></td><td colspan="2">y = '+f(d.raw[c],3)+' (includes about '+offs.toFixed(3)+' from the Gmin offset)</td></tr></tfoot>';
+      $('traceNote').textContent='One cell per weight, no subtraction. The bit line current is scaled by Vread·(Gmax−Gmin). A cell at its lowest conductance still passes Vᵢ·Gmin, so every output carries a small offset of about Σxᵢ·Gmin/(Gmax−Gmin). Negative weights cannot be stored here.';
+    }
+  }else{
+    var hd=sc==='diff'?['I⁺ µA','I⁻ µA']:sc==='ref'?['I µA','Iref µA']:['I µA',''];
+    t='<thead><tr><th>Bit</th><th>Weight</th><th>'+hd[0]+'</th>'+(hd[1]?'<th>'+hd[1]+'</th>':'')+'<th>Plane sum</th><th>ADC code</th></tr></thead><tbody>';
+    d.planes[c].forEach(function(p){
+      t+='<tr><td>b'+p.b+'</td><td>'+Math.pow(2,p.b)+'/'+Lv+'</td><td>'+p.Ip.toFixed(2)+'</td>'+(hd[1]?'<td>'+p.Im.toFixed(2)+'</td>':'')+'<td>'+f(p.raw,3)+'</td><td>'+p.code+'</td></tr>';
+    });
+    t+='</tbody><tfoot><tr><td>Shift + add</td><td colspan="'+(hd[1]?5:4)+'">Σ code·2ᵇ = '+d.code[c]+' → y = '+f(d.out[c],3)+'  (analog sum '+f(d.raw[c],3)+')</td></tr></tfoot>';
+    $('traceNote').textContent='Each bit plane is read on its own bit line'+(sc==='diff'?'s (a G⁺/G⁻ pair)':sc==='ref'?', with the shared reference column subtracted (weights are offset-binary, so a 0 bit counts as −1 and a 1 bit as +1)':' (unsigned bits)')+'. Cells are binary, so a plane current is Vᵢ·G summed over the rows whose weight has that bit set. Each plane is digitized by its own ADC, then the digital side multiplies it by 2ᵇ/'+Lv+' and adds the planes.';
+  }
+  $('trace').innerHTML=t;
+}
+
+function renderChart(d){
+  var N=S.N,j,vals=d.ideal.concat(d.out),m=Math.max(0.5,Math.ceil(Math.max.apply(null,vals.map(Math.abs))*2)/2);
+  var x0=38,x1=410,y0=14,y1=180,yz=(y0+y1)/2,sc=(y1-y0)/2/m;
+  var o='';
+  [-m,-m/2,0,m/2,m].forEach(function(v){
+    var y=yz-v*sc;
+    o+='<line x1="'+x0+'" x2="'+x1+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)" stroke-width="'+(v===0?1.5:1)+'"/>';
+    o+='<text x="'+(x0-6)+'" y="'+(y+4)+'" text-anchor="end" font-size="10" fill="var(--mute)">'+(v<0?'−':'')+Math.abs(v).toFixed(1)+'</text>';
+  });
+  var gw=(x1-x0)/N,bw=Math.min(22,gw/3);
+  for(j=0;j<N;j++){
+    var cx=x0+gw*j+gw/2;
+    var hi=d.ideal[j]*sc,ho=d.out[j]*sc;
+    o+='<rect x="'+(cx-bw-2)+'" y="'+(hi>=0?yz-hi:yz)+'" width="'+bw+'" height="'+Math.abs(hi)+'" fill="none" stroke="var(--ink)" stroke-width="1.5"/>';
+    o+='<rect x="'+(cx+2)+'" y="'+(ho>=0?yz-ho:yz)+'" width="'+bw+'" height="'+Math.abs(ho)+'" fill="var(--curr)"/>';
+    o+='<text x="'+cx+'" y="'+(y1+16)+'" text-anchor="middle" font-size="11" fill="var(--mute)">y'+SUB[j]+'</text>';
+  }
+  o+='<rect x="'+(x0)+'" y="196" width="10" height="8" fill="none" stroke="var(--ink)" stroke-width="1.5"/><text x="'+(x0+15)+'" y="204" font-size="10" fill="var(--mute)">Ideal (float)</text>';
+  o+='<rect x="'+(x0+100)+'" y="196" width="10" height="8" fill="var(--curr)"/><text x="'+(x0+115)+'" y="204" font-size="10" fill="var(--mute)">PCM digital output</text>';
+  $('chart').innerHTML=o;
+}
+
+function renderSteps(d){
+  var names=['1 Program','2 Drive rows','3 Ohm\'s law','4 Sum columns','5 Digitize'];
+  var h='<button id="bPlay">'+(timer?'Stop':'Play')+'</button>';
+  names.forEach(function(n,i){h+='<button data-ph="'+(i+1)+'" class="'+(S.phase===i+1?'on':'')+'">'+n+'</button>'});
+  $('steps').innerHTML=h;
+  var c=S.col,sc=S.sign,B=S.gBits,Lv=Math.pow(2,B)-1,gm=gmid(),p1,p4,p5,pl=d.planes[c][0];
+  var wr=S.wmode==='ideal'?'Ideal write is selected, so only Gaussian variation of '+S.sigma+'% is added.':'The write pulses below set the stored values ('+d.prog.stats.pulses+' pulses in total).';
+  var nb=d.C+' bit line'+(d.C>1?'s':'')+' in total. ';
+  if(!d.bin){
+    if(sc==='diff')p1='Each weight is split into G⁺ and G⁻ and aimed at one of '+(Lv+1)+' conductance levels between '+S.gmin+' and '+S.gmax+' µS. ';
+    else if(sc==='ref')p1='Each weight sits in a single cell as an offset from the middle conductance, G = Gmid + w·(Gmax−Gmin)/2 with Gmid = '+gm+' µS, so it can be above or below Gmid. One extra reference column is written at Gmid. ';
+    else p1='Each weight sits in a single cell, G = Gmin + w·(Gmax−Gmin), so only weights from 0 to 1 can be stored. Negative weights are written as 0. ';
+  }else{
+    if(sc==='diff')p1='Each weight is split into a sign and a '+B+'-bit magnitude. Every bit gets its own pair of binary cells (G⁺ or G⁻ by sign), each written as either Gmin ('+S.gmin+' µS, 0) or Gmax ('+S.gmax+' µS, 1). ';
+    else if(sc==='ref')p1='Each weight becomes a '+B+'-bit offset-binary code (w = 2·code/'+Lv+' − 1). Every bit gets one binary cell, Gmin for 0 or Gmax for 1, and one shared reference column at Gmid is written too. ';
+    else p1='Each weight becomes a '+B+'-bit magnitude, one binary cell per bit (Gmin for 0, Gmax for 1). Only weights from 0 to 1 can be stored; negative weights are written as 0. ';
+  }
+  p1+=nb+wr;
+  var who=d.bin?'For output y'+SUB[c]+', the MSB plane (bit '+(B-1)+') ':'Output y'+SUB[c]+' ';
+  if(sc==='diff')p4='Each bit line collects the currents of all its cells by Kirchhoff\'s law. '+who+'G⁺ carries '+pl.Ip.toFixed(2)+' µA and G⁻ carries '+pl.Im.toFixed(2)+' µA.';
+  else if(sc==='ref')p4='Each bit line collects the currents of all its cells by Kirchhoff\'s law. '+who+'carries '+pl.Ip.toFixed(2)+' µA, and the shared reference column carries '+d.Iref.toFixed(2)+' µA.';
+  else p4='Each bit line collects the currents of all its cells by Kirchhoff\'s law. '+who+'carries '+pl.Ip.toFixed(2)+' µA. There is nothing to subtract, so the Gmin leakage of every cell stays in the sum.';
+  var sub=sc==='diff'?'The pair is subtracted':sc==='ref'?'The reference current is subtracted (one ADC input per side)':'The current is scaled directly';
+  if(d.bin)p5=sub+', each bit plane is digitized by its own '+S.adcBits+'-bit ADC, then shifted by its bit weight and added digitally. Output y'+SUB[c]+' reads '+f(d.out[c],3)+' against an ideal '+f(d.ideal[c],3)+'.';
+  else p5=sub+' and a '+S.adcBits+'-bit ADC digitizes it. Output y'+SUB[c]+' reads '+f(d.out[c],3)+' against an ideal '+f(d.ideal[c],3)+'.';
+  var txt={
+    1:p1,
+    2:'A '+S.dacBits+'-bit DAC turns each input xᵢ into a read voltage Vᵢ = xᵢ·'+S.vread+' V on its word line. All rows are driven at the same time.',
+    3:'Every cell passes a current Iᵢⱼ = Vᵢ·Gᵢⱼ. Cell labels switch to current in this step if you choose that label.',
+    4:p4,
+    5:p5
+  };
+  $('stepnote').textContent=txt[S.phase];
+}
+
+/* ---------- weight programming (illustrative PCM write model, same as Step 2) ---------- */
+var PC={T0:300,KV:162,TAU:30,TC:430,TM:900,TOPT:700,WD:130,TAUC:40,RV:3.1,RW:20,R:5000,NUREF:0.03};
+function gOfA(a){return S.gmax*Math.pow(S.gmin/S.gmax,a)}
+function aOfG(g){return clamp(Math.log(g/S.gmax)/Math.log(S.gmin/S.gmax),0,1)}
+function nuOf(a){return 0.005+0.095*a}
+function tPk(V,w){return PC.T0+PC.KV*V*V*(1-Math.exp(-w/PC.TAU))}
+function crate(T){if(T<=PC.TC||T>=PC.TM)return 0;var d=(T-PC.TOPT)/PC.WD;return Math.exp(-d*d)}
+function pFac(V){return Math.exp(-crate(tPk(V,S.tp))*S.tp/PC.TAUC)}
+function pickV(a,aT){
+  var need=aT/a,best=null,low=null,V,f;
+  for(V=1.0;V<=2.401;V+=0.05){if(tPk(V,S.tp)>=PC.TM-30)break;f=pFac(V);if(!low||f<low[1])low=[V,f];if(f>=need&&(!best||f<best[1]))best=[V,f]}
+  return (best||low||[1.0])[0];
+}
+var PB={on:false,i:-1},PA={on:false,row:999},tmrPB=null,tmrPA=null;
+function gauss(r){var u=r()||1e-9,v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function simCell(Gt,sg,rnd,sched){
+  var span=S.gmax-S.gmin,tol=S.tol/100*span,a=1,aT=aOfG(Gt),ev=[{t:'erase'}],sch=[];
+  var pulses=0,reads=0,E=0,T=0,ok=false,tv=EF.tread+EF.tadc,eAdc=0.01*Math.pow(2,S.adcBits);
+  var cg=Math.max(0.2,1+sg*gauss(rnd));  /* this device's own pulse strength, fixed for the cell */
+  function G(){return gOfA(a)}
+  function pulse(op,V){
+    if(op==='RESET'){a=1;E+=PC.RV*PC.RV*PC.RW/PC.R*1000;T+=PC.RW;V=PC.RV}
+    else{var f=cg*Math.max(0,1+0.5*sg*gauss(rnd));a=a*Math.exp(-crate(tPk(V,S.tp))*S.tp*f/PC.TAUC);E+=V*V*S.tp/PC.R*1000;T+=S.tp}
+    pulses++;sch.push({op:op,V:V});ev.push({t:op,V:V,G:G()});
+  }
+  if(sched){sched.forEach(function(q){pulse(q.op,q.V)});ok=Math.abs(G()-Gt)<=tol}
+  else for(;;){
+    var gr=G(),good=Math.abs(Gt-gr)<=tol;
+    reads++;T+=tv;E+=S.vread*S.vread*gr*EF.tread/1000+eAdc;
+    ev.push({t:'read',G:gr});ev.push({t:'cmp',ok:good,err:gr-Gt});
+    if(good){ok=true;break}
+    if(pulses>=S.maxp)break;
+    if(gr>Gt+tol)pulse('RESET');           /* overshoot: PCM cannot step down, so melt-quench and climb again */
+    else pulse('SET',S.wmode==='fixed'?S.v0:pickV(a,aT));
+  }
+  return {G:G(),ev:ev,sch:sch,pulses:pulses,reads:reads,E:E,T:T,ok:ok,Gt:Gt};
+}
+function progArray(Gt,M,C,mode){
+  var cells=[],rowT=[],i,k,sg=S.sigma/100;
+  var st={pulses:0,reads:0,E:0,T:0,conv:0,n:M*C,pulsed:0,sq:0,eraseE:0,eraseT:0};
+  for(i=0;i<M;i++){
+    cells[i]=[];var rt=0;
+    for(k=0;k<C;k++){
+      var seed=S.seed*7919+i*131+k*17+5,c;
+      if(mode==='single'){var nom=simCell(Gt[i][k],0,rng(seed),null);c=simCell(Gt[i][k],sg,rng(seed+1),nom.sch)}
+      else c=simCell(Gt[i][k],sg,rng(seed),null);
+      cells[i][k]=c;
+      st.pulses+=c.pulses;st.reads+=c.reads;st.E+=c.E;
+      if(c.ok)st.conv++;
+      if(c.pulses>0)st.pulsed++;
+      st.sq+=(c.G-Gt[i][k])*(c.G-Gt[i][k]);
+      rt=S.par?Math.max(rt,c.T):rt+c.T;
+    }
+    rowT.push(rt);st.T+=rt;
+  }
+  if(S.erase){st.eraseT=PC.RW;st.eraseE=M*C*(PC.RV*PC.RV*PC.RW/PC.R*1000);st.T+=st.eraseT;st.E+=st.eraseE}
+  st.rms=Math.sqrt(st.sq/st.n);st.rmsPct=st.rms/(S.gmax-S.gmin)*100;st.rowT=rowT;
+  return {cells:cells,stats:st};
+}
+
+function bx(x,y,w,h,lines,on){
+  var o='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="5" fill="'+(on?'var(--hl)':'var(--bg)')+'" stroke="'+(on?'var(--curr)':'var(--line)')+'" stroke-width="'+(on?2.5:1.5)+'"/>';
+  lines.forEach(function(t,j){o+='<text x="'+(x+w/2)+'" y="'+(y+h/2+4+(j-(lines.length-1)/2)*13)+'" text-anchor="middle" font-size="10.5" fill="var(--ink)">'+t+'</text>'});
+  return o;
+}
+function ar(d,on,mk){return '<path d="'+d+'" fill="none" stroke="'+(on?'var(--curr)':'var(--mute)')+'" stroke-width="'+(on?2:1.5)+'" marker-end="url(#'+mk+')"/>'}
+function blockSVG(st,arr,lbl){
+  var wr=(st==='SET'||st==='RESET'),rd=(st==='read'||st==='cmp'||st==='done'),er=(st==='erase'),any=wr||rd||er;
+  var o='<defs><marker id="ahb" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="var(--mute)"/></marker></defs>';
+  var bls=[270,320,370],wls=[100,140,180],a,b;
+  function hbl(i){return arr?(arr.par||i===1):((wr||rd)&&i===1)}
+  function hwl(i){return arr?i===arr.wl:((wr||rd)&&i===1)}
+  for(a=0;a<3;a++){o+='<line x1="'+bls[a]+'" y1="62" x2="'+bls[a]+'" y2="258" stroke="'+(hbl(a)?'var(--curr)':'var(--mute)')+'" stroke-width="'+(hbl(a)?2:1.2)+'"/>'}
+  for(a=0;a<3;a++){o+='<line x1="212" y1="'+wls[a]+'" x2="400" y2="'+wls[a]+'" stroke="'+(hwl(a)?'var(--curr)':'var(--mute)')+'" stroke-width="'+(hwl(a)?2:1.2)+'"/>'}
+  for(a=0;a<3;a++)for(b=0;b<3;b++){
+    var sel=arr?((a===arr.wl&&(arr.par||b===1))||er):((a===1&&b===1&&(wr||rd))||er);
+    o+='<rect x="'+(bls[b]-11)+'" y="'+(wls[a]-11)+'" width="22" height="22" rx="3" fill="'+(sel?'var(--hl)':'var(--bg)')+'" stroke="'+(sel?'var(--curr)':'var(--mute)')+'" stroke-width="'+(sel?2:1.2)+'"/><text x="'+bls[b]+'" y="'+(wls[a]+3.5)+'" text-anchor="middle" font-size="9.5" fill="var(--ink)">R</text>';
+  }
+  o+=bx(8,16,112,46,['Pulse generator','+ DAC: amplitude'],wr||er);
+  o+=bx(8,92,112,46,['Write controller','(state machine)'],any);
+  o+=bx(8,168,112,46,['Comparator','vs target level'],st==='cmp'||st==='done');
+  o+=bx(146,92,66,100,['Row','decoder','WL','driver'],wr||rd||er);
+  o+=bx(240,16,160,46,['Bit-line drivers','(per column, Icc limit)'],wr||er);
+  o+=bx(240,258,160,40,['Sense amp + ADC','(verify read)'],rd);
+  o+=ar('M120 39 H240',wr||er,'ahb')+ar('M64 92 V62',wr||er,'ahb')+ar('M120 115 H146',any,'ahb')+ar('M240 278 H64 V214',rd,'ahb')+ar('M64 168 V138',st==='cmp'||st==='done','ahb');
+  o+='<text x="232" y="214" font-size="9.5" fill="var(--mute)" text-anchor="end">1T1R: gate = WL</text>';
+  if(lbl)o+='<text x="72" y="238" font-size="10" fill="var(--curr)">'+lbl+'</text>';
+  return o;
+}
+function flowSVG(st){
+  var o='<defs><marker id="ahf" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="var(--mute)"/></marker></defs>';
+  function dm(cx,cy,hw,hh,txt,on){return '<polygon points="'+(cx-hw)+','+cy+' '+cx+','+(cy-hh)+' '+(cx+hw)+','+cy+' '+cx+','+(cy+hh)+'" fill="'+(on?'var(--hl)':'var(--bg)')+'" stroke="'+(on?'var(--curr)':'var(--line)')+'" stroke-width="'+(on?2.5:1.5)+'"/><text x="'+cx+'" y="'+(cy+4)+'" text-anchor="middle" font-size="10.5" fill="var(--ink)">'+txt+'</text>'}
+  function lb(x,y,t,a){return '<text x="'+x+'" y="'+y+'" font-size="10" fill="var(--mute)" text-anchor="'+(a||'start')+'">'+t+'</text>'}
+  var inl=(st==='read'||st==='SET'||st==='RESET');
+  o+=bx(65,8,170,34,['Block erase (RESET all)'],st==='erase');
+  o+=bx(65,60,170,34,['Select cell: WL + BL'],inl);
+  o+=bx(65,112,170,34,['Verify read: sense G'],st==='read');
+  o+=dm(150,190,90,30,'|G − target| ≤ tol ?',st==='cmp');
+  o+=bx(274,172,72,36,['Cell done'],st==='done');
+  o+=dm(150,264,80,28,'G below target ?',false);
+  o+=bx(16,312,108,34,['SET, gentle pulse'],st==='SET');
+  o+=bx(176,312,108,34,['RESET, restart'],st==='RESET');
+  o+=ar('M150 42 V60',false,'ahf')+ar('M150 94 V112',false,'ahf')+ar('M150 146 V160',false,'ahf')+ar('M240 190 H274',st==='done','ahf')+ar('M150 220 V236',false,'ahf');
+  o+=ar('M70 264 V312',st==='SET','ahf')+ar('M230 264 V312',st==='RESET','ahf');
+  o+=ar('M70 346 V360 H8 V129 H65',false,'ahf')+'<path d="M230 346 V360 H70" fill="none" stroke="var(--mute)" stroke-width="1.5"/>';
+  o+=lb(257,182,'yes','middle')+lb(156,232,'no')+lb(62,286,'yes','end')+lb(238,286,'no');
+  return o;
+}
+
+function renderProg(d){
+  var pr=d.prog,st=pr.stats,M=S.M,C=d.C,i,k;
+  S.pr=Math.min(S.pr,M-1);S.pc=Math.min(S.pc,C-1);
+  var c=pr.cells[S.pr][S.pc];
+  var vis=PB.i>=0?PB.i+1:c.ev.length,stage='';
+  if(PB.i>=0){var e0=c.ev[PB.i];stage=e0.t==='cmp'?(e0.ok?'done':'cmp'):e0.t}
+  var mode=S.wmode;
+  $('pNote').textContent=mode==='ideal'
+    ?'Ideal write is selected, so the crossbar uses the target conductances plus Gaussian variation (σ). The cost and sequence below show what writing these weights would take with program-and-verify.'
+    :mode==='single'
+    ?'Open loop: the pulse train was calibrated on a nominal device and is replayed with no read-back. Device variation (σ) goes straight into the stored weights, but there are no verify reads.'
+    :(mode==='fixed'?'Same pulse every time: every SET uses the fixed amplitude, so the dome shrinks by about the same factor each pulse. That is slow, and the steps are coarse near the top of the range. Overshoots force a RESET and a new climb.':'Program-and-verify: after every SET the cell is read back. The controller picks the gentlest pulse that should still reach the target, because an overshoot cannot be undone: the cell is RESET and the climb starts again. Variation (σ) changes how strongly each pulse acts on a given cell.');
+  var avg=st.pulsed?st.pulses/st.pulsed:0;
+  function tile(big,label,sub,bad){return '<div class="tile"><div class="big'+(bad?' bad':'')+'" style="font-size:22px">'+big+'</div><div class="sub"><b style="font-weight:600;color:var(--ink)">'+label+'</b><br>'+sub+'</div></div>'}
+  $('ptiles').innerHTML=
+    tile(fmtT(st.T),'Write time',S.par?'row at a time':'cell by cell')+
+    tile(fmtE(st.E),'Write energy',mode==='single'?'open loop, no verify':'pulses, verify reads, erase')+
+    tile(st.pulses,'Write pulses',st.pulsed+' of '+st.n+' cells pulsed, '+avg.toFixed(1)+' each')+
+    tile(st.conv+' / '+st.n,'Within tolerance',(st.n-st.conv)+' failed',st.conv<st.n)+
+    tile(st.rmsPct.toFixed(2)+'%','Programming error',st.rms.toFixed(2)+' µS RMS of the range');
+  var aStage=stage,aArr=null,aLbl='';
+  if(PA.on&&PB.i<0){
+    if(PA.row===0){if(S.erase){aStage='erase';aLbl='Erasing the whole array first'}}
+    else{var rr=Math.min(PA.row,M)-1;aStage='SET';aArr={wl:rr===0?0:(rr>=M-1?2:1),par:!!S.par};aLbl='Row '+(rr+1)+' of '+M+(S.par?', all columns at once':', one cell at a time')}
+  }
+  $('pBlock').innerHTML=blockSVG(aStage,aArr,aLbl);
+  $('pFlow').innerHTML=flowSVG(aStage==='erase'?'erase':stage);
+  $('bPB').textContent=PB.on?'Stop':'Play sequence';
+  $('bPA').textContent=PA.on?'Stop':'Program array row by row';
+  $('psRow').value=S.pr;$('psCol').value=S.pc;
+  // caption
+  var sgn=c.G-c.Gt;
+  $('pCap').textContent='Cell in row '+(S.pr+1)+', '+colDesc(S.pc)+': target '+c.Gt.toFixed(1)+' µS, stored '+c.G.toFixed(1)+' µS ('+(sgn<0?'−':'+')+Math.abs(sgn).toFixed(1)+') after '+c.pulses+' pulses'+(mode==='single'?' with no verify.':' and '+c.reads+' verify reads. '+(c.ok?'Within tolerance.':'Did not reach tolerance.'));
+  // waveform
+  var tv=EF.tread+EF.tadc,tot=0;
+  c.ev.forEach(function(e){if(e.t==='erase'||e.t==='RESET')tot+=PC.RW;else if(e.t==='read')tot+=tv;else if(e.t==='SET')tot+=S.tp});
+  var x0=44,x1=410,yT=22,yB=176,vm=3.4,zy=yB,ky=(yB-yT)/vm;
+  function X(t){return x0+(x1-x0)*t/tot}
+  var o='<text x="'+x0+'" y="12" font-size="11" font-weight="500" fill="var(--ink)">Voltage on the bit line</text>';
+  [0,1,2,3].forEach(function(v){var y=zy-v*ky;o+='<line x1="'+x0+'" x2="'+x1+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)" stroke-width="'+(v===0?1.5:1)+'"/><text x="'+(x0-6)+'" y="'+(y+3.5)+'" text-anchor="end" font-size="9.5" fill="var(--mute)">'+(v<0?'−':'')+Math.abs(v)+' V</text>'});
+  var tt=0,j;
+  for(j=0;j<vis;j++){
+    var e=c.ev[j],w,V,col;
+    if(e.t==='erase'){w=PC.RW;V=PC.RV;col='var(--err)'}
+    else if(e.t==='read'){w=EF.tread;V=S.vread;col='var(--mute)'}
+    else if(e.t==='SET'){w=S.tp;V=e.V;col='var(--curr)'}
+    else if(e.t==='RESET'){w=PC.RW;V=e.V;col='var(--err)'}
+    else continue;
+    var xa=X(tt),wd=Math.max(1.6,X(tt+w)-X(tt));
+    o+='<rect x="'+xa.toFixed(1)+'" y="'+(V>=0?zy-V*ky:zy).toFixed(1)+'" width="'+wd.toFixed(1)+'" height="'+Math.max(1.5,Math.abs(V)*ky).toFixed(1)+'" fill="'+col+'"/>';
+    tt+=(e.t==='read')?tv:w;
+  }
+  for(j=0;j<=4;j++){var tx=tot*j/4;o+='<text x="'+X(tx)+'" y="'+(yB+14)+'" text-anchor="middle" font-size="9.5" fill="var(--mute)">'+fmtT(tx)+'</text>'}
+  o+='<rect x="'+x0+'" y="206" width="10" height="8" fill="var(--err)"/><text x="'+(x0+14)+'" y="214" font-size="10" fill="var(--mute)">Erase, RESET</text>';
+  o+='<rect x="'+(x0+104)+'" y="206" width="10" height="8" fill="var(--curr)"/><text x="'+(x0+118)+'" y="214" font-size="10" fill="var(--mute)">SET</text>';
+  o+='<rect x="'+(x0+160)+'" y="206" width="10" height="8" fill="var(--mute)"/><text x="'+(x0+174)+'" y="214" font-size="10" fill="var(--mute)">Verify read</text>';
+  $('pWave').innerHTML=o;
+  // trajectory
+  var npl=c.ev.filter(function(e){return e.t==='SET'||e.t==='RESET'}).length,nx=Math.max(npl,1);
+  var ty0=22,ty1=176,gtop=S.gmax*1.05;
+  function TX(n){return x0+(x1-x0)*n/nx}
+  function TY(g){return ty1-g/gtop*(ty1-ty0)}
+  var span=S.gmax-S.gmin,tol=S.tol/100*span;
+  o='<text x="'+x0+'" y="12" font-size="11" font-weight="500" fill="var(--ink)">Conductance after each pulse (µS)</text>';
+  [0,S.gmax/2,S.gmax].forEach(function(g){o+='<line x1="'+x0+'" x2="'+x1+'" y1="'+TY(g)+'" y2="'+TY(g)+'" stroke="var(--line)"/><text x="'+(x0-6)+'" y="'+(TY(g)+3.5)+'" text-anchor="end" font-size="9.5" fill="var(--mute)">'+g.toFixed(0)+'</text>'});
+  o+='<rect x="'+x0+'" y="'+TY(c.Gt+tol)+'" width="'+(x1-x0)+'" height="'+Math.max(1,TY(c.Gt-tol)-TY(c.Gt+tol))+'" fill="var(--ok)" fill-opacity=".18"/>';
+  o+='<line x1="'+x0+'" x2="'+x1+'" y1="'+TY(c.Gt)+'" y2="'+TY(c.Gt)+'" stroke="var(--ok)" stroke-width="1.5" stroke-dasharray="5 4"/>';
+  var pts=[{n:0,g:S.gmin,t:'erase'}],n=0;
+  for(j=0;j<vis;j++){var e2=c.ev[j];if(e2.t==='SET'||e2.t==='RESET'){n++;pts.push({n:n,g:e2.G,t:e2.t})}}
+  o+='<polyline fill="none" stroke="var(--ink)" stroke-width="1.5" points="'+pts.map(function(q){return TX(q.n).toFixed(1)+','+TY(q.g).toFixed(1)}).join(' ')+'"/>';
+  pts.forEach(function(q){o+='<circle cx="'+TX(q.n)+'" cy="'+TY(q.g)+'" r="3" fill="'+(q.t==='SET'?'var(--curr)':'var(--err)')+'"/>'});
+  for(j=0;j<=nx;j+=Math.max(1,Math.ceil(nx/8))){o+='<text x="'+TX(j)+'" y="'+(ty1+14)+'" text-anchor="middle" font-size="9.5" fill="var(--mute)">'+j+'</text>'}
+  o+='<text x="'+((x0+x1)/2)+'" y="'+(ty1+28)+'" text-anchor="middle" font-size="10" fill="var(--mute)">pulse number (red dots are RESETs)</text>';
+  o+='<line x1="'+x0+'" x2="'+(x0+16)+'" y1="214" y2="214" stroke="var(--ok)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="'+(x0+22)+'" y="217" font-size="10" fill="var(--mute)">Target and tolerance band</text>';
+  $('pTraj').innerHTML=o;
+  // grid
+  var h='<span></span>',mx=0;
+  for(k=0;k<C;k++)h+='<span class="lab">'+colLabel(k)+'</span>';
+  for(i=0;i<M;i++)for(k=0;k<C;k++)mx=Math.max(mx,pr.cells[i][k].pulses);
+  for(i=0;i<M;i++){
+    h+='<span class="lab">x'+SUB[i]+'</span>';
+    for(k=0;k<C;k++){
+      var cc=pr.cells[i][k],hid=PA.on&&i>=PA.row,pct=mx?12+60*cc.pulses/mx:0;
+      h+='<button class="pc'+(i===S.pr&&k===S.pc?' sel':'')+(cc.ok?'':' fail')+(hid?' dim':'')+'" data-i="'+i+'" data-k="'+k+'" style="background:color-mix(in srgb,var(--curr) '+(hid?0:pct.toFixed(0))+'%,var(--bg))" title="target '+cc.Gt.toFixed(1)+' µS, stored '+cc.G.toFixed(1)+' µS">'+(hid?'·':cc.pulses)+'</button>';
+    }
+  }
+  var gr=$('pgrid');gr.style.gridTemplateColumns=d.bin?'auto repeat('+C+',36px)':'auto repeat('+C+',minmax(0,1fr))';gr.style.fontSize=d.bin?'10px':'';gr.innerHTML=h;var sd=$('pSeed');if(sd&&document.activeElement!==sd)sd.value=S.seed;
+  if(PA.on){var act=PA.row===0?(S.erase?'Erasing the whole array to the high-resistance state first. ':'Starting. '):'Row '+Math.min(PA.row,M)+' of '+M+(S.par?' written, all columns in parallel. ':' written, cell by cell. ');var cum=S.erase?st.eraseT:0;for(i=0;i<Math.min(PA.row,M);i++)cum+=st.rowT[i];$('pGridNote').textContent=act+'Elapsed '+fmtT(cum)}else $('pGridNote').textContent='';
+}
+function buildProgSel(){
+  var h='',i;for(i=0;i<S.M;i++)h+='<option value="'+i+'">x'+SUB[i]+'</option>';$('psRow').innerHTML=h;
+  h='';for(i=0;i<ncols();i++)h+='<option value="'+i+'">'+colLabel(i)+'</option>';$('psCol').innerHTML=h;
+}
+function stopPB(){if(tmrPB){clearInterval(tmrPB);tmrPB=null}PB.on=false;PB.i=-1}
+function stopPA(){if(tmrPA){clearInterval(tmrPA);tmrPA=null}PA.on=false;PA.row=999}
+
+/* ---------- efficiency model (illustrative) ---------- */
+var EF={lanes:8,clk:1,mem:'sram',tread:10,tadc:10,reuse:3};
+var EMAC=0.3,EMEM={sram:1.3,dram:160};
+function eModel(macs,rows,cols,arrE){
+  var dig={lat:Math.ceil(macs/EF.lanes)/EF.clk,en:macs*(EMAC+EMEM[EF.mem])};
+  var adc=0.01*Math.pow(2,S.adcBits),dac=0.005*Math.pow(2,S.dacBits);
+  var cim={lat:EF.tread+EF.tadc,en:arrE+cols*adc+rows*dac};
+  return {dig:dig,cim:cim};
+}
+function fmtT(ns){if(ns<1e3)return ns.toFixed(ns<10?1:0)+' ns';if(ns<1e6)return (ns/1e3).toFixed(ns<1e4?1:0)+' µs';return (ns/1e6).toFixed(1)+' ms'}
+function fmtE(pj){if(pj<1e3)return pj.toFixed(pj<10?1:0)+' pJ';if(pj<1e6)return (pj/1e3).toFixed(pj<1e4?1:0)+' nJ';return (pj/1e6).toFixed(1)+' µJ'}
+function adv(dig,cim){
+  var r=dig/cim;
+  if(r>=1)return {t:(r>=100?r.toFixed(0):r.toFixed(1))+'×',good:true,sub:'PCM lower'};
+  var q=1/r;return {t:(q>=100?q.toFixed(0):q.toFixed(1))+'×',good:false,sub:'digital lower'};
+}
+function logChart(id,title,key,fmt,ns,vals){
+  var x0=58,x1=406,y0=26,y1=172,all=[];
+  vals.forEach(function(v){all.push(v.dig[key],v.cim[key])});
+  var lo=Math.floor(Math.log10(Math.min.apply(null,all))),hi=Math.ceil(Math.log10(Math.max.apply(null,all)));
+  if(hi===lo)hi=lo+1;
+  function X(i){return x0+(x1-x0)*i/(ns.length-1)}
+  function Y(v){return y1-(Math.log10(v)-lo)/(hi-lo)*(y1-y0)}
+  var o='<text x="'+x0+'" y="14" font-size="11" font-weight="500" fill="var(--ink)">'+title+'</text>';
+  var step=Math.max(1,Math.ceil((hi-lo)/5));
+  for(var e=lo;e<=hi;e+=step){var y=Y(Math.pow(10,e));o+='<line x1="'+x0+'" x2="'+x1+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)"/><text x="'+(x0-6)+'" y="'+(y+3.5)+'" text-anchor="end" font-size="9.5" fill="var(--mute)">'+fmt(Math.pow(10,e))+'</text>'}
+  ns.forEach(function(n,i){o+='<text x="'+X(i)+'" y="'+(y1+14)+'" text-anchor="middle" font-size="10" fill="var(--mute)">'+n+'</text>'});
+  o+='<text x="'+((x0+x1)/2)+'" y="'+(y1+28)+'" text-anchor="middle" font-size="10" fill="var(--mute)">array size n (n × n cells)</text>';
+  function line(k,col,dash){
+    var pts=vals.map(function(v,i){return X(i).toFixed(1)+','+Y(v[k][key]).toFixed(1)}).join(' ');
+    var r='<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="2"'+(dash?' stroke-dasharray="5 4"':'')+'/>';
+    vals.forEach(function(v,i){r+='<circle cx="'+X(i)+'" cy="'+Y(v[k][key])+'" r="2.5" fill="'+col+'"/>'});
+    return r;
+  }
+  o+=line('dig','var(--ink)',true)+line('cim','var(--curr)',false);
+  o+='<line x1="'+(x0)+'" x2="'+(x0+18)+'" y1="222" y2="222" stroke="var(--ink)" stroke-width="2" stroke-dasharray="5 4"/><text x="'+(x0+24)+'" y="225" font-size="10" fill="var(--mute)">Digital MAC</text>';
+  o+='<line x1="'+(x0+110)+'" x2="'+(x0+128)+'" y1="222" y2="222" stroke="var(--curr)" stroke-width="2"/><text x="'+(x0+134)+'" y="225" font-size="10" fill="var(--mute)">PCM crossbar</text>';
+  $(id).innerHTML=o;
+}
+function renderEff(d){
+  var M=S.M,N=S.N,C=d.C,pl=planesN(),cpE=cpo()+(hasRef()?1/N:0),i,k,sumVI=0;
+  for(i=0;i<M;i++)for(k=0;k<C;k++)sumVI+=d.Vin[i]*d.cellI[i][k];
+  var arrE=sumVI*EF.tread/1000;           /* µW × ns = fJ, /1000 = pJ */
+  var ecell=arrE/(M*C);
+  var cur=eModel(M*N,M,N*pl,arrE);
+  var big=eModel(256*256,256,256*pl,cpE*256*256*ecell);
+  var aL=adv(cur.dig.lat,cur.cim.lat),aE=adv(cur.dig.en,cur.cim.en),bL=adv(big.dig.lat,big.cim.lat),bE=adv(big.dig.en,big.cim.en);
+  function tile(a,label,note){return '<div class="tile"><div class="big '+(a.good?'good':'bad')+'">'+a.t+'</div><div class="sub"><b style="font-weight:600;color:var(--ink)">'+label+'</b><br>'+a.sub+' · '+note+'</div></div>'}
+  $('tiles').innerHTML=tile(bL,'Latency','256 × 256')+tile(bE,'Energy','256 × 256')+tile(aL,'Latency',M+' × '+N+' (current)')+tile(aE,'Energy',M+' × '+N+' (current)');
+  function row(name,a,b,fm,ad){return '<tr><td>'+name+'</td><td>'+fm(a)+'</td><td>'+fm(b)+'</td><td class="'+(ad.good?'good':'bad')+'">'+ad.t+' '+ad.sub+'</td></tr>'}
+  var t='<thead><tr><th>Case</th><th>Digital MAC</th><th>PCM crossbar</th><th>Advantage</th></tr></thead><tbody>';
+  t+=row('Latency, '+M+' × '+N,cur.dig.lat,cur.cim.lat,fmtT,aL)+row('Energy, '+M+' × '+N,cur.dig.en,cur.cim.en,fmtE,aE);
+  t+=row('Latency, 256 × 256',big.dig.lat,big.cim.lat,fmtT,bL)+row('Energy, 256 × 256',big.dig.en,big.cim.en,fmtE,bE);
+  var wE=d.prog.stats.E,wT=d.prog.stats.T,ru=Math.pow(10,EF.reuse),amE=cur.cim.en+wE/ru,amL=cur.cim.lat+wT/ru;
+  t+=row('Latency incl. writing, reused '+ru.toLocaleString('en-US')+'×',cur.dig.lat,amL,fmtT,adv(cur.dig.lat,amL))+row('Energy incl. writing, reused '+ru.toLocaleString('en-US')+'×',cur.dig.en,amE,fmtE,adv(cur.dig.en,amE));
+  var be=cur.dig.en>cur.cim.en?Math.ceil(wE/(cur.dig.en-cur.cim.en)).toLocaleString('en-US')+' products':'never (digital uses less energy per product)';
+  t+='</tbody><tfoot><tr><td>Energy break-even reuse</td><td colspan="3">'+be+'</td></tr><tr><td>Weight fetches</td><td>'+(M*N)+' per product</td><td>0 (stay in array)</td><td></td></tr></tfoot>';
+  $('effT').innerHTML=t;
+  var ns=[4,8,16,32,64,128,256,512],vals=ns.map(function(n){return eModel(n*n,n,n*pl,cpE*n*n*ecell)});
+  logChart('chLat','Latency per matrix-vector product','lat',fmtT,ns,vals);
+  logChart('chEn','Energy per matrix-vector product','en',fmtE,ns,vals);
+  var cl=null,ce=null;
+  ns.forEach(function(n,j){if(cl===null&&vals[j].cim.lat<vals[j].dig.lat)cl=n;if(ce===null&&vals[j].cim.en<vals[j].dig.en)ce=n});
+  var cross='Crossover: PCM is faster from '+(cl?cl+' × '+cl:'beyond 512 × 512')+' and uses less energy from '+(ce?ce+' × '+ce:'beyond 512 × 512')+' on these settings. Small arrays favor digital because the ADC and fixed read time dominate. ';
+  $('effNote').textContent=cross+'Assumptions: digital uses '+EMAC+' pJ per 8-bit MAC plus '+EMEM[EF.mem]+' pJ per weight byte fetched from '+(EF.mem==='sram'?'SRAM':'DRAM')+', '+EF.lanes+' lanes at '+EF.clk.toFixed(1)+' GHz. PCM array energy is taken from the simulated currents (V·I·read pulse), plus '+(0.005*Math.pow(2,S.dacBits)).toFixed(2)+' pJ per DAC input and '+(0.01*Math.pow(2,S.adcBits)).toFixed(2)+' pJ per ADC conversion; latency is read pulse plus ADC time. The first two table rows treat programming as a one-time cost spread over the number of products computed with the same weights (the write model above supplies it); the digital side assumes its weights already sit in memory. The model leaves out routing and digital post-processing. Latency stays flat only for a single tile, and large arrays run into IR drop and ADC precision limits (raise wire resistance above to see accuracy fall). These are ballpark values, not measurements of any real chip.'+(d.bin?' Binary weighted mode uses '+pl+' bit planes per output, so it has '+pl+' times as many ADC conversions and many more cells than the analog multi-level layout.':'')+(S.sign==='diff'?'':' The '+(S.sign==='ref'?'reference-column':'unsigned')+' encoding needs about half the cells of a differential pair, because each weight uses one cell instead of two.');
+}
+
+var LAST=null;
+function markW(){
+  for(var i=0;i<S.M;i++)for(var j=0;j<S.N;j++){var el=$('w_'+i+'_'+j);if(el)el.classList.toggle('neg',S.sign==='clip'&&W[i][j]<0)}
+}
+function update(){
+  archNote();markW();var d=compute();LAST=d;
+  renderSVG(d);renderTables(d);renderChart(d);renderSteps(d);renderEff(d);renderProg(d);
+}
+
+/* ---------- controls ---------- */
+function buildX(){
+  var h='';
+  for(var i=0;i<S.M;i++){
+    h+='<div class="row"><label for="x'+i+'" style="flex-basis:40px">x'+SUB[i]+'</label><input type="range" id="x'+i+'" min="0" max="1" step="0.01" value="'+X[i]+'"><output id="xo'+i+'">'+X[i].toFixed(2)+'</output></div>';
+  }
+  $('xs').innerHTML=h;
+  for(var j=0;j<S.M;j++)(function(i){
+    $('x'+i).addEventListener('input',function(e){X[i]=parseFloat(e.target.value);$('xo'+i).textContent=X[i].toFixed(2);update()});
+  })(j);
+}
+function buildW(){
+  var g=$('wg');g.style.gridTemplateColumns='repeat('+S.N+',minmax(0,1fr))';
+  var h='';
+  for(var i=0;i<S.M;i++)for(var j=0;j<S.N;j++){
+    h+='<input type="number" id="w_'+i+'_'+j+'" min="-1" max="1" step="0.05" value="'+W[i][j]+'" aria-label="Weight row '+(i+1)+' column '+(j+1)+'">';
+  }
+  g.innerHTML=h;
+  for(var a=0;a<S.M;a++)for(var b=0;b<S.N;b++)(function(i,j){
+    $('w_'+i+'_'+j).addEventListener('input',function(e){var v=parseFloat(e.target.value);if(isNaN(v))return;W[i][j]=clamp(v,-1,1);update()});
+  })(a,b);
+}
+function syncW(){for(var i=0;i<S.M;i++)for(var j=0;j<S.N;j++)$('w_'+i+'_'+j).value=W[i][j]}
+function buildCols(){
+  var h='';for(var j=0;j<S.N;j++)h+='<option value="'+j+'">y'+SUB[j]+'</option>';
+  $('colsel').innerHTML=h;$('colsel').value=Math.min(S.col,S.N-1);
+}
+var DEFS=[
+ ['dacBits','Input DAC',1,8,1,' bit',0],['gBits','Weight levels',1,8,1,' bit',0],
+ ['adcBits','Output ADC',3,12,1,' bit',0],['adcRange','ADC range',20,100,5,'%',0],
+ ['vread','Read voltage',0.05,0.3,0.01,' V',2],['gmin','Gmin (HRS)',0.1,2,0.1,' µS',1],
+ ['gmax','Gmax (LRS)',20,100,5,' µS',0],['sigma','Variation σ',0,25,0.5,'%',1],
+ ['age','Time since write, log₁₀ s',0,9,0.25,'',2],['comp','Global drift gain (0 off, 1 on)',0,1,1,'',0],
+ ['rw','Wire R / segment',0,300,5,' Ω',0]
+];
+function buildSettings(){
+  var h='';
+  DEFS.forEach(function(q){h+='<div class="row"><label for="s_'+q[0]+'">'+q[1]+'</label><input type="range" id="s_'+q[0]+'" min="'+q[2]+'" max="'+q[3]+'" step="'+q[4]+'" value="'+S[q[0]]+'"><output id="so_'+q[0]+'">'+S[q[0]].toFixed(q[6])+q[5]+'</output></div>'});
+  $('settings').innerHTML=h;
+  DEFS.forEach(function(q){$('s_'+q[0]).addEventListener('input',function(e){S[q[0]]=parseFloat(e.target.value);$('so_'+q[0]).textContent=S[q[0]].toFixed(q[6])+q[5];if(q[0]==='gBits'&&isBin()){stopPB();stopPA();buildProgSel()}update()})});
+}
+function fillSel(id,lo,hi,val){var h='';for(var v=lo;v<=hi;v++)h+='<option value="'+v+'"'+(v===val?' selected':'')+'>'+v+'</option>';$('sel'+id).innerHTML=h}
+function resize(){stopPB();stopPA();buildX();buildW();buildCols();buildProgSel();update()}
+
+$('selM').addEventListener('change',function(e){S.M=parseInt(e.target.value,10);resize()});
+$('selN').addEventListener('change',function(e){S.N=parseInt(e.target.value,10);resize()});
+function archNote(){
+  var a=isBin()
+    ?'Binary weighted: each weight is split into '+S.gBits+' bits (set "Weight levels" to change the bit count). Every bit sits in its own 1-bit cell, either Gmin or Gmax, on its own bit line, so each bit plane is read by its own ADC and the digital side shifts and adds the planes (bit b is worth 2ᵇ). Cells only need two well-separated states, at the cost of '+S.gBits+' times the cells.'
+    :'Analog multi-level: each weight sits in a cell at one of 2^bits conductance levels between Gmin and Gmax.';
+  var g=S.sign==='diff'
+    ?' Differential pair: every weight uses two cells, G⁺ for the positive part and G⁻ for the negative part, and the two bit-line currents are subtracted. Negative weights work and the Gmin leakage cancels, at the cost of two cells per weight.'
+    :S.sign==='ref'
+    ?' G⁺ only with a reference column: every weight uses one cell, shifted into the positive range so zero sits at the middle conductance Gmid. One shared reference column at Gmid is subtracted from every output. Negative weights work and the Gmin leakage cancels, with about half the cells, but one set of levels covers both signs, so each step in w is twice as coarse.'
+    :' Unsigned, G⁺ only: every weight uses one cell and nothing is subtracted. A cell cannot be negative, so negative weights are stored as 0 (shown in red below), and the Gmin leakage of every cell adds a small offset to each output.';
+  $('archNote').textContent=a+g;
+  var ab=$('bAbs');if(ab)ab.hidden=S.sign!=='clip';
+  var rs=document.querySelectorAll('#sgTable tbody tr');for(var q=0;q<rs.length;q++)rs[q].classList.toggle('cur',rs[q].getAttribute('data-s')===S.sign);
+}
+$('selArch').addEventListener('change',function(e){S.arch=e.target.value;resize()});
+function signUI(){
+  var v=S.sign;$('selSign').value=v==='clip'?'unsigned':'signed';$('selCells').value=v==='diff'?'pair':'one';
+  $('selCells').options[0].disabled=(v==='clip');
+}
+function signFromUI(chg){
+  var sg=$('selSign').value,ce=$('selCells').value;
+  if(sg==='unsigned')ce='one';
+  else if(chg==='sign'&&ce==='one'&&S.sign==='clip')ce='pair';   /* back to signed: start from the pair */
+  S.sign=sg==='unsigned'?'clip':(ce==='pair'?'diff':'ref');signUI();resize();
+}
+$('selSign').addEventListener('change',function(){signFromUI('sign')});
+$('selCells').addEventListener('change',function(){signFromUI('cells')});
+$('selShow').addEventListener('change',function(e){S.show=e.target.value;update()});
+$('colsel').addEventListener('change',function(e){S.col=parseInt(e.target.value,10);update()});
+$('bRand').addEventListener('click',function(){
+  for(var i=0;i<9;i++)for(var j=0;j<6;j++)W[i][j]=S.sign==='clip'?Math.round(Math.random()*20)/20:Math.round((Math.random()*2-1)*20)/20;
+  syncW();update();
+});
+$('bAbs').addEventListener('click',function(){for(var i=0;i<9;i++)for(var j=0;j<6;j++)W[i][j]=Math.abs(W[i][j]);syncW();update()});
+$('bReset').addEventListener('click',function(){
+  W=W0.map(function(r){return r.slice()});X=X0.slice();syncW();buildX();update();
+});
+$('pSeed').addEventListener('change',function(){var v=parseInt(this.value,10);if(isNaN(v)||v<0)v=0;if(v>99999)v=99999;S.seed=v;this.value=v;makeZ();update()});
+$('bSeed').addEventListener('click',function(){S.seed=Math.floor(Math.random()*100000);makeZ();update()});
+$('steps').addEventListener('click',function(e){
+  var t=e.target;
+  if(t.id==='bPlay'){
+    if(timer){clearInterval(timer);timer=null;update();return}
+    S.phase=1;update();
+    timer=setInterval(function(){
+      if(S.phase>=5){clearInterval(timer);timer=null;update();return}
+      S.phase++;update();
+    },1500);
+    update();
+    return;
+  }
+  var p=t.getAttribute('data-ph');
+  if(p){if(timer){clearInterval(timer);timer=null}S.phase=parseInt(p,10);update()}
+});
+
+[['eLanes','lanes',0,''],['eClk','clk',1,' GHz'],['eRead','tread',0,' ns'],['eAdc','tadc',0,' ns']].forEach(function(q){
+  $(q[0]).addEventListener('input',function(e){EF[q[1]]=parseFloat(e.target.value);$(q[0]+'O').textContent=EF[q[1]].toFixed(q[2])+q[3];update()});
+});
+[['pV0','v0',2,' V',''],['pTol','tol',1,'%','±'],['pMax','maxp',0,'',''],['pTp','tp',0,' ns','']].forEach(function(q){
+  $(q[0]).addEventListener('input',function(e){S[q[1]]=parseFloat(e.target.value);$(q[0]+'O').textContent=q[4]+S[q[1]].toFixed(q[2])+q[3];stopPB();update()});
+});
+$('pMode').addEventListener('change',function(e){S.wmode=e.target.value;update()});
+$('pPar').addEventListener('change',function(e){S.par=parseInt(e.target.value,10);update()});
+$('pErase').addEventListener('change',function(e){S.erase=e.target.checked?1:0;update()});
+$('psRow').addEventListener('change',function(e){S.pr=parseInt(e.target.value,10);stopPB();update()});
+$('psCol').addEventListener('change',function(e){S.pc=parseInt(e.target.value,10);stopPB();update()});
+$('pgrid').addEventListener('click',function(e){var b=e.target.closest('.pc');if(!b)return;S.pr=parseInt(b.getAttribute('data-i'),10);S.pc=parseInt(b.getAttribute('data-k'),10);stopPB();update()});
+$('bPB').addEventListener('click',function(){
+  if(PB.on){stopPB();update();return}
+  var len=Math.max(1,compute().prog.cells[S.pr][S.pc].ev.length);
+  PB.on=true;PB.i=0;update();
+  tmrPB=setInterval(function(){
+    if(PB.i>=len-1){stopPB();update();return}
+    PB.i++;update();
+  },450);
+});
+$('bPA').addEventListener('click',function(){
+  if(PA.on){stopPA();update();return}
+  PA.on=true;PA.row=0;update();
+  tmrPA=setInterval(function(){
+    if(PA.row>=S.M){stopPA();update();return}
+    PA.row++;update();
+  },700);
+});
+$('eReuse').addEventListener('input',function(e){EF.reuse=parseFloat(e.target.value);$('eReuseO').textContent=Math.pow(10,EF.reuse).toLocaleString('en-US')+'×';update()});
+$('eMem').addEventListener('change',function(e){EF.mem=e.target.value;update()});
+fillSel('M',2,9,S.M);fillSel('N',2,6,S.N);
+makeZ();buildSettings();buildX();buildW();buildCols();buildProgSel();update();
+})();
+</script>
 </body>
 </html>

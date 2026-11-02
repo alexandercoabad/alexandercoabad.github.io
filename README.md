@@ -13,7 +13,7 @@ Personal site with browser simulators for my chip projects. Each simulator is on
 | `reram/write/index.html` | ReRAM lesson, Step 2: how a weight gets written into a cell |
 | `reram/index.html` | ReRAM crossbar compute-in-memory simulator (Step 3) |
 | `reram/reference/index.html` | ReRAM reference: equations, glossary, symbols, settings, FAQ |
-| `pcm/index.html` | PCM overview: lesson plan and status of the PCM series |
+| `pcm/index.html` | PCM lesson, Step 3: the PCM crossbar simulator (derived from `reram/index.html`, with the PCM write model and drift) |
 | `pcm/basics/index.html` | PCM lesson, Step 1: a phase-change cell compared with a ReRAM cell |
 | `pcm/write/index.html` | PCM lesson, Step 2: how a weight gets written into a PCM cell |
 
@@ -92,7 +92,7 @@ This is a teaching model, not a novel architecture and not a model of a specific
 
 ## PCM lesson (in progress)
 
-`pcm/basics/` compares PCM with ReRAM (rather than with an ordinary resistor, as the ReRAM basics page does): both cells get the same pulses, the I-V plot overlays the PCM snap and the ReRAM SET half, and the strip chart shows both technologies' variation, drift and wear. The ReRAM cell model is the one from `reram/basics/`. The PCM series mirrors the ReRAM one: `pcm/basics/` (Step 1, published), `pcm/write/` (Step 2, published: RESET, SET staircase with program-and-verify, overshoot restart, and drift after the write), `pcm/index.html` (Step 3, the crossbar simulator) and `pcm/reference/`. Until Step 3 exists, `pcm/index.html` is a small overview page listing the steps and their status. When Step 3 is ready, replace that page with the simulator, and when the reference is ready, update the overview, the root `index.html` and the table above.
+`pcm/basics/` compares PCM with ReRAM (rather than with an ordinary resistor, as the ReRAM basics page does): both cells get the same pulses, the I-V plot overlays the PCM snap and the ReRAM SET half, and the strip chart shows both technologies' variation, drift and wear. The ReRAM cell model is the one from `reram/basics/`. The PCM series mirrors the ReRAM one: `pcm/basics/` (Step 1, published), `pcm/write/` (Step 2, published: RESET, SET staircase with program-and-verify, overshoot restart, and drift after the write), `pcm/index.html` (Step 3, the crossbar simulator) and `pcm/reference/`. `pcm/index.html` is now the simulator (published). It is the ReRAM crossbar page without the ReRAM-specific tutorial sections (warm-up, worked 2×2 example, extension examples), with the PCM write model from Step 2 (RESET, adaptive SET pulses, overshoot restart) and two added settings: time since write (power-law drift, ν = 0.005 + 0.095·a) and a global drift gain. When `pcm/reference/` is ready, add the link in the page header and the "Where to go from here" panel, and update the root `index.html` and the table above.
 
 ## Adding another project
 
