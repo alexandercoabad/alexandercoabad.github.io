@@ -74,12 +74,13 @@ table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
 th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute)}
 td:first-child{font-weight:600;white-space:nowrap}
-#cellSvg{max-width:540px;margin-left:auto;margin-right:auto}
+#cellSvg{max-width:340px;margin-left:auto;margin-right:auto}
 #rrSvg{max-width:340px;margin-left:auto;margin-right:auto}
 #gauge,#gauge2{max-width:340px;margin-left:auto;margin-right:auto}
 .cmp td:first-child{white-space:normal}
 @media (max-width:600px){.cmp th,.cmp td{padding:6px 6px;font-size:12px}}
 .tw{overflow-x:auto}
+.actbar{position:sticky;bottom:0;z-index:5;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:10px 0;box-shadow:0 -4px 10px rgba(0,0,0,.08)}
 .mapgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
 .mapgrid .card p{margin:4px 0 0;font-size:13px}
 details.q{border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0;background:var(--bg)}
@@ -160,7 +161,7 @@ details.q p{margin:8px 0 2px}
   <section class="panel" id="cell">
     <h2>1. Write a cell</h2>
     <p class="lead">Both cells below start in a high-resistance state. Send the same pulses to both: the page sends your SET to the ReRAM cell as a <b>positive</b> pulse and your RESET as a <b>negative</b> one, because that is how ReRAM works. Watch how each reacts to the same amplitude. Then try cutting the power, and letting time pass.</p>
-    <p class="lead"><b>Is a SET pulse the same as a RESET pulse? No, but not because of polarity.</b> In PCM the heat does the work, so both pulses have the <b>same polarity</b> (the cell is <i>unipolar</i>) and go through the same heater. They differ in <b>amplitude, width and trailing edge</b>. The graph on the right shows the temperature each pulse gives the dome. Peak below the crystallization temperature: nothing happens. Peak between the two temperatures: the dome crystallizes (SET). Peak above the melting point and a sharp trailing edge: the dome re-forms as glass (RESET).</p>
+    <p class="lead"><b>Is a SET pulse the same as a RESET pulse? No, but not because of polarity.</b> In PCM the heat does the work, so both pulses have the <b>same polarity</b> (the cell is <i>unipolar</i>) and go through the same heater. They differ in <b>amplitude, width and trailing edge</b>. The graph below the two cells shows the temperature each pulse gives the dome. Peak below the crystallization temperature: nothing happens. Peak between the two temperatures: the dome crystallizes (SET). Peak above the melting point and a sharp trailing edge: the dome re-forms as glass (RESET).</p>
     <div class="two">
       <div class="card">
         <h3>PCM cell (mushroom type)</h3>
@@ -168,19 +169,32 @@ details.q p{margin:8px 0 2px}
         <div class="read" id="cellRead"></div>
         <svg id="gauge" viewBox="0 0 330 50" role="img" aria-label="Conductance gauge on a log scale"></svg>
       </div>
-      <div class="stack">
-        <div class="card">
-          <h3>Temperature of the dome during a pulse</h3>
-          <svg id="tSvg" viewBox="0 0 440 196" role="img" aria-label="Peak temperature of the SET and RESET pulses against the crystallization temperature and the melting point"></svg>
-          <p class="note" id="tNote" style="margin-top:4px"></p>
-        </div>
-        <div class="card">
-          <h3>ReRAM cell (filament type)</h3>
-          <svg id="rrSvg" viewBox="0 0 330 112" role="img" aria-label="A ReRAM cell: a metal oxide between two electrodes with a conductive filament growing from the bottom electrode"></svg>
-          <div class="read" id="rrRead"></div>
-          <svg id="gauge2" viewBox="0 0 330 50" role="img" aria-label="Conductance gauge for the ReRAM cell"></svg>
-          <div class="status" id="rrMsg" style="color:var(--mute);min-height:4.5em"></div>
-        </div>
+      <div class="card">
+        <h3>ReRAM cell (filament type)</h3>
+        <svg id="rrSvg" viewBox="0 0 330 112" role="img" aria-label="A ReRAM cell: a metal oxide between two electrodes with a conductive filament growing from the bottom electrode"></svg>
+        <div class="read" id="rrRead"></div>
+        <svg id="gauge2" viewBox="0 0 330 50" role="img" aria-label="Conductance gauge for the ReRAM cell"></svg>
+        <div class="status" id="rrMsg" style="color:var(--mute);min-height:4.5em"></div>
+      </div>
+    </div>
+    <div class="actbar">
+      <div class="btns" style="margin:0">
+      <button class="set" id="bSet">SET pulse (shrink the dome)</button>
+      <button class="reset" id="bReset">RESET pulse (grow the dome)</button>
+      <button id="bRead">Read</button>
+      <button id="bWaitD">Let a day pass</button>
+      <button id="bWaitY">Let a year pass</button>
+      <button id="bPower" aria-pressed="false">Cut the power</button>
+      <button id="bErase">Erase to high R</button>
+      </div>
+      <p class="status" id="cellMsg" aria-live="polite" style="margin:6px 0 0;min-height:1.5em"></p>
+    </div>
+    <p class="status" id="pmText" aria-live="polite" style="min-height:5.5em"></p>
+    <div style="margin-top:12px">
+      <div class="card">
+        <h3>Temperature of the dome during a pulse</h3>
+        <svg id="tSvg" style="max-width:640px;margin-inline:auto" viewBox="0 0 440 196" role="img" aria-label="Peak temperature of the SET and RESET pulses against the crystallization temperature and the melting point"></svg>
+        <p class="note" id="tNote" style="margin-top:4px"></p>
       </div>
     </div>
 
@@ -198,17 +212,6 @@ details.q p{margin:8px 0 2px}
     </div>
     <div class="row"><label for="cEdge">Trailing edge</label><select id="cEdge"><option value="sharp">Sharp: fast quench</option><option value="slow">Slow ramp-down: anneal</option></select></div>
     <div class="row"><label for="cRd">Read voltage</label><input type="range" id="cRd" min="0.05" max="1.6" step="0.05" value="0.2"><output id="cRdO">0.20 V</output></div>
-    <div class="btns">
-      <button class="set" id="bSet">SET pulse (shrink the dome)</button>
-      <button class="reset" id="bReset">RESET pulse (grow the dome)</button>
-      <button id="bRead">Read</button>
-      <button id="bWaitD">Let a day pass</button>
-      <button id="bWaitY">Let a year pass</button>
-      <button id="bPower" aria-pressed="false">Cut the power</button>
-      <button id="bErase">Erase to high R</button>
-    </div>
-    <p class="status" id="cellMsg" aria-live="polite"></p>
-    <p class="status" id="pmText" aria-live="polite" style="min-height:5.5em"></p>
     <h3 class="sub" style="margin:10px 0 4px">SET and RESET side by side</h3>
     <div class="tw">
     <table class="cmp">
