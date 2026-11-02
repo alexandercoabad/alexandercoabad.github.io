@@ -3,49 +3,89 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PCM compute-in-memory | Alexander Co Abad</title>
-<meta name="description" content="Browser lessons on phase-change memory (PCM) compute-in-memory: cell basics, writing a weight, and a crossbar simulator.">
+<title>Alexander Co Abad</title>
 <style>
 :root{--bg:#eef1f0;--surface:#f8faf9;--ink:#14201f;--muted:#5b6b69;--line:#cdd7d5;--accent:#0a7c76;
-  --font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1514;--surface:#151e1d;--ink:#e3ecea;--muted:#8fa19e;--line:#26332f;--accent:#3cc4b8;color-scheme:dark}}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--font);padding-inline:16px;padding-block:32px 48px}
-main{max-width:720px;margin-inline:auto;display:flex;flex-direction:column;gap:24px}
+main{max-width:720px;margin-inline:auto;display:flex;flex-direction:column;gap:28px}
 h1{font-size:26px;margin:0;letter-spacing:-.01em}
 .sub{color:var(--muted);margin:4px 0 0}
-.crumb{font-size:13px;margin:0 0 8px;color:var(--muted)}
+h2{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
 .list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
 .item{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
 .item a{color:var(--accent);font-weight:600;text-decoration:none}
 .item a:hover{text-decoration:underline}
 .item p{margin:4px 0 0;color:var(--muted)}
-.item.todo{opacity:.7}
-.tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 6px;margin-left:6px;font-weight:500}
-a{color:var(--accent)}
+.mono{font-family:var(--mono);font-size:13px}
 a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-footer{color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
 <main>
   <header>
-    <p class="crumb"><a href="../">Home</a></p>
-    <h1>PCM compute-in-memory</h1>
-    <p class="sub">A three-step lesson on phase-change memory, mirroring the <a href="../reram/">ReRAM series</a>. Each page is self-contained and runs in the browser.</p>
+    <h1>Alexander Co Abad</h1>
+    <p class="sub">Department of Electronics, Computer and Electrical Engineering, Gokongwei College of Engineering, De La Salle University, Manila</p>
   </header>
 
-  <ol class="list" style="padding:0">
-    <li class="item"><a href="basics/">Step 1: PCM vs ReRAM</a>
-      <p>Send the same pulses to a PCM cell and a ReRAM cell, compare their I-V curves, and see drift, variation and wear.</p></li>
-    <li class="item"><a href="write/">Step 2: How a weight gets written into a cell</a>
-      <p>Follow one weight from a number to a conductance: RESET, then SET pulses with read-back, and what happens when a pulse overshoots.</p></li>
-    <li class="item todo"><strong>Step 3: PCM crossbar simulator</strong><span class="tag">in development</span>
-      <p>Matrix-vector multiply with Ohm's and Kirchhoff's laws, including drift and the write model.</p></li>
-    <li class="item todo"><strong>PCM reference</strong><span class="tag">in development</span>
-      <p>Equations, glossary, symbols and settings for all three steps.</p></li>
-  </ol>
+  <section>
+    <h2>AgilA32</h2>
+    <ul class="list">
+      <li class="item"><a href="agila32/">AgilA32 simulator</a>
+        <p>The chip's Verilog compiled to WebAssembly. Run the boot ROM, the PIO tests and your own programs in the browser, with pins, waveforms and CPU/PIO state. Nothing to install.</p></li>
+      <li class="item"><a href="https://github.com/alexandercoabad/AgilA32_PIO">AgilA32_PIO</a>
+        <p>RV32I CPU with an RP2040-compatible PIO block (two state machines), for Tiny Tapeout on IHP SG13G2.</p></li>
+      <li class="item"><a href="https://github.com/alexandercoabad/AgilA32_FPGA_core">AgilA32_FPGA_core</a>
+        <p>FPGA self-test of the RV32I core for the Tiny Tapeout FPGA breakout.</p></li>
+    </ul>
+  </section>
 
-  <footer>Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>
+  <section>
+    <h2>MC14500B</h2>
+    <ul class="list">
+      <li class="item"><a href="mc14500b/">MC14500B simulator</a>
+        <p>Cycle-accurate model of the 1-bit MC14500B SoC, running in the browser with examples: Kill the Bit, traffic light, elevator, logic gates, a 7-segment text display and more. Edit the assembly and run your own programs. Nothing to install.</p></li>
+      <li class="item"><a href="https://github.com/alexandercoabad/MC14500B_IHP">MC14500B_IHP</a>
+        <p>1-bit MC14500B-style SoC with 64-byte program RAM, edge detector, clock divider and output latch, for Tiny Tapeout on IHP SG13G2.</p></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>ReRAM compute-in-memory</h2>
+    <ul class="list">
+      <li class="item"><a href="reram/basics/">Step 1: ReRAM vs an ordinary resistor</a>
+        <p>Start here. Write a ReRAM cell with SET and RESET pulses, sweep its I-V loop, and see variation, drift and wear. Nothing to install.</p></li>
+      <li class="item"><a href="reram/write/">Step 2: How a weight gets written into a cell</a>
+        <p>Follow one weight from a number to a conductance: pick the cell, round to a level, erase, then pulse and read back until it is close enough. See the pulses, the verify loop and what it costs in time and energy.</p></li>
+      <li class="item"><a href="reram/">Step 3: ReRAM crossbar simulator</a>
+        <p>A generic, textbook model of a resistive-RAM crossbar doing a matrix-vector multiply with Ohm's and Kirchhoff's laws. Set the weights and inputs, watch the currents add up on the bit lines, and compare against a digital multiply-accumulate for latency and energy. Nothing to install.</p></li>
+      <li class="item"><a href="reram/reference/">ReRAM reference</a>
+        <p>Equations with worked examples, a searchable glossary, symbols and units, what every simulator setting does, and further reading.</p></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>PCM compute-in-memory</h2>
+    <ul class="list">
+      <li class="item"><a href="pcm/basics/">Step 1: PCM vs ReRAM</a>
+        <p>Put a phase-change cell next to a ReRAM cell. Send both the same pulses, compare the threshold-switching I-V snap with the ReRAM loop, and see drift, variation and wear. Best after ReRAM Step 1. Nothing to install.</p></li>
+      <li class="item"><a href="pcm/write/">Step 2: How a weight gets written into a PCM cell</a>
+        <p>Follow one weight from a number to a conductance: RESET, then SET pulses with read-back, and what happens when a pulse overshoots. Then watch it drift. Best after PCM Step 1. Nothing to install.</p></li>
+      <li class="item"><a href="pcm/">PCM overview</a>
+        <p>The lesson plan for the PCM series and what is published so far. Step 3 (crossbar simulator) and the reference are in development.</p></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Earlier projects</h2>
+    <ul class="list">
+      <li class="item"><a href="https://github.com/alexandercoabad/AgilA8_microcontroller">AgilA8_microcontroller</a>
+        <p>The 8-bit predecessor on Sky130.</p></li>
+      <li class="item"><a href="https://github.com/alexandercoabad/AgilA8_IHP">AgilA8_IHP</a>
+        <p>The IHP port of AgilA8.</p></li>
+    </ul>
+  </section>
 </main>
 </body>
 </html>
