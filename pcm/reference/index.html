@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PCM Reference</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#EBEFF2; --panel:#F8FAFB; --ink:#15212B; --mute:#587080; --line:#C7D1D8;
+  --volt:#1D63C9; --curr:#C2620A; --cell:#22313D; --err:#B3261E; --ok:#1E7B4A; --hl:#FBE9D2;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+    --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+  --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+:root{color-scheme:light}
+html{padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px);scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+a{color:var(--volt)}
+header h1{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,4vw,34px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;max-width:72ch;color:var(--mute)}
+.crumb{font-size:13px;margin:0 0 8px!important;color:var(--ink)!important}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.toc a{border:1px solid var(--line);border-radius:999px;padding:3px 12px;text-decoration:none;color:var(--ink);background:var(--panel);font-size:13px}
+.toc a:hover{border-color:var(--volt)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0;scroll-margin-top:12px}
+h2{font-family:var(--f-display);font-size:18px;font-weight:600;margin:0 0 8px;letter-spacing:.01em}
+h3{font-family:var(--f-display);font-size:15px;font-weight:600;margin:0 0 4px}
+.cap{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--mute);font-weight:600}
+.lead{margin:0 0 12px;max-width:78ch;font-size:14px}
+.note{font-size:12px;color:var(--mute);margin:8px 0 0}
+.card{border:1px solid var(--line);border-radius:6px;padding:12px;background:var(--bg);min-width:0}
+.card p{margin:6px 0 0;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+select,input,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 10px}
+button{cursor:pointer}
+button:hover{border-color:var(--volt)}
+button.set{border-color:var(--curr);color:var(--curr);font-weight:600}
+:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute)}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.s{font-family:var(--f-mono);font-weight:500;white-space:nowrap;color:var(--curr)}
+table.ct td.c{font-weight:600;min-width:130px}
+table.ct td.u{white-space:nowrap;color:var(--mute)}
+table.ct td:nth-child(3){min-width:300px}
+.eqg{grid-template-columns:repeat(auto-fit,minmax(min(100%,430px),1fr))}
+.gh{margin:16px 0 6px}
+details.q{border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0;background:var(--bg)}
+details.q summary{cursor:pointer;font-weight:600}
+details.q p{margin:8px 0 2px}
+.credit{font-size:12px;color:var(--mute);text-align:center;padding-top:6px;border-top:1px solid var(--line)}
+/* signal chain */
+.chain{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:10px 26px}
+.chain li{position:relative;flex:1 1 130px;min-width:0;border:1px solid var(--line);border-radius:6px;padding:10px;background:var(--bg)}
+.chain li::after{content:"\2192";position:absolute;right:-20px;top:50%;transform:translateY(-50%);color:var(--mute);font-size:16px}
+.chain li:last-child::after{content:none}
+.chain .tag{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;border-radius:999px;padding:0 8px;margin-bottom:4px;border:1px solid var(--line);color:var(--mute)}
+.chain .tag.an{border-color:var(--curr);color:var(--curr)}
+.chain .f{font-family:var(--f-mono);font-size:12px;margin-top:4px;color:var(--ink)}
+.chain p{margin:2px 0 0;font-size:12px;color:var(--mute)}
+@media (max-width:640px){.chain li::after{content:none}}
+/* equations */
+pre.eq{margin:6px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);border-radius:6px;font-family:var(--f-mono);font-size:13px;line-height:1.6;overflow-x:auto;white-space:pre;font-variant-numeric:tabular-nums}
+.ex b,.where{color:var(--mute)}
+.where{font-size:12px!important}
+/* glossary */
+.gf{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px}
+.gf input{flex:1 1 240px;min-width:0}
+dl.gl{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:10px}
+.term{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg);min-width:0}
+.term dt{font-weight:600;font-size:13px}
+.term dd{margin:3px 0 0;font-size:13px}
+.refs{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px;max-width:90ch}
+.path{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px}
+.path a.card{text-decoration:none;color:var(--ink)}
+.path a.card:hover{border-color:var(--volt)}
+.path .cap{display:block;margin-bottom:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="crumb"><span class="cap">Reference</span> &nbsp;·&nbsp; <a href="../basics/">Step 1: PCM basics</a> &nbsp;·&nbsp; <a href="../write/">Step 2: writing a weight</a> &nbsp;·&nbsp; <a href="../">Step 3: crossbar simulator</a> &nbsp;·&nbsp; <a href="../../reram/reference/">Compare: ReRAM reference</a></p>
+    <h1>PCM reference</h1>
+    <p>The equations, terms, symbols and settings used across the three PCM steps, in one place. Keep it open next to the simulator, or use it to look something up when a word is new. Everything about the array itself (Ohm&rsquo;s law, Kirchhoff, converters, IR drop) is the same as for ReRAM. What changes is the cell: how a pulse moves it, how a weight is written, and what happens afterwards.</p>
+    <nav class="toc" aria-label="On this page">
+      <a href="#path">Learning path</a><a href="#chain">Signal chain</a><a href="#eq">Equations</a><a href="#glossary">Glossary</a><a href="#symbols">Symbols and units</a><a href="#controls">Settings</a><a href="#faq">Questions</a><a href="#read">Further reading</a>
+    </nav>
+  </header>
+
+  <section class="panel" id="path">
+    <h2>Learning path</h2>
+    <p class="lead">Three short lessons, each building on the one before. If you are new to this, go in order.</p>
+    <div class="path">
+      <a class="card" href="../basics/"><span class="cap">Step 1</span><h3>PCM vs ReRAM</h3><p>A glass-and-crystal cell, heated by current pulses. You will SET, RESET and read one, and see how it differs from a ReRAM cell, including drift.</p></a>
+      <a class="card" href="../write/"><span class="cap">Step 2</span><h3>How a weight gets written</h3><p>From a number to a conductance: choose the cell, round to a level, RESET, then climb with SET pulses and read back. An overshoot means starting again.</p></a>
+      <a class="card" href="../"><span class="cap">Step 3</span><h3>The crossbar simulator</h3><p>Put cells in a grid and multiply a vector by a matrix in one read, then age the array and watch the answers drift.</p></a>
+    </div>
+  </section>
+
+  <section class="panel" id="chain">
+    <h2>The signal chain in one line</h2>
+    <p class="lead">Everything in the simulator sits somewhere on this path. The middle is analog. The two ends are converters to and from the digital world.</p>
+    <ol class="chain">
+      <li><span class="tag">digital</span><h3>Input x</h3><div class="f">0 to 1</div><p>A number from the model or the previous layer.</p></li>
+      <li><span class="tag">converter</span><h3>DAC</h3><div class="f">V = x × V_read</div><p>Rounds the input and makes a voltage.</p></li>
+      <li><span class="tag an">analog</span><h3>Word lines</h3><div class="f">V_1 … V_M</div><p>One voltage per row, all applied at once.</p></li>
+      <li><span class="tag an">analog</span><h3>Cells</h3><div class="f">I = V × G</div><p>Each cell stores a weight as G and multiplies.</p></li>
+      <li><span class="tag an">analog</span><h3>Bit lines</h3><div class="f">I = Σ V × G</div><p>The currents of a column add on the wire.</p></li>
+      <li><span class="tag an">analog</span><h3>Subtract</h3><div class="f">I⁺ − I⁻</div><p>The pair gives a signed result.</p></li>
+      <li><span class="tag">converter</span><h3>ADC</h3><div class="f">code → y</div><p>Turns the current into an integer, then a number.</p></li>
+    </ol>
+  </section>
+
+  <section class="panel" id="eq">
+    <h2>Key equations</h2>
+    <p class="lead">Each one has a worked example with the simulator's default numbers (Gmin = 0.5 µS, Gmax = 50 µS) and a pointer to where you can see it. Equations 8, 9, 10, 12 and 13 describe this teaching model, not a measured device.</p>
+    <div class="grid eqg">
+<div class="card"><h3>1. Ohm&#x27;s law, one cell</h3><pre class="eq">I = V × G      (G = 1 / R)</pre><p>The current through a cell is the voltage across it times its conductance. This is the multiplication.</p><p class="ex"><b>Example.</b> 0.2 V × 50 µS = 10 µA (the same cell is 20 kΩ).</p><p class="where">Used in: Step 1 (read a cell). Step 3, every cell of the array.</p></div>
+<div class="card"><h3>2. Kirchhoff&#x27;s current law, one bit line</h3><pre class="eq">I_j = Σ_i  V_i × G_ij</pre><p>All cells on a bit line feed one wire, and the currents simply add. This is the accumulation.</p><p class="ex"><b>Example.</b> 0.10 V × 60 µS + 0.20 V × 30 µS = 6 + 6 = 12 µA.</p><p class="where">Used in: Step 3, crossbar step 4 (Sum columns).</p></div>
+<div class="card"><h3>3. Input to voltage (DAC)</h3><pre class="eq">V_i = x_i × V_read</pre><p>An input between 0 and 1 is rounded to one of 2^b − 1 steps and turned into a word-line voltage no larger than the read voltage.</p><p class="ex"><b>Example.</b> x = 0.5 and V_read = 0.2 V give 0.10 V. With a 4-bit DAC the steps are 1/15 apart.</p><p class="where">Used in: Step 3, Input DAC slider.</p></div>
+<div class="card"><h3>4. Weight to conductance</h3><pre class="eq">level = round(|w| × (L − 1))
+G = Gmin + level / (L − 1) × (Gmax − Gmin)
+L = 2^bits</pre><p>The weight magnitude is rounded to one of L levels and mapped linearly onto the window between Gmin and Gmax. The sign picks the G⁺ or G⁻ cell.</p><p class="ex"><b>Example.</b> |w| = 0.62 with 3 bits: level = round(4.34) = 4, so G = 0.5 + 4/7 × 49.5 = 28.8 µS.</p><p class="where">Used in: Step 2, step 3 (Round to a level). Step 3, Weight levels slider.</p></div>
+<div class="card"><h3>5. Differential read-out</h3><pre class="eq">y = (I⁺ − I⁻) / (V_read × (Gmax − Gmin))</pre><p>Subtract the two bit-line currents of a pair and divide by the scale factor to turn current back into a number. Gmin is in both cells and cancels.</p><p class="ex"><b>Example.</b> x = 0.5, G⁺ = 28.8 µS, G⁻ = 0.5 µS: I⁺ = 2.88 µA, I⁻ = 0.05 µA, so y = 2.83 / 9.9 = 0.286 (the ideal for the rounded weight is 0.5 × 0.571 = 0.286).</p><p class="where">Used in: Step 2, step 6 table. Step 3, results table.</p></div>
+<div class="card"><h3>5b. Two other ways to store the sign</h3><pre class="eq">G⁺ only + reference column:
+  level = round((w + 1)/2 × L),   G = Gmin + level/L × (Gmax − Gmin)
+  G_ref = Gmin + (Gmax − Gmin)/2   (every row of the reference column)
+  y = 2 × (I − I_ref) / (V_read × (Gmax − Gmin))
+
+Unsigned, negatives clipped:
+  level = round(max(w, 0) × L),   G = Gmin + level/L × (Gmax − Gmin)
+  y = I / (V_read × (Gmax − Gmin))</pre><p>The differential pair spends two cells per weight. These two spend one. With a reference column the weight is shifted into 0 to 1 and the middle conductance stands for zero, so negatives work and the Gmin leakage cancels, but one set of levels covers both signs, so each step in w is twice as coarse. With no subtraction at all, negative weights are lost and the leakage of every cell stays in the sum.</p><p class="ex"><b>Example.</b> x = 0.5 (V = 0.1 V), w = 0.6, L = 15, Gmin = 0.5 µS, Gmax = 50 µS. Reference column: level 12, G = 40.1 µS, I = 4.01 µA, I_ref = 0.1 × 25.25 = 2.525 µA, so y = 2 × 1.485 / 9.9 = 0.300, exactly x × w. Unsigned: level 9, G = 30.2 µS, I = 3.02 µA, so y = 3.02 / 9.9 = 0.305. The extra 0.005 is the leakage x × Gmin/(Gmax − Gmin).</p><p class="where">Used in: Step 3, Weight sign setting.</p></div>
+<div class="card"><h3>6. Output ADC</h3><pre class="eq">step = R / (2^(b−1) − 1)
+R = rows × ADC range</pre><p>The converter has 2^(b−1) − 1 steps on each side of zero between −R and +R. Smaller R gives finer steps, but any output larger than R is clipped. (Default analog layout.)</p><p class="ex"><b>Example.</b> 4 rows, 100% range, 8 bits: R = 4, step = 4 / 127 = 0.031.</p><p class="where">Used in: Step 3, Output ADC and ADC range sliders.</p></div>
+<div class="card"><h3>7. The write loop</h3><pre class="eq">a_target = ln(G_target / Gmax) / ln(Gmin / Gmax)
+pick V_n: the strongest SET whose nominal shrink factor f(V) is still ≥ a_target / a_n
+if |G − G_target| ≤ tol × (Gmax − Gmin): stop
+if G &gt; G_target + tol: RESET (a = 1) and climb again</pre><p>A SET only shrinks the amorphous dome, so the controller aims at the dome size a_target that gives the wanted conductance and chooses each pulse so that it should not shrink the dome past it. A strong pulse is used far away and a gentle one close by. After every pulse the cell is read. If a pulse overshoots, nothing can undo it: the cell is RESET and the climb starts again.</p><p class="ex"><b>Example.</b> G_target = 28.8 µS gives a_target = 0.12. From the erased cell (a = 1) a pulse of about 1.75 V takes a to about 0.29 (G from 0.5 to 13 µS), then about 1.55 V takes it to 0.13 (G about 28 µS). That is inside a ±2% tolerance of ± 1 µS, after two pulses.</p><p class="where">Used in: Step 2, step 5. Step 3, Programming panel.</p></div>
+<div class="card"><h3>8. How a pulse moves the cell (teaching model)</h3><pre class="eq">G(a) = Gmax × (Gmin / Gmax)^a             a = amorphous fraction, 0 to 1
+T_peak = 300 + 162 × V² × (1 − e^(−t_p / 30 ns))   K
+rate r = exp(−((T_peak − 700) / 130)²)   for 430 K &lt; T_peak &lt; 900 K, else 0
+SET:   a ← a × exp(−r × t_p × f / 40 ns)
+RESET: T_peak &gt; 900 K melts the cell and the fast edge freezes it: a ← 1</pre><p>The pulse heats the cell. Between 430 K and 900 K it crystallizes, fastest near 700 K, so SET shrinks the amorphous dome a bit more each pulse. Above 900 K it melts, and a fast, short pulse quenches it into glass: a full dome and G = Gmin. G falls exponentially with dome size, so equal steps of G need unequal steps of a. f is a random factor near 1, set by σ, partly fixed per cell and partly new each pulse. This is an illustrative rule, not a measured device equation.</p><p class="ex"><b>Example.</b> V = 1.3 V and t_p = 50 ns: T_peak = 300 + 162 × 1.69 × 0.811 = 522 K, r = 0.153, so a shrinks by exp(−0.153 × 50 / 40) = 0.826 per pulse. From a = 1 the cell moves from 0.5 µS to 1.1 µS. A 3.1 V, 20 ns pulse reaches about 1060 K and RESETs it.</p><p class="where">Used in: Step 1, Step 2, Step 3 Programming panel.</p></div>
+<div class="card"><h3>9. Time and energy of a write (teaching model)</h3><pre class="eq">SET pulse:    E = V² × t_p / R_h
+RESET pulse:  E = (3.1 V)² × 20 ns / R_h
+Verify read:  E = V_read² × G × t_read + E_ADC
+(R_h = 5 kΩ heater)</pre><p>Units work out as volts² / kΩ × ns = picojoules. Time is t_p per SET, 20 ns per RESET and (t_read + t_ADC) per verify read. Cells in one row are written in parallel, so a row takes as long as its slowest cell.</p><p class="ex"><b>Example.</b> One 1.3 V SET pulse of 50 ns: 1.69 × 50 / 5 = 16.9 pJ. One RESET: 9.61 × 20 / 5 = 38.4 pJ, more than two SET pulses.</p><p class="where">Used in: Step 2, step 6 tiles. Step 3, Programming panel tiles.</p></div>
+<div class="card"><h3>10. Compute energy and break-even reuse (teaching model)</h3><pre class="eq">E_crossbar = Σ V × I × t_read
+           + inputs × E_DAC + columns × E_ADC
+E_digital  = (M × N) × (E_MAC + E_fetch)
+break-even = E_write / (E_digital − E_crossbar)</pre><p>The crossbar pays once to write its weights and then a small amount per product. The digital processor pays to fetch every weight on every product. The crossbar only wins on energy after enough products reuse the same weights. The constants in the efficiency panel are ballpark values you can edit.</p><p class="ex"><b>Example.</b> If writing the weights costs 1,400 pJ and each product saves 15 pJ, the break-even is about 93 products.</p><p class="where">Used in: Step 3, efficiency panel.</p></div>
+<div class="card"><h3>11. IR drop</h3><pre class="eq">solved numerically (Gauss-Seidel)</pre><p>There is no short formula. Every wire segment has a resistance R_w, and the simulator solves the whole network of cells and wires. Cells far from the drivers see less than the intended voltage, so their currents come out lower than the ideal. Larger conductances draw more current, so they make the drop worse.</p><p class="ex"><b>Example.</b> With 200 Ω segments and default settings the RMS output error grows from 0.032 (Gmax = 20 µS) to 0.056 (50 µS) and 0.090 (100 µS).</p><p class="where">Used in: Step 3, Wire R slider.</p></div>
+<div class="card"><h3>12. Drift after the write</h3><pre class="eq">G(t) = G(1 s) × t^(−ν)
+ν = 0.005 + 0.095 × a</pre><p>After the write the glass relaxes and the conductance falls as a power law of the time t since the write (in seconds, with G(1 s) the value right after the write). The exponent ν grows with the size of the amorphous dome: nearly crystalline cells barely move, mostly amorphous ones drift much more. The verify read happens within the first second, so it cannot see any of this.</p><p class="ex"><b>Example.</b> G = 28.8 µS has a = 0.12, so ν = 0.016. After a year (3.15 × 10⁷ s) it reads 0.016 → 28.8 × 0.75 = 21.7 µS. The erased partner cell (a = 1, ν = 0.1) falls from 0.50 to 0.09 µS.</p><p class="where">Used in: Step 1, drift slider. Step 2, step 6. Step 3, Time since write slider.</p></div>
+<div class="card"><h3>13. A single global gain against drift</h3><pre class="eq">y_corrected = y × t^ν_ref        (ν_ref = 0.03 in the simulator)</pre><p>A chip can multiply all outputs by one factor that grows with time. It is exact only for cells whose ν equals ν_ref. Cells with a smaller ν are over-corrected and cells with a larger ν are under-corrected, and every cell in an array has its own ν.</p><p class="ex"><b>Example.</b> After a year the gain is 3.15 × 10⁷ ^ 0.03 = 1.68. The 28.8 µS cell (ν = 0.016) keeps only 0.75 of its value, so the gain overshoots to 0.75 × 1.68 = 1.27, 27% too high.</p><p class="where">Used in: Step 3, Global drift gain setting.</p></div>
+    </div>
+  </section>
+
+  <section class="panel" id="glossary">
+    <h2>Glossary</h2>
+    <p class="lead" style="margin-bottom:8px">Type to filter the 48 terms by name or by anything in the definition.</p>
+    <div class="gf"><label for="gq" class="cap">Search</label><input type="search" id="gq" placeholder="for example: drift, amorphous, tolerance" autocomplete="off"><span class="note" id="gc" style="margin:0" aria-live="polite"></span></div>
+    <dl class="gl" id="gl">
+<div class="term" data-t="adaptive pulse a write scheme where the controller picks each set amplitude from how far the cell still has to go: strong pulses far away, gentle ones close by. the default write method in the simulator."><dt>Adaptive pulse</dt><dd>A write scheme where the controller picks each SET amplitude from how far the cell still has to go: strong pulses far away, gentle ones close by. The default write method in the simulator.</dd></div>
+<div class="term" data-t="adc (analog-to-digital converter) turns a bit-line current into an integer code. more bits give finer output steps. in the efficiency model each extra bit doubles the adc&#x27;s energy."><dt>ADC (analog-to-digital converter)</dt><dd>Turns a bit-line current into an integer code. More bits give finer output steps. In the efficiency model each extra bit doubles the ADC&#x27;s energy.</dd></div>
+<div class="term" data-t="amorphous and crystalline glass-like and ordered. the amorphous state resists current (low g) and the crystalline state conducts well (high g). the cell holds a mix of the two."><dt>Amorphous and crystalline</dt><dd>Glass-like and ordered. The amorphous state resists current (low G) and the crystalline state conducts well (high G). The cell holds a mix of the two.</dd></div>
+<div class="term" data-t="amorphous dome, fraction a the glassy cap over the heater in a mushroom cell. in this model its size is a, from 0 (no glass) to 1 (full dome), and g = gmax × (gmin / gmax)^a."><dt>Amorphous dome, fraction a</dt><dd>The glassy cap over the heater in a mushroom cell. In this model its size is a, from 0 (no glass) to 1 (full dome), and G = Gmax × (Gmin / Gmax)^a.</dd></div>
+<div class="term" data-t="bit line (bl) the wire that runs down a column and collects the currents of every cell in it. its total current is the sum of v × g over the column."><dt>Bit line (BL)</dt><dd>The wire that runs down a column and collects the currents of every cell in it. Its total current is the sum of V × G over the column.</dd></div>
+<div class="term" data-t="bit slicing (binary weighted encoding) storing each bit of a weight in its own pair of two-state cells and combining the bit planes with shifts and adds in digital logic. it uses more cells and more adc conversions, but each cell only needs two well-separated states. the cell encoding menu in step 3 offers it."><dt>Bit slicing (binary weighted encoding)</dt><dd>Storing each bit of a weight in its own pair of two-state cells and combining the bit planes with shifts and adds in digital logic. It uses more cells and more ADC conversions, but each cell only needs two well-separated states. The Cell encoding menu in Step 3 offers it.</dd></div>
+<div class="term" data-t="block erase a reset applied to a block of cells so that all of them start from the full-dome state, gmin, before the set climb begins."><dt>Block erase</dt><dd>A RESET applied to a block of cells so that all of them start from the full-dome state, Gmin, before the SET climb begins.</dd></div>
+<div class="term" data-t="chalcogenide (gst) the family of alloys used for pcm, for example germanium-antimony-tellurium (ge₂sb₂te₅). they switch between glass and crystal in nanoseconds, which is why they are also used in rewritable optical discs."><dt>Chalcogenide (GST)</dt><dd>The family of alloys used for PCM, for example germanium-antimony-tellurium (Ge₂Sb₂Te₅). They switch between glass and crystal in nanoseconds, which is why they are also used in rewritable optical discs.</dd></div>
+<div class="term" data-t="compute-in-memory (in-memory computing) doing arithmetic inside the memory array where the data is stored, instead of moving the data to a separate processor."><dt>Compute-in-memory (in-memory computing)</dt><dd>Doing arithmetic inside the memory array where the data is stored, instead of moving the data to a separate processor.</dd></div>
+<div class="term" data-t="conductance (g) how easily a cell passes current. g = 1 / r, measured in siemens (s). the cells here sit between 0.5 and 50 µs, which is 2 mω down to 20 kω. conductances on a shared wire simply add, which is why weights are stored as conductance and not as resistance."><dt>Conductance (G)</dt><dd>How easily a cell passes current. G = 1 / R, measured in siemens (S). The cells here sit between 0.5 and 50 µS, which is 2 MΩ down to 20 kΩ. Conductances on a shared wire simply add, which is why weights are stored as conductance and not as resistance.</dd></div>
+<div class="term" data-t="crossbar a grid of word lines crossing bit lines, with one memory cell at every crossing."><dt>Crossbar</dt><dd>A grid of word lines crossing bit lines, with one memory cell at every crossing.</dd></div>
+<div class="term" data-t="crystallization set: a longer, gentler pulse keeps the cell hot but below melting (best near 700 k here), so the glass slowly turns back into crystal and the dome shrinks. each pulse shrinks it a bit more."><dt>Crystallization</dt><dd>SET: a longer, gentler pulse keeps the cell hot but below melting (best near 700 K here), so the glass slowly turns back into crystal and the dome shrinks. Each pulse shrinks it a bit more.</dd></div>
+<div class="term" data-t="cycle-to-cycle variation the same cell responds a little differently to the same pulse each time it is written."><dt>Cycle-to-cycle variation</dt><dd>The same cell responds a little differently to the same pulse each time it is written.</dd></div>
+<div class="term" data-t="dac (digital-to-analog converter) turns an input number into a voltage on a word line. the simulator rounds inputs to 2^b − 1 steps."><dt>DAC (digital-to-analog converter)</dt><dd>Turns an input number into a voltage on a word line. The simulator rounds inputs to 2^b − 1 steps.</dd></div>
+<div class="term" data-t="device-to-device variation different cells respond differently to the same pulse, because no two domes form identically. the σ slider sets how large the spread is."><dt>Device-to-device variation</dt><dd>Different cells respond differently to the same pulse, because no two domes form identically. The σ slider sets how large the spread is.</dd></div>
+<div class="term" data-t="differential pair (g⁺ / g⁻) two cells that together store one signed weight. the positive part goes in g⁺, the negative part in g⁻, and the read-out subtracts the two currents."><dt>Differential pair (G⁺ / G⁻)</dt><dd>Two cells that together store one signed weight. The positive part goes in G⁺, the negative part in G⁻, and the read-out subtracts the two currents.</dd></div>
+<div class="term" data-t="drift compensation correcting for drift in the readout, for example with a single gain that grows with time. it works only as well as the cells share one ν."><dt>Drift compensation</dt><dd>Correcting for drift in the readout, for example with a single gain that grows with time. It works only as well as the cells share one ν.</dd></div>
+<div class="term" data-t="drift exponent (ν) the power in the drift law. in this model ν = 0.005 + 0.095 × a, so nearly crystalline cells (small dome) drift little and mostly amorphous cells drift a lot."><dt>Drift exponent (ν)</dt><dd>The power in the drift law. In this model ν = 0.005 + 0.095 × a, so nearly crystalline cells (small dome) drift little and mostly amorphous cells drift a lot.</dd></div>
+<div class="term" data-t="endurance how many set and reset cycles a cell survives before its window shrinks or it stops switching. step 1 has a write-cycles slider that shows it."><dt>Endurance</dt><dd>How many SET and RESET cycles a cell survives before its window shrinks or it stops switching. Step 1 has a write-cycles slider that shows it.</dd></div>
+<div class="term" data-t="high-resistance state (hrs) and low-resistance state (lrs) the two extremes of a cell. hrs is the lowest conductance (gmin, full amorphous dome) and lrs is the highest (gmax, no dome). between them the cell can hold intermediate analog levels."><dt>High-resistance state (HRS) and low-resistance state (LRS)</dt><dd>The two extremes of a cell. HRS is the lowest conductance (Gmin, full amorphous dome) and LRS is the highest (Gmax, no dome). Between them the cell can hold intermediate analog levels.</dd></div>
+<div class="term" data-t="ir drop voltage lost along the resistance of the wires. cells far from the drivers see less voltage, so their currents are lower than the ideal. the wire r slider controls it and the simulator solves for it."><dt>IR drop</dt><dd>Voltage lost along the resistance of the wires. Cells far from the drivers see less voltage, so their currents are lower than the ideal. The Wire R slider controls it and the simulator solves for it.</dd></div>
+<div class="term" data-t="joule heating heat from the current passing through the cell. pcm is programmed by it, so set and reset pulses are heat pulses as much as voltage pulses."><dt>Joule heating</dt><dd>Heat from the current passing through the cell. PCM is programmed by it, so SET and RESET pulses are heat pulses as much as voltage pulses.</dd></div>
+<div class="term" data-t="kirchhoff&#x27;s current law the currents flowing into a point add up to the currents flowing out. it is why all the cell currents on one bit line sum into a single current."><dt>Kirchhoff&#x27;s current law</dt><dd>The currents flowing into a point add up to the currents flowing out. It is why all the cell currents on one bit line sum into a single current.</dd></div>
+<div class="term" data-t="level (conductance level) one of the 2^b discrete conductance values a cell is aimed at. level k of l − 1 steps sits at gmin + k / (l − 1) × (gmax − gmin)."><dt>Level (conductance level)</dt><dd>One of the 2^b discrete conductance values a cell is aimed at. Level k of L − 1 steps sits at Gmin + k / (L − 1) × (Gmax − Gmin).</dd></div>
+<div class="term" data-t="matrix-vector multiplication (mvm) y = xᵀw: every output is the dot product of the input vector with one column of weights. it is the main operation inside neural-network layers."><dt>Matrix-vector multiplication (MVM)</dt><dd>y = xᵀW: every output is the dot product of the input vector with one column of weights. It is the main operation inside neural-network layers.</dd></div>
+<div class="term" data-t="melt-quench reset: a short, strong pulse heats the cell past the melting point (900 k in this model) and the pulse edge is so fast that the melt freezes into glass instead of crystallizing."><dt>Melt-quench</dt><dd>RESET: a short, strong pulse heats the cell past the melting point (900 K in this model) and the pulse edge is so fast that the melt freezes into glass instead of crystallizing.</dd></div>
+<div class="term" data-t="multiply-accumulate (mac) one multiplication added to a running total. a matrix-vector product is many macs."><dt>Multiply-accumulate (MAC)</dt><dd>One multiplication added to a running total. A matrix-vector product is many MACs.</dd></div>
+<div class="term" data-t="mushroom cell a common pcm layout: a narrow heater electrode under a layer of phase-change material, so the hottest spot, and the glassy dome, forms over the heater."><dt>Mushroom cell</dt><dd>A common PCM layout: a narrow heater electrode under a layer of phase-change material, so the hottest spot, and the glassy dome, forms over the heater.</dd></div>
+<div class="term" data-t="neural network (nn) a model built from layers. each layer computes weighted sums of its inputs and then applies a simple nonlinear function. the weights are numbers learned during training. these lessons only need the weighted sum, which a crossbar computes in one read."><dt>Neural network (NN)</dt><dd>A model built from layers. Each layer computes weighted sums of its inputs and then applies a simple nonlinear function. The weights are numbers learned during training. These lessons only need the weighted sum, which a crossbar computes in one read.</dd></div>
+<div class="term" data-t="non-volatile keeps its stored state with the power off."><dt>Non-volatile</dt><dd>Keeps its stored state with the power off.</dd></div>
+<div class="term" data-t="ohm&#x27;s law v = i × r, or equivalently i = v × g. it is the multiplication step in the crossbar."><dt>Ohm&#x27;s law</dt><dd>V = I × R, or equivalently I = V × G. It is the multiplication step in the crossbar.</dd></div>
+<div class="term" data-t="on/off ratio (window) gmax / gmin. with the defaults, 50 / 0.5 = 100. a wider window leaves more room between levels."><dt>On/off ratio (window)</dt><dd>Gmax / Gmin. With the defaults, 50 / 0.5 = 100. A wider window leaves more room between levels.</dd></div>
+<div class="term" data-t="open-loop write applying a fixed train of pulses without reading the cell back. it is cheap, but device variation lands directly in the stored weight."><dt>Open-loop write</dt><dd>Applying a fixed train of pulses without reading the cell back. It is cheap, but device variation lands directly in the stored weight.</dd></div>
+<div class="term" data-t="overshoot a set pulse that leaves the conductance above the target band. pcm has no gentle step down, so the cell must be reset and written again."><dt>Overshoot</dt><dd>A SET pulse that leaves the conductance above the target band. PCM has no gentle step down, so the cell must be RESET and written again.</dd></div>
+<div class="term" data-t="phase-change memory (pcm) a memory cell made of a chalcogenide alloy that can be glass (amorphous, high resistance) or crystal (low resistance). heat pulses switch it, and it keeps its state with the power off. it can hold a bit or, with intermediate dome sizes, a neural-network weight."><dt>Phase-change memory (PCM)</dt><dd>A memory cell made of a chalcogenide alloy that can be glass (amorphous, high resistance) or crystal (low resistance). Heat pulses switch it, and it keeps its state with the power off. It can hold a bit or, with intermediate dome sizes, a neural-network weight.</dd></div>
+<div class="term" data-t="program-and-verify (write-verify) writing in a loop: pulse, read back, compare with the target, and repeat until the cell is within tolerance or the pulses run out. in pcm an overshoot cannot be undone by another set, so it costs a reset and a new climb."><dt>Program-and-verify (write-verify)</dt><dd>Writing in a loop: pulse, read back, compare with the target, and repeat until the cell is within tolerance or the pulses run out. In PCM an overshoot cannot be undone by another SET, so it costs a RESET and a new climb.</dd></div>
+<div class="term" data-t="quantization rounding to one of a limited set of values: inputs by the dac, weights to conductance levels, outputs by the adc."><dt>Quantization</dt><dd>Rounding to one of a limited set of values: inputs by the DAC, weights to conductance levels, outputs by the ADC.</dd></div>
+<div class="term" data-t="read disturb a read at too high a voltage can heat the cell enough to change its state, so the read voltage is kept low."><dt>Read disturb</dt><dd>A read at too high a voltage can heat the cell enough to change its state, so the read voltage is kept low.</dd></div>
+<div class="term" data-t="reference column one extra column of cells, all at the middle conductance gmid, shared by every output. its current is subtracted from each output, so a single cell per weight can still stand for a negative weight."><dt>Reference column</dt><dd>One extra column of cells, all at the middle conductance Gmid, shared by every output. Its current is subtracted from each output, so a single cell per weight can still stand for a negative weight.</dd></div>
+<div class="term" data-t="reset a pulse that melts the cell and quenches it into glass. in this model it always returns the cell to the full dome and gmin, so it is both the erase and the only way down."><dt>RESET</dt><dd>A pulse that melts the cell and quenches it into glass. In this model it always returns the cell to the full dome and Gmin, so it is both the erase and the only way down.</dd></div>
+<div class="term" data-t="resistance drift (drift) after the write the amorphous glass slowly relaxes and the conductance falls as a power law of time, g(t) = g(1 s) × t^(−ν). steps 1, 2 and 3 each have a time slider that shows it."><dt>Resistance drift (drift)</dt><dd>After the write the amorphous glass slowly relaxes and the conductance falls as a power law of time, G(t) = G(1 s) × t^(−ν). Steps 1, 2 and 3 each have a time slider that shows it.</dd></div>
+<div class="term" data-t="set a pulse that crystallizes part of the dome and so raises the conductance. in pcm it comes in small steps and can only go up."><dt>SET</dt><dd>A pulse that crystallizes part of the dome and so raises the conductance. In PCM it comes in small steps and can only go up.</dd></div>
+<div class="term" data-t="sneak path in a passive crossbar, current that finds a route through other cells instead of the selected one, which corrupts reads and writes. transistors (1t1r) or selector devices suppress it. this simulator does not model sneak paths."><dt>Sneak path</dt><dd>In a passive crossbar, current that finds a route through other cells instead of the selected one, which corrupts reads and writes. Transistors (1T1R) or selector devices suppress it. This simulator does not model sneak paths.</dd></div>
+<div class="term" data-t="tolerance how close to the target counts as done in a verify loop, set as a percent of the gmax − gmin window."><dt>Tolerance</dt><dd>How close to the target counts as done in a verify loop, set as a percent of the Gmax − Gmin window.</dd></div>
+<div class="term" data-t="unsigned encoding (negatives clipped) one cell per weight and no subtraction. a cell cannot be negative, so negative weights are stored as 0, and the gmin leakage of every cell adds a small offset to each output."><dt>Unsigned encoding (negatives clipped)</dt><dd>One cell per weight and no subtraction. A cell cannot be negative, so negative weights are stored as 0, and the Gmin leakage of every cell adds a small offset to each output.</dd></div>
+<div class="term" data-t="von neumann bottleneck the time and energy spent moving data between a separate memory and processor. computing in the array avoids moving the weights."><dt>Von Neumann bottleneck</dt><dd>The time and energy spent moving data between a separate memory and processor. Computing in the array avoids moving the weights.</dd></div>
+<div class="term" data-t="weight a number the model learned. here it runs from −1 to +1 and is stored as conductance in one or two cells."><dt>Weight</dt><dd>A number the model learned. Here it runs from −1 to +1 and is stored as conductance in one or two cells.</dd></div>
+<div class="term" data-t="word line (wl) the wire that runs along a row and carries one input voltage to every cell in that row."><dt>Word line (WL)</dt><dd>The wire that runs along a row and carries one input voltage to every cell in that row.</dd></div>
+    </dl>
+    <p class="note" id="gn" hidden>No term matches. Try a shorter word.</p>
+  </section>
+
+  <section class="panel" id="symbols">
+    <h2>Symbols and units</h2>
+    <p class="lead">The defaults are the values the simulator starts with.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th><th>Default or rule</th></tr></thead>
+      <tbody>
+<tr><td class="s">x_i</td><td>Input value for row i</td><td>0 to 1</td><td class="num">set with the input sliders</td></tr>
+<tr><td class="s">V_i</td><td>Voltage on word line i</td><td>V</td><td class="num">x_i × V_read</td></tr>
+<tr><td class="s">V_read</td><td>Read voltage</td><td>V</td><td class="num">0.2</td></tr>
+<tr><td class="s">w_ij</td><td>Weight in row i, output j</td><td>−1 to +1</td><td class="num">set in the weight matrix</td></tr>
+<tr><td class="s">G_ij</td><td>Conductance of one cell</td><td>µS</td><td class="num">Gmin to Gmax</td></tr>
+<tr><td class="s">Gmin, Gmax</td><td>Conductance of the high- and low-resistance states</td><td>µS</td><td class="num">0.5 and 50</td></tr>
+<tr><td class="s">ΔG</td><td>The window, Gmax − Gmin</td><td>µS</td><td class="num">49.5</td></tr>
+<tr><td class="s">b, L</td><td>Bits per weight and number of levels, L = 2^b</td><td>bits, count</td><td class="num">4 bits, 16 levels</td></tr>
+<tr><td class="s">M, N</td><td>Rows (inputs) and outputs. There are 2N bit lines</td><td>count</td><td class="num">4 and 4</td></tr>
+<tr><td class="s">I_j</td><td>Current on bit line j</td><td>µA</td><td class="num">Σ V_i × G_ij</td></tr>
+<tr><td class="s">y_j</td><td>Output j after read-out and ADC</td><td>none</td><td class="num">ideal: Σ x_i × w_ij</td></tr>
+<tr><td class="s">σ</td><td>Device variation</td><td>%</td><td class="num">10</td></tr>
+<tr><td class="s">R_w</td><td>Wire resistance per segment</td><td>Ω</td><td class="num">0</td></tr>
+<tr><td class="s">a</td><td>Amorphous fraction (dome size), 0 = crystal, 1 = full glass</td><td>none</td><td class="num">G = Gmax × (Gmin / Gmax)^a</td></tr>
+<tr><td class="s">V_set</td><td>SET pulse amplitude (fixed-pulse method)</td><td>V</td><td class="num">1.3</td></tr>
+<tr><td class="s">T_peak</td><td>Peak temperature of a pulse</td><td>K</td><td class="num">300 + 162 V² (1 − e^(−t_p/30 ns))</td></tr>
+<tr><td class="s">ν</td><td>Drift exponent</td><td>none</td><td class="num">0.005 + 0.095 a</td></tr>
+<tr><td class="s">t</td><td>Time since the write</td><td>s</td><td class="num">10^x, x set by the slider (0 = 1 s)</td></tr>
+<tr><td class="s">tol</td><td>Verify tolerance as a share of ΔG</td><td>%</td><td class="num">2</td></tr>
+<tr><td class="s">t_p</td><td>Write pulse width</td><td>ns</td><td class="num">50</td></tr>
+<tr><td class="s">R_h</td><td>Heater resistance used for pulse energy</td><td>kΩ</td><td class="num">5</td></tr>
+<tr><td class="s">t_read, t_ADC</td><td>Read pulse and ADC conversion time</td><td>ns</td><td class="num">10 and 10</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">1 µS = 10⁻⁶ siemens, which is a resistance of 1 MΩ. 50 µS is 20 kΩ. A voltage in volts times a conductance in µS gives a current in µA. A voltage times a current in µA times a time in ns gives energy in fJ (1,000 fJ = 1 pJ). Volts² over kΩ times ns gives pJ directly.</p>
+  </section>
+
+  <section class="panel" id="controls">
+    <h2>What each setting does</h2>
+    <p class="lead">Each row says what happens when you raise the setting. The numbers are the RMS output error (or the write cost) measured on the simulator&rsquo;s default 4 × 4 example with 10% variation and adaptive program-and-verify writing, changing one setting at a time. They are a guide to the direction and size of each effect, and will shift if you change other settings or the simulator is updated.</p>
+<h3 class="gh">Array and signal chain</h3><div class="tw"><table class="ct"><thead><tr><th>Control</th><th>What it is</th><th>Raise it, and what happens</th><th>Used in</th></tr></thead><tbody>
+<tr><td class="c">Array size</td><td>Rows and outputs.</td><td>More rows add more products per read, but also longer wires (more IR drop) and more cells to write.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Cell encoding</td><td>Analog multi-level (one cell holds any of 2^bits levels) or binary weighted (one 1-bit cell per weight bit, planes combined by shift and add).</td><td>Binary weighted uses as many bit planes as the Weight levels setting, so more cells and more ADC conversions, but each cell only needs two well-separated states and tolerates far more variation.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Weight sign and cells per weight</td><td>Weight sign: Signed keeps negative weights, Unsigned stores them as 0. Cells per weight: a G⁺/G⁻ pair (two cells) or G⁺ only (one cell, with a shared reference column when signed).</td><td>The pair uses two cells per weight. The reference column and the unsigned layout use about half as many. The reference column keeps negatives but makes each step in w twice as coarse. Unsigned loses negatives and adds a Gmin offset to every output.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Input DAC (1 to 8 bits)</td><td>Resolution of the input voltages.</td><td>Finer inputs and lower error: RMS output error 0.080, 0.032 and 0.029 at 2, 4 and 8 bits in the default example. DAC energy doubles with each bit.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Weight levels (1 to 8 bits)</td><td>How many conductance levels a weight can take.</td><td>Finer weights and lower error: 0.109, 0.032 and 0.018 at 2, 4 and 8 bits. The levels also sit closer together, so they are harder to hit.</td><td class="u">Steps 2, 3</td></tr>
+<tr><td class="c">Output ADC (3 to 12 bits)</td><td>Resolution of the converter on each bit-line pair.</td><td>Lower error: 0.125, 0.032 and 0.030 at 4, 8 and 12 bits. ADC energy doubles with each bit (write energy with verify reads: 2.4, 2.6 and 5.5 nJ).</td><td class="u">Step 3</td></tr>
+<tr><td class="c">ADC range (20 to 100%)</td><td>Full scale as a share of the number of rows.</td><td>Too small clips large outputs (error 0.286 at 20%). Too large wastes resolution (0.032 at 100% against 0.034 at 50%). Pick a range just above the largest expected output.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Read voltage (0.05 to 0.3 V)</td><td>Voltage that a full-scale input puts on a word line.</td><td>Scales every current and the array energy. It does not change accuracy in this model. On a real PCM cell a high read voltage can heat it and disturb the state.</td><td class="u">Steps 1, 3</td></tr>
+<tr><td class="c">Gmin and Gmax</td><td>The two ends of the conductance window.</td><td>Gmin barely matters here (error 0.089 at 0.1, 0.5 and 2 µS with ideal writes), because the pair cancels its leakage. Raising Gmax makes IR drop worse (error 0.032, 0.056 and 0.090 at 20, 50 and 100 µS with 200 Ω wires).</td><td class="u">Steps 1, 3</td></tr>
+<tr><td class="c">Variation σ (0 to 25%)</td><td>Spread in how cells respond.</td><td>With ideal writes it goes straight into the weights (error 0.019, 0.089 and 0.233 at 0, 10 and 25%). Open loop is similar (0.033, 0.087 and 0.202, with 19 of 32 cells in tolerance at 25%). Program-and-verify cancels most of it (0.032 at 10%), but a high σ costs more pulses and restarts (77 pulses and 3.6 nJ at 25%, against 45 and 2.6 nJ at 10%).</td><td class="u">Steps 1, 2, 3</td></tr>
+<tr><td class="c">Wire R per segment (0 to 300 Ω)</td><td>Resistance of each wire segment.</td><td>More IR drop and more error: 0.032, 0.032 and 0.072 at 0, 100 and 300 Ω. PCM&rsquo;s lower conductances make it less sensitive than ReRAM.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Time since write (0 to 9, log₁₀ s)</td><td>How long the array has sat since it was written. 0 is 1 s, 3 is about 17 minutes, 5 about a day, 7 about 4 months, 9 about 32 years.</td><td>Drift pulls every conductance down by its own factor, so the outputs slide away from ideal: error 0.032, 0.083, 0.127, 0.165 and 0.213 at 0, 3, 5, 7 and 9. It does not depend on the write method: drift already dominates the write error after about 17 minutes.</td><td class="u">Steps 1, 2, 3</td></tr>
+<tr><td class="c">Global drift gain (off or on)</td><td>Multiplies every output by t^0.03.</td><td>Worse here, not better: error 0.137, 0.219, 0.309 and 0.406 at 3, 5, 7 and 9 with the gain on. The cells that carry the large weights are nearly crystalline, with ν below 0.03, so they are over-corrected. A single gain only fits cells whose ν equals 0.03.</td><td class="u">Step 3</td></tr>
+</tbody></table></div>
+<h3 class="gh">Writing the weights</h3><div class="tw"><table class="ct"><thead><tr><th>Control</th><th>What it is</th><th>Raise it, and what happens</th><th>Used in</th></tr></thead><tbody>
+<tr><td class="c">Write method</td><td>Adaptive pulse, same pulse every time, open loop, or ideal.</td><td>Adaptive: 45 pulses, 1.3 µs, 2.6 nJ for the 4 × 8 default array, all 32 cells in tolerance. Same pulse: 257 pulses, 8.4 µs, 6.5 nJ and one cell out. Open loop replays a calibrated train (39 pulses, 720 ns, 2.3 nJ) but only 22 of 32 cells end in tolerance. Ideal skips programming and adds only Gaussian variation.</td><td class="u">Steps 2, 3</td></tr>
+<tr><td class="c">Fixed SET pulse (1.0 to 1.9 V)</td><td>Amplitude used by the same-pulse method only.</td><td>Too low barely crystallizes (1.0 V: 640 pulses, 16 of 32 in tolerance). The default 1.3 V takes 257 pulses. Too high is coarse and tends to overshoot, forcing RESETs (1.9 V: 470 pulses, 20 nJ, 21 of 32 in tolerance).</td><td class="u">Steps 2, 3</td></tr>
+<tr><td class="c">Verify tolerance (0.5 to 10%)</td><td>How close counts as done.</td><td>Looser is cheaper and less accurate: 76, 45 and 29 pulses and error 0.019, 0.032 and 0.050 at 0.5, 2 and 10%.</td><td class="u">Steps 2, 3</td></tr>
+<tr><td class="c">Max pulses per cell (1 to 60)</td><td>Pulse limit (SET and RESET) before the loop gives up.</td><td>Too low and cells stop before they arrive (error 0.087 with 24 of 32 in tolerance at 2). From 6 up the default example no longer notices.</td><td class="u">Steps 2, 3</td></tr>
+<tr><td class="c">Pulse width (10 to 500 ns)</td><td>Duration of each SET pulse.</td><td>Longer pulses crystallize more per pulse, so the steps get coarse and overshoot more (25 of 32 cells in tolerance at 500 ns, 358 pulses), and they cost time and energy (53 µs and 49 nJ at 500 ns, against 4.5 µs and 6.5 nJ at 10 ns, where the pulses are weak and need 365).</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Write order</td><td>A row at a time, or one cell at a time.</td><td>Changes write time only (1.3 µs against 3.8 µs for the 4 × 8 default array).</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Block erase first</td><td>Counts the cost of the RESET of the whole array.</td><td>Switching it off removes about 1.2 nJ from the default array&#x27;s write energy (1.3 nJ against 2.6 nJ), but the cells then start from old data in a real device.</td><td class="u">Steps 2, 3</td></tr>
+</tbody></table></div>
+<h3 class="gh">Efficiency panel</h3><div class="tw"><table class="ct"><thead><tr><th>Control</th><th>What it is</th><th>Raise it, and what happens</th><th>Used in</th></tr></thead><tbody>
+<tr><td class="c">Digital weight source</td><td>Where the processor fetches weights from.</td><td>SRAM costs about 1.3 pJ per weight in the model and DRAM about 160 pJ. DRAM makes the digital side far more expensive, so the crossbar wins sooner.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">MAC lanes and clock</td><td>How many multiply-adds the digital side does at once, and how fast.</td><td>More lanes and a faster clock cut the digital latency. The crossbar&#x27;s latency does not depend on them.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">PCM read pulse and ADC conversion</td><td>Time to read the array and to convert the result.</td><td>Together they set the crossbar&#x27;s latency for one product. They do not depend on array size.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Weight reuse</td><td>How many products reuse one set of written weights.</td><td>Spreads the one-time write cost over more products. A PCM write costs more than a ReRAM one (a RESET alone is about 38 pJ per cell), so reuse matters. The table shows the break-even.</td><td class="u">Step 3</td></tr>
+</tbody></table></div>
+  </section>
+
+  <section class="panel" id="faq">
+    <h2>Common questions</h2>
+<details class="q"><summary>Why store a weight as conductance and not resistance?</summary><p>Because currents on a shared wire add in terms of conductance: I = V × (G₁ + G₂ + ...). Resistances in parallel combine through reciprocals, which does not give a sum. With conductance, the wire does the accumulation for free.</p></details>
+<details class="q"><summary>Why does a weight need two cells?</summary><p>A conductance cannot be negative. One cell holds the positive part and one holds the negative part, and the read-out subtracts them. Step 2 walks through it.</p></details>
+<details class="q"><summary>Does reading a cell change the weight?</summary><p>Not at a small read voltage: the read heats the cell far less than a pulse does. It does not stop the drift, though, which runs on its own clock from the moment of the write.</p></details>
+<details class="q"><summary>Is the crossbar analog or digital?</summary><p>The array itself is analog: voltages go in, currents add, and a current comes out. The DACs and ADCs at the edges are the interface to the digital system around it.</p></details>
+<details class="q"><summary>Why can PCM only step up and not down?</summary><p>SET crystallizes a little at a time, so a series of small pulses climbs gradually. Going the other way means melting the dome, and RESET melts and re-freezes the whole cell in one go. So there is no small step down: an overshoot costs a RESET and a new climb. That is why the write loop uses gentle pulses near the target.</p></details>
+<details class="q"><summary>Why verify after each pulse?</summary><p>The same pulse shrinks the dome by a different factor in different cells. Reading back lets the controller stop each cell near its target, or RESET it if it overshot. In Step 3, switch to open loop and press Try a different cell to see the spread.</p></details>
+<details class="q"><summary>The weights were correct when I wrote them. Why do the outputs get worse later?</summary><p>Drift. The glass in each cell relaxes and its conductance falls as a power law of time, by a factor that depends on how large the dome is. The verify read happens right after the pulse, so it cannot see this. Raise Time since write in Step 3 to watch it, and try the global gain to see what a single correction can and cannot do.</p></details>
+<details class="q"><summary>If PCM is so efficient, why does not every chip use it?</summary><p>Writing is slow and costly (a RESET alone is tens of picojoules per cell), cells vary and drift, endurance is limited, large arrays suffer IR drop, and the converters take energy and area. It suits cases where the same weights are read many times, such as running a trained network. The efficiency panel in Step 3 lets you see where the advantage appears and where it does not.</p></details>
+<details class="q"><summary>Is this simulator a model of a real chip?</summary><p>No. It is a generic teaching model. The device response, the energies and the timings are illustrative values, and it has not been compared against measured hardware or a circuit simulator such as SPICE.</p></details>
+  </section>
+
+  <section class="panel" id="read">
+    <h2>Further reading</h2>
+    <p class="lead">Start with the PCM review by Le Gallo and Sebastian and the 2023 chip paper. The others are the original sources for ideas used in these pages. The device numbers in the simulator are illustrative, not taken from these papers. Check each publisher page for the final details.</p>
+    <ol class="refs">
+<li>Wong, H.-S. P., Raoux, S., Kim, S., Liang, J., Reifenberg, J. P., Rajendran, B., Asheghi, M. &amp; Goodson, K. E. Phase change memory. <i>Proceedings of the IEEE</i> 98, 2201–2227 (2010). <a href="https://ieeexplore.ieee.org/document/5609179">IEEE Xplore</a><br><span class="note">A review of the device physics, the materials, the scaling and the reliability of PCM, with a focus on memory use.</span></li>
+<li>Raoux, S. et al. Phase-change random access memory: a scalable technology. <i>IBM Journal of Research and Development</i> 52 (2008). <a href="https://ieeexplore.ieee.org/document/5388621">IEEE Xplore</a><br><span class="note">Explains the mushroom cell, the SET and RESET operations and why the technology scales to small sizes.</span></li>
+<li>Wuttig, M. &amp; Yamada, N. Phase-change materials for rewriteable data storage. <i>Nature Materials</i> 6, 824–832 (2007). <a href="https://doi.org/10.1038/nmat2009">doi:10.1038/nmat2009</a><br><span class="note">Why some alloys switch between glass and crystal so quickly, and how the same materials are used in optical discs and in memory.</span></li>
+<li>Le Gallo, M. &amp; Sebastian, A. An overview of phase-change memory device physics. <i>Journal of Physics D: Applied Physics</i> (2020). <a href="https://doi.org/10.1088/1361-6463/ab7794">doi:10.1088/1361-6463/ab7794</a><br><span class="note">A recent overview of threshold switching, crystallization, resistance drift and noise, written with in-memory computing in mind.</span></li>
+<li>Burr, G. W. et al. Experimental demonstration and tolerancing of a large-scale neural network (165,000 synapses) using phase-change memory as the synaptic weight element. <i>IEEE Transactions on Electron Devices</i> (2015). <a href="https://doi.org/10.1109/TED.2015.2439635">doi:10.1109/TED.2015.2439635</a><br><span class="note">An early experiment that stored neural-network weights in a pair of PCM cells each, and what it took to tolerate their imperfections.</span></li>
+<li>Le Gallo, M. et al. A 64-core mixed-signal in-memory compute chip based on phase-change memory for deep neural network inference. <i>Nature Electronics</i> 6, 680–693 (2023). <a href="https://doi.org/10.1038/s41928-023-01010-1">doi:10.1038/s41928-023-01010-1</a><br><span class="note">A chip that does what the crossbar simulator in Step 3 models, built with PCM weights, and the drift and noise problems it had to handle.</span></li>
+
+<li>Ielmini, D. and Wong, H.-S. P. &quot;In-memory computing with resistive switching devices.&quot; Nature Electronics 1, 333–343 (2018). <a href="https://link.springer.com/10.1038/s41928-018-0092-2" rel="noopener">Link</a><br><span class="note">A broad review of crossbar computing with resistive devices, including matrix-vector multiplication.</span></li>
+<li>Alibart, F., Gao, L., Hoskins, B. D. and Strukov, D. B. &quot;High precision tuning of state for memristive devices by adaptable variation-tolerant algorithm.&quot; Nanotechnology 23, 075201 (2012). <a href="https://arxiv.org/abs/1110.1393" rel="noopener">Link</a><br><span class="note">The write-and-verify idea of Step 2, applied to real (memristive) devices.</span></li>
+<li>Sebastian, A. et al. &quot;Memory devices and applications for in-memory computing.&quot; Nature Nanotechnology 15, 529–544 (2020).<br><span class="note">Survey of memory devices used for computing. Search the title to find the publisher page.</span></li>
+<li>Hu, M. et al. &quot;Dot-product engine for neuromorphic computing: programming 1T1M crossbar to accelerate matrix-vector multiplication.&quot; Design Automation Conference (DAC), 2016.<br><span class="note">Matrix-vector multiplication on a memristor crossbar and how it is programmed.</span></li>
+    </ol>
+  </section>
+
+  <footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>
+</div>
+<script>
+(function(){
+var q=document.getElementById('gq'),items=Array.prototype.slice.call(document.querySelectorAll('#gl .term')),c=document.getElementById('gc'),n=document.getElementById('gn');
+function f(){
+  var v=q.value.trim().toLowerCase(),shown=0;
+  items.forEach(function(t){var m=!v||t.getAttribute('data-t').indexOf(v)>-1;t.hidden=!m;if(m)shown++});
+  c.textContent=v?shown+' of '+items.length+' terms':'';
+  n.hidden=shown>0;
+}
+q.addEventListener('input',f);
+})();
+</script>
+</body>
+</html>
