@@ -100,7 +100,7 @@ dl.gl{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100
 <body>
 <div class="wrap">
   <header>
-    <p class="crumb"><span class="cap">Reference</span> &nbsp;·&nbsp; <a href="../basics/">Step 1: PCM basics</a> &nbsp;·&nbsp; <a href="../write/">Step 2: writing a weight</a> &nbsp;·&nbsp; <a href="../">Step 3: crossbar simulator</a> &nbsp;·&nbsp; <a href="../../reram/reference/">Compare: ReRAM reference</a></p>
+    <p class="crumb"><span class="cap">Reference</span> &nbsp;·&nbsp; <a href="../basics/">Step 1: PCM basics</a> &nbsp;·&nbsp; <a href="../write/">Step 2: writing a weight</a> &nbsp;·&nbsp; <a href="../crossbar/">Step 3: crossbar simulator</a> &nbsp;·&nbsp; <a href="../">PCM home</a> &nbsp;·&nbsp; <a href="../../reram/reference/">Compare: ReRAM reference</a></p>
     <h1>PCM reference</h1>
     <p>The equations, terms, symbols and settings used across the three PCM steps, in one place. Keep it open next to the simulator, or use it to look something up when a word is new. Everything about the array itself (Ohm&rsquo;s law, Kirchhoff, converters, IR drop) is the same as for ReRAM. What changes is the cell: how a pulse moves it, how a weight is written, and what happens afterwards.</p>
     <nav class="toc" aria-label="On this page">
@@ -114,7 +114,7 @@ dl.gl{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100
     <div class="path">
       <a class="card" href="../basics/"><span class="cap">Step 1</span><h3>PCM vs ReRAM</h3><p>A glass-and-crystal cell, heated by current pulses. You will SET, RESET and read one, and see how it differs from a ReRAM cell, including drift.</p></a>
       <a class="card" href="../write/"><span class="cap">Step 2</span><h3>How a weight gets written</h3><p>From a number to a conductance: choose the cell, round to a level, RESET, then climb with SET pulses and read back. An overshoot means starting again.</p></a>
-      <a class="card" href="../"><span class="cap">Step 3</span><h3>The crossbar simulator</h3><p>Put cells in a grid and multiply a vector by a matrix in one read, then age the array and watch the answers drift.</p></a>
+      <a class="card" href="../crossbar/"><span class="cap">Step 3</span><h3>The crossbar simulator</h3><p>Put cells in a grid and multiply a vector by a matrix in one read, then age the array and watch the answers drift.</p></a>
     </div>
   </section>
 
