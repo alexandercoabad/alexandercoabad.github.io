@@ -136,6 +136,42 @@ details.q p{margin:8px 0 2px}
     </div>
   </section>
 
+  <section class="panel" id="wiring">
+    <h2>How a pulse physically reaches one cell in the array</h2>
+    <p class="lead"><b>Short answer: no, a cell does not have four connections.</b> A ReRAM cell has <b>two terminals</b>, a top electrode and a bottom electrode, and SET, RESET and read all use those same two. They are not separate wires. They are the same two terminals driven differently: SET is a pulse above the switching threshold with one polarity, RESET is a pulse above it with the opposite polarity, and a read is a small voltage (0.2 V) below it. What changes between operations is what the line drivers at the edge of the array put on the lines.</p>
+    <div class="two">
+      <div class="card"><h3>Passive crossbar: 2 lines per cell</h3><p>Only two kinds of wires. A <b>word line</b> (row) touches the top electrodes of every cell in the row, and a <b>bit line</b> (column) touches the bottom electrodes of every cell in the column. Each cell sits at one crossing, so it has exactly those two connections. This is the array of Step 3.</p></div>
+      <div class="card"><h3>1T1R array: 3 lines per cell</h3><p>Each cell gets an access transistor. The <b>word line</b> now goes to the transistor gate and only picks the cell. The <b>bit line</b> (BL) goes to the top electrode and the <b>source line</b> (SL), through the transistor, to the bottom electrode. BL and SL carry the pulse and decide its polarity.</p></div>
+    </div>
+    <h3 style="margin-top:14px">One cell, two wires: the same two lines do SET, RESET and read</h3>
+    <svg id="wSch" viewBox="0 0 560 262" role="img" aria-label="Schematic of one ReRAM cell between a word line and a bit line, with the voltages for SET, RESET and read" style="max-width:720px;margin:0 auto"></svg>
+    <p class="note" style="max-width:90ch">The <b>word line</b> is the wire on the top electrode and the <b>bit line</b> is the wire on the bottom electrode. There is no third wire for SET or RESET: swapping which of the two lines is high flips the polarity across the cell. Current flows from the higher line to the lower one.</p>
+    <p class="lead" style="margin-top:12px">Try it. Pick the operation, the wiring and the cell (click a cell in the drawing, or use the menus), and watch what every line is set to.</p>
+    <div class="btns" role="group" aria-label="Operation">
+      <button class="set on" type="button" id="wOpSet" aria-pressed="true">SET</button>
+      <button class="reset" type="button" id="wOpReset" aria-pressed="false">RESET</button>
+      <button type="button" id="wOpRead" aria-pressed="false">Read</button>
+      <button type="button" id="wOpErase" aria-pressed="false">Block erase (step 4)</button>
+    </div>
+    <div class="btns" role="group" aria-label="Wiring">
+      <button class="on" type="button" id="wCtxX" aria-pressed="true">Passive crossbar (V/2 scheme)</button>
+      <button type="button" id="wCtxT" aria-pressed="false">1T1R array</button>
+    </div>
+    <div class="row" style="max-width:640px"><label for="wV">Pulse amplitude |V|</label><input type="range" id="wV" min="0.5" max="2.4" step="0.05" value="1.6"><output id="wVO">1.60 V</output></div>
+    <div class="row" style="max-width:640px"><label for="wR">Selected cell</label><select id="wR" aria-label="Row"><option value="0">row 1</option><option value="1" selected>row 2</option><option value="2">row 3</option></select><select id="wC" aria-label="Column"><option value="0">column 1</option><option value="1" selected>column 2</option><option value="2">column 3</option></select></div>
+    <div class="two">
+      <div><svg id="wSvg" viewBox="0 0 460 292" role="img" aria-label="A three by three array with the voltage on every line"></svg></div>
+      <div><p class="status" id="wText" aria-live="polite" style="min-height:11em"></p></div>
+    </div>
+    <h3 style="margin-top:10px">What every line is set to</h3>
+    <div class="tw"><table id="wTab"></table></div>
+    <details class="q"><summary>So where are the &ldquo;SET line&rdquo; and &ldquo;RESET line&rdquo;?</summary><p>There are none. In the passive crossbar the SET pulse is a positive voltage between a word line and a bit line, and the RESET pulse is the same two lines with the voltages swapped, so the cell sees a negative voltage. In the 1T1R array the roles of BL and SL swap. The driver circuits at the edge of the array decide which polarity goes where, and the cell only sees the voltage across its two electrodes.</p></details>
+    <details class="q"><summary>Is there a separate read line?</summary><p>Not in the array drawn here. A read uses the same lines at a small voltage that is below the switching threshold, and the current of the bit line (the column) is measured by a sense amplifier or converter at the end of the column. In the compute mode of Step 3, every word line is driven at once with an input voltage and each bit line adds up the currents of its whole column, so that one read gives a dot product.</p></details>
+    <details class="q"><summary>How does this relate to the G⁺ and G⁻ cells of a weight?</summary><p>The two cells of one weight sit on the same word line and in two neighbouring columns, so one weight uses one row and two bit lines. The word line carries the input voltage to both, and the converter subtracts the two column currents. Writing G⁺ and G⁻ uses the same SET and RESET wiring as above, applied to one column at a time.</p></details>
+    <details class="q"><summary>How many wires does a bigger array need?</summary><p>The wires are shared, so the count grows with the edge of the array and not with the number of cells. An R × C passive crossbar needs R + C lines (6 for the 3 × 3 above), and a 1T1R array needs R + 2C in this layout (9 for 3 × 3), because every column carries both a BL and an SL. Names and layouts vary between papers and chips; some designs run the source line along the row instead of along the column.</p></details>
+    <p class="note" style="max-width:90ch">This is a schematic of the biasing, not a circuit model. In a passive crossbar the unselected cells also let current sneak around through unselected paths, so real arrays add a selector or a transistor (the 1T1R case). The 0.8 V switching threshold is the one used on the rest of this page. The ReRAM basics page has a shorter version of this drawing in <a href="../basics/#pulses">section 2B</a>.</p>
+  </section>
+
   <section class="panel" id="check">
     <h2>Check yourself</h2>
     <details class="q"><summary>Why does one weight need two cells?</summary><p>A conductance cannot be negative, but a weight can. The positive part goes into the G⁺ cell and the negative part into the G⁻ cell, and the other cell rests at Gmin. The read-out subtracts the two currents, so Gmin cancels.</p></details>
@@ -331,7 +367,7 @@ function buildBody(){
      +'<svg id="lad" viewBox="0 0 520 96" role="img" aria-label="Conductance levels between Gmin and Gmax with the chosen level marked"></svg>'
      +'<div class="calc" id="calc3"></div><p class="note" id="n3"></p>';
   }else if(n===4){
-    h='<div class="two"><div class="card"><h3>What happens</h3><p>One strong RESET pulse (−'+P.verase.toFixed(1)+' V, '+P.tp+' ns) is applied to the cells. Each filament dissolves and the cell drops to its lowest conductance, Gmin.</p></div>'
+    h='<div class="two"><div class="card"><h3>What happens</h3><p>One strong RESET pulse (−'+P.verase.toFixed(1)+' V, '+P.tp+' ns) is applied to the cells. Each filament dissolves and the cell drops to its lowest conductance, Gmin. <a href="#wiring">See how the pulse is wired.</a></p></div>'
      +'<div class="card"><h3>Why do it first</h3><p>The old data is wiped, and every cell starts from the same known floor, so the pulses that follow only need to move upward. In this model that keeps the pulse count predictable.</p></div></div>'
      +'<svg id="erw" viewBox="0 0 520 120" role="img" aria-label="A single negative erase pulse"></svg>'
      +'<p class="status" id="s4txt"></p>';
@@ -348,7 +384,7 @@ function buildBody(){
      +'<p class="status" id="s5txt" aria-live="polite"></p>'
      +'<div class="log" id="log" role="log" aria-label="Write log"></div>'
      +'<div class="two" style="margin-top:12px"><svg id="wv" viewBox="0 0 420 222" role="img" aria-label="Voltage on the cell over time"></svg><svg id="tj" viewBox="0 0 420 222" role="img" aria-label="Conductance after each pulse against the target"></svg></div>'
-     +'<p class="note">The model is illustrative: each SET moves G a fraction of the way toward Gmax, each RESET a fraction toward Gmin, with a random factor per cell and per pulse. Pulses under '+P.vth+' V do nothing. The other cell of the pair is already at its aim (Gmin) after the erase, so it only needs one verify read.</p>';
+     +'<p class="note">The model is illustrative: each SET moves G a fraction of the way toward Gmax, each RESET a fraction toward Gmin, with a random factor per cell and per pulse. Pulses under '+P.vth+' V do nothing. The other cell of the pair is already at its aim (Gmin) after the erase, so it only needs one verify read. Which lines carry each pulse is shown in the <a href="#wiring">wiring panel</a> below.</p>';
   }else{
     h='<div class="tiles" id="tiles6"></div>'
      +'<h3 style="margin-top:6px">How close is the stored weight?</h3><div class="tw"><table id="t6"></table></div>'
@@ -534,6 +570,142 @@ function step6(){
 }
 
 buildList();run();go(1);
+})();
+</script>
+<script>
+/* wiring panel: how SET, RESET, read and block erase reach one cell */
+(function(){
+var VTH=0.8,VREAD=0.2,W={op:'set',ctx:'x',r:1,c:1,v:1.6};
+function $(id){return document.getElementById(id)}
+function f(x){return (x<-1e-9?'−':(x>1e-9?'+':''))+Math.abs(x).toFixed(2)}
+function fv(x){return Math.abs(x)<1e-9?'0 V':f(x)+' V'}
+function bias(){
+  var v=W.v,h=v/2,op=W.op,r,c,B={wl:[],bl:[],sl:[],cell:[0,1,2].map(function(){return [null,null,null]}),on:[]};
+  if(W.ctx==='x'){
+    for(r=0;r<3;r++)B.wl.push(op==='set'?(r===W.r?v:h):op==='reset'?(r===W.r?0:h):op==='read'?(r===W.r?VREAD:0):0);
+    for(c=0;c<3;c++)B.bl.push(op==='set'?(c===W.c?0:h):op==='reset'?(c===W.c?v:h):op==='read'?0:v);
+    for(r=0;r<3;r++)for(c=0;c<3;c++)B.cell[r][c]=B.wl[r]-B.bl[c];
+  }else{
+    for(r=0;r<3;r++)B.on.push(op==='erase'||r===W.r);
+    for(c=0;c<3;c++){
+      B.bl.push(op==='set'?(c===W.c?v:0):op==='read'?(c===W.c?VREAD:0):0);
+      B.sl.push(op==='reset'?(c===W.c?v:0):op==='erase'?v:0);
+    }
+    for(r=0;r<3;r++)for(c=0;c<3;c++)B.cell[r][c]=B.on[r]?B.bl[c]-B.sl[c]:null;
+  }
+  return B;
+}
+function isSel(r,c){return W.op==='erase'||(r===W.r&&c===W.c)}
+function draw(B){
+  var o='',r,c,ry=[76,142,208],cx=W.ctx==='x'?[150,240,330]:[100,230,360];
+  if(W.ctx==='x'){
+    for(r=0;r<3;r++){var hr=(W.op==='erase')||r===W.r;o+='<line x1="80" x2="372" y1="'+ry[r]+'" y2="'+ry[r]+'" stroke="var(--curr)" stroke-width="'+(hr?4:2)+'" opacity="'+(hr?1:.5)+'"/>'}
+    for(c=0;c<3;c++){var hc=(W.op==='erase')||c===W.c;o+='<line x1="'+cx[c]+'" x2="'+cx[c]+'" y1="40" y2="252" stroke="var(--volt)" stroke-width="'+(hc?4:2)+'" opacity="'+(hc?1:.5)+'"/>'}
+    for(r=0;r<3;r++)for(c=0;c<3;c++){
+      var dv=B.cell[r][c],sel=isSel(r,c),half=!sel&&(W.op==='set'||W.op==='reset')&&Math.abs(dv)>1e-9,warn=half&&Math.abs(dv)>VTH+1e-9;
+      o+='<g data-r="'+r+'" data-c="'+c+'" style="cursor:pointer"><rect x="'+(cx[c]-31)+'" y="'+(ry[r]-14)+'" width="62" height="28" rx="4" fill="var(--panel)"/><rect x="'+(cx[c]-31)+'" y="'+(ry[r]-14)+'" width="62" height="28" rx="4" fill="'+(sel?'var(--curr)':'var(--panel)')+'" fill-opacity="'+(sel?0.3:1)+'" stroke="'+(sel?'var(--curr)':(warn?'var(--err)':'var(--line)'))+'" stroke-width="'+(sel||warn?2.5:1)+'"/><text x="'+cx[c]+'" y="'+(ry[r]+4)+'" text-anchor="middle" font-size="11" '+(sel?'font-weight="600" ':'')+'fill="'+(warn?'var(--err)':'var(--ink)')+'">'+fv(dv)+'</text></g>';
+    }
+    for(r=0;r<3;r++)o+='<text x="74" y="'+(ry[r]+4)+'" text-anchor="end" font-size="11" fill="var(--curr)">'+fv(B.wl[r])+'</text>';
+    for(c=0;c<3;c++)o+='<text x="'+cx[c]+'" y="270" text-anchor="middle" font-size="11" fill="var(--volt)">'+fv(B.bl[c])+'</text>';
+    o+='<text x="6" y="22" font-size="10.5" fill="var(--curr)">word lines (rows) → top electrodes</text><text x="6" y="286" font-size="10.5" fill="var(--volt)">bit lines (columns) → bottom electrodes</text>';
+    o+='<text x="6" y="36" font-size="10" fill="var(--mute)">number in a cell: row V − column V</text>';
+  }else{
+    for(c=0;c<3;c++){
+      var hc2=(W.op==='erase')||c===W.c;
+      o+='<line x1="'+(cx[c]-18)+'" x2="'+(cx[c]-18)+'" y1="44" y2="252" stroke="var(--curr)" stroke-width="'+(hc2?3:1.5)+'" opacity="'+(hc2?1:.45)+'"/>';
+      o+='<line x1="'+(cx[c]+18)+'" x2="'+(cx[c]+18)+'" y1="44" y2="252" stroke="var(--volt)" stroke-width="'+(hc2?3:1.5)+'" opacity="'+(hc2?1:.45)+'"/>';
+      o+='<text x="'+(cx[c]-20)+'" y="36" text-anchor="end" font-size="10.5" fill="var(--curr)">BL</text><text x="'+(cx[c]+20)+'" y="36" font-size="10.5" fill="var(--volt)">SL</text>';
+      o+='<text x="'+(cx[c]-20)+'" y="268" text-anchor="end" font-size="11" fill="var(--curr)">'+fv(B.bl[c])+'</text><text x="'+(cx[c]+20)+'" y="268" font-size="11" fill="var(--volt)">'+fv(B.sl[c])+'</text>';
+    }
+    for(r=0;r<3;r++){
+      o+='<line x1="52" x2="430" y1="'+(ry[r]+24)+'" y2="'+(ry[r]+24)+'" stroke="var(--mute)" stroke-width="'+(B.on[r]?3:1.5)+'" opacity="'+(B.on[r]?1:.5)+'"/>';
+      o+='<text x="46" y="'+(ry[r]+28)+'" text-anchor="end" font-size="10.5" fill="var(--ink)">WL '+(B.on[r]?'on':'off')+'</text>';
+    }
+    for(r=0;r<3;r++)for(c=0;c<3;c++){
+      var dv2=B.cell[r][c],sel2=isSel(r,c),x=cx[c],y=ry[r],off=dv2===null;
+      o+='<g data-r="'+r+'" data-c="'+c+'" style="cursor:pointer"><rect x="'+(x-34)+'" y="'+(y-18)+'" width="68" height="40" rx="5" fill="var(--panel)"/><rect x="'+(x-34)+'" y="'+(y-18)+'" width="68" height="40" rx="5" fill="'+(sel2?'var(--curr)':'var(--panel)')+'" fill-opacity="'+(sel2?0.3:1)+'" stroke="'+(sel2?'var(--curr)':'var(--line)')+'" stroke-width="'+(sel2?2.5:1)+'"/>';
+      o+='<rect x="'+(x-30)+'" y="'+(y-10)+'" width="22" height="20" rx="2" fill="var(--bg)" stroke="var(--mute)"/><text x="'+(x-19)+'" y="'+(y+4)+'" text-anchor="middle" font-size="10" fill="var(--ink)">R</text>';
+      o+='<rect x="'+(x+8)+'" y="'+(y-10)+'" width="22" height="20" rx="2" fill="'+(off?'var(--bg)':'var(--hl)')+'" stroke="var(--mute)"/><text x="'+(x+19)+'" y="'+(y+4)+'" text-anchor="middle" font-size="10" fill="var(--ink)">T</text>';
+      o+='<line x1="'+(x-8)+'" x2="'+(x+8)+'" y1="'+y+'" y2="'+y+'" stroke="var(--mute)"/><circle cx="'+(x-18)+'" cy="'+(y-10)+'" r="2.5" fill="var(--curr)"/><circle cx="'+(x+18)+'" cy="'+(y+10)+'" r="2.5" fill="var(--volt)"/>';
+      o+='<text x="'+x+'" y="'+(y-22)+'" text-anchor="middle" font-size="10.5" '+(sel2?'font-weight="600" ':'')+'fill="'+(off?'var(--mute)':'var(--ink)')+'" paint-order="stroke" stroke="var(--panel)" stroke-width="4" stroke-linejoin="round">'+(off?'off':fv(dv2))+'</text></g>';
+    }
+    o+='<text x="6" y="16" font-size="10.5" fill="var(--ink)">R = ReRAM cell, T = access transistor (gate on the WL)</text>';
+    o+='<text x="6" y="286" font-size="10.5" fill="var(--mute)">number above a cell: its top minus bottom electrode</text>';
+  }
+  $('wSvg').innerHTML=o;
+}
+function text(B){
+  var v=W.v,h=v/2,op=W.op,R=W.r+1,C=W.c+1,t,x=W.ctx==='x',over=h>VTH+1e-9,dis=v<=VTH+1e-9;
+  if(x){
+    if(op==='set')t='<b>SET in a passive crossbar.</b> Word line '+R+' is driven to +'+v.toFixed(2)+' V and bit line '+C+' to 0 V, so the cell at their crossing is the only one with the full +'+v.toFixed(2)+' V across it (top electrode positive). Every other line sits at V/2 = '+h.toFixed(2)+' V, so the cells sharing its row or column see only +'+h.toFixed(2)+' V and all the rest see 0 V.';
+    else if(op==='reset')t='<b>RESET in a passive crossbar.</b> The same two lines, with the voltages swapped: word line '+R+' at 0 V and bit line '+C+' at +'+v.toFixed(2)+' V, so the cell sees −'+v.toFixed(2)+' V (top electrode negative). The other lines sit at V/2 = '+h.toFixed(2)+' V again.';
+    else if(op==='read')t='<b>Read in a passive crossbar.</b> Word line '+R+' is driven to a small +'+VREAD.toFixed(2)+' V, every bit line is held at 0 V by its sense amplifier, and the current of bit line '+C+' is measured: I = V × G. This is below the '+VTH+' V threshold, so nothing changes. The other cells of row '+R+' also see '+VREAD.toFixed(2)+' V, but their current goes to bit lines that are not measured here. In the compute mode of Step 3, all word lines are driven at once.';
+    else t='<b>Block erase in a passive crossbar.</b> Every word line goes to 0 V and every bit line to +'+v.toFixed(2)+' V, so every cell sees −'+v.toFixed(2)+' V at once and all are RESET together. No cell is half-selected, which is why a block erase is easy even in a plain grid.';
+    if((op==='set'||op==='reset')&&!dis)t+=over?' <span class="bad"><b>At this amplitude the half-selected cells see '+h.toFixed(2)+' V, above the '+VTH+' V threshold, so they would be disturbed (red). Lower the amplitude.</b></span>':' <span class="good">The half-selected voltage ('+h.toFixed(2)+' V) is below the '+VTH+' V threshold, so the neighbours keep their value.</span>';
+    if((op==='set'||op==='reset')&&dis)t+=' <span class="bad">At '+v.toFixed(2)+' V the selected cell itself is not above the '+VTH+' V threshold, so nothing would switch.</span>';
+  }else{
+    if(op==='set')t='<b>SET in a 1T1R array.</b> Word line '+R+' goes high, so the transistors in row '+R+' turn on. Bit line '+C+' is driven to +'+v.toFixed(2)+' V and source line '+C+' to 0 V, so the cell sees +'+v.toFixed(2)+' V. The other columns have BL = SL = 0 V, so their cells see nothing, and the other rows have their transistors off, so no current flows in the other cells of column '+C+' even though their BL and SL carry the pulse. The gate voltage also limits the SET current (the compliance), which stops the filament from running away.';
+    else if(op==='reset')t='<b>RESET in a 1T1R array.</b> Same cell selection, but BL '+C+' is at 0 V and SL '+C+' is at +'+v.toFixed(2)+' V. Current now flows the other way, so the cell sees −'+v.toFixed(2)+' V. The word line still only selects the row.';
+    else if(op==='read')t='<b>Read in a 1T1R array.</b> Word line '+R+' on, BL '+C+' at +'+VREAD.toFixed(2)+' V and SL at 0 V. The current of column '+C+' is measured. It is below the '+VTH+' V threshold, so the filament is not disturbed.';
+    else t='<b>Block erase in a 1T1R array.</b> Every word line is high, every bit line is at 0 V and every source line is at +'+v.toFixed(2)+' V, so every cell sees −'+v.toFixed(2)+' V and all are RESET at once.';
+    t+=' There is no half-select problem here: the transistor of an unselected cell is off, so that cell sees no voltage.';
+    if((op==='set'||op==='reset')&&dis)t+=' <span class="bad">At '+v.toFixed(2)+' V the selected cell is not above the '+VTH+' V threshold, so nothing would switch.</span>';
+  }
+  return t;
+}
+function table(){
+  var v=W.v,h=v/2,op=W.op,x=W.ctx==='x',rows=[],th='<thead><tr><th>Line</th><th>Touches</th><th class="num">Selected</th><th class="num">All others</th></tr></thead><tbody>';
+  if(x){
+    var ws=op==='set'?v:op==='reset'?0:op==='read'?VREAD:0,wo=op==='set'||op==='reset'?h:0,bs=op==='set'?0:op==='reset'?v:op==='read'?0:v,bo=op==='set'||op==='reset'?h:op==='read'?0:v;
+    if(op==='erase'){ws=0;wo=0}
+    rows.push(['Word line (row)','top electrode of every cell in the row',fv(ws),fv(wo)]);
+    rows.push(['Bit line (column)','bottom electrode of every cell in the column',fv(bs),fv(bo)]);
+  }else{
+    rows.push(['Word line (row)','gate of every transistor in the row','on',op==='erase'?'on':'off']);
+    rows.push(['Bit line (column)','top electrode of every cell in the column',fv(op==='set'?v:op==='read'?VREAD:0),fv(0)]);
+    rows.push(['Source line (column)','bottom electrode, through the transistor',fv(op==='reset'?v:op==='erase'?v:0),fv(op==='erase'?v:0)]);
+  }
+  return th+rows.map(function(q){return '<tr><td>'+q[0]+'</td><td>'+q[1]+'</td><td class="num">'+q[2]+'</td><td class="num">'+q[3]+'</td></tr>'}).join('')+'</tbody>';
+}
+function sch(){
+  var v=W.v,o='',cols=[{k:'set',x:100,t:'SET',c:'var(--curr)',wl:'+'+v.toFixed(2)+' V',bl:'0 V',s:'cell sees +'+v.toFixed(2)+' V',d:1,w:3},{k:'reset',x:280,t:'RESET',c:'var(--err)',wl:'0 V',bl:'+'+v.toFixed(2)+' V',s:'cell sees −'+v.toFixed(2)+' V',d:-1,w:3},{k:'read',x:460,t:'Read',c:'var(--mute)',wl:'+'+VREAD.toFixed(2)+' V',bl:'0 V (sense)',s:'cell sees +'+VREAD.toFixed(2)+' V',d:1,w:1.5}];
+  function arrow(x,y1,y2,col,w){var d=y2>y1?1:-1;return '<line x1="'+x+'" y1="'+y1+'" x2="'+x+'" y2="'+(y2-d*7)+'" stroke="'+col+'" stroke-width="'+w+'"/><polygon points="'+x+','+y2+' '+(x-5)+','+(y2-d*9)+' '+(x+5)+','+(y2-d*9)+'" fill="'+col+'"/>'}
+  cols.forEach(function(q){
+    var x=q.x,on=W.op===q.k||(W.op==='erase'&&q.k==='reset');
+    if(on)o+='<rect x="'+(x-84)+'" y="6" width="168" height="250" rx="8" fill="var(--hl)" stroke="'+q.c+'" stroke-width="1.5"/>';
+    o+='<text x="'+x+'" y="26" text-anchor="middle" font-size="14" font-weight="600" fill="'+q.c+'">'+q.t+'</text>';
+    o+='<text x="'+(x-8)+'" y="48" text-anchor="end" font-size="10.5" fill="var(--curr)">word line</text><text x="'+(x+8)+'" y="48" font-size="11" font-weight="500" fill="var(--curr)">'+q.wl+'</text>';
+    o+='<line x1="'+x+'" y1="56" x2="'+x+'" y2="86" stroke="var(--curr)" stroke-width="3"/>';
+    o+='<rect x="'+(x-16)+'" y="86" width="32" height="64" rx="3" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.8"/>';
+    o+='<polyline points="'+x+',86 '+x+',94 '+(x-9)+',100 '+(x+9)+',109 '+(x-9)+',118 '+(x+9)+',127 '+x+',133 '+x+',150" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linejoin="round"/>';
+    o+='<text x="'+(x+24)+'" y="122" font-size="10.5" fill="var(--ink)">ReRAM</text>';
+    o+='<line x1="'+x+'" y1="150" x2="'+x+'" y2="184" stroke="var(--volt)" stroke-width="3"/>';
+    o+='<text x="'+(x-8)+'" y="200" text-anchor="end" font-size="10.5" fill="var(--volt)">bit line</text><text x="'+(x+8)+'" y="200" font-size="11" font-weight="500" fill="var(--volt)">'+q.bl+'</text>';
+    o+=arrow(x-26,60,84,q.c,q.w).replace('x1="'+(x-26)+'" y1="60"','x1="'+(x-26)+'" y1="60"');
+    if(q.d<0)o=o.replace(arrow(x-26,60,84,q.c,q.w),arrow(x-26,84,60,q.c,q.w));
+    o+='<text x="'+x+'" y="226" text-anchor="middle" font-size="11" fill="var(--ink)">'+q.s+'</text>';
+    o+='<text x="'+x+'" y="242" text-anchor="middle" font-size="10" fill="var(--mute)">'+(q.k==='read'?'small current, no switching':'current flows '+(q.d>0?'down':'up'))+'</text>';
+  });
+  $('wSch').innerHTML=o;
+}
+function render(){
+  var B=bias();
+  sch();
+  draw(B);$('wText').innerHTML=text(B);$('wTab').innerHTML=table();
+  $('wVO').textContent=(W.op==='read'?VREAD:W.v).toFixed(2)+' V';
+  $('wV').disabled=W.op==='read';
+  [['wOpSet','set'],['wOpReset','reset'],['wOpRead','read'],['wOpErase','erase']].forEach(function(q){var b=$(q[0]);b.classList.toggle('on',W.op===q[1]);b.setAttribute('aria-pressed',W.op===q[1]?'true':'false')});
+  [['wCtxX','x'],['wCtxT','t']].forEach(function(q){var b=$(q[0]);b.classList.toggle('on',W.ctx===q[1]);b.setAttribute('aria-pressed',W.ctx===q[1]?'true':'false')});
+  $('wR').value=W.r;$('wC').value=W.c;
+}
+[['wOpSet','set'],['wOpReset','reset'],['wOpRead','read'],['wOpErase','erase']].forEach(function(q){$(q[0]).addEventListener('click',function(){W.op=q[1];render()})});
+$('wCtxX').addEventListener('click',function(){W.ctx='x';render()});
+$('wCtxT').addEventListener('click',function(){W.ctx='t';render()});
+$('wV').addEventListener('input',function(e){W.v=parseFloat(e.target.value);render()});
+$('wR').addEventListener('change',function(e){W.r=parseInt(e.target.value,10);render()});
+$('wC').addEventListener('change',function(e){W.c=parseInt(e.target.value,10);render()});
+$('wSvg').addEventListener('click',function(e){var g=e.target.closest('[data-r]');if(g){W.r=+g.getAttribute('data-r');W.c=+g.getAttribute('data-c');render()}});
+render();
 })();
 </script>
 </body>
