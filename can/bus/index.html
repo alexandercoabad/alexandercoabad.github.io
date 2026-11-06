@@ -153,6 +153,59 @@ details.q p{margin:8px 0 2px}
 .res .bad{font-weight:600} .res .good{font-weight:600}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .btns.tight{margin:4px 0}
+
+/* ---- teaching aids (shared by the CAN step pages) ---- */
+.gt{color:inherit;text-decoration:underline dotted var(--mute);text-underline-offset:3px;text-decoration-thickness:1.5px;cursor:help}
+.gt:hover,.gt:focus-visible{text-decoration-style:solid;text-decoration-color:var(--volt);color:var(--volt)}
+#gtip{position:fixed;z-index:60;max-width:300px;background:var(--ink);color:var(--bg);border-radius:6px;padding:9px 11px;font-size:12px;line-height:1.45;box-shadow:0 8px 22px rgba(0,0,0,.28);pointer-events:none;font-weight:400;text-transform:none;letter-spacing:0;text-align:left}
+#gtip b{display:block;margin-bottom:3px;font-weight:600}
+#gtip span{display:block}
+#gtip em{display:block;opacity:.7;font-style:normal;margin-top:5px;font-size:11px}
+.obj{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--volt);border-radius:8px;padding:12px 16px;max-width:78ch}
+.obj h2{font-family:var(--f-body);font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--mute);font-weight:600;margin:0 0 4px}
+.obj ul{margin:4px 0 0;padding-left:20px}
+.obj li{margin:3px 0;font-size:13.5px}
+.sumlist{margin:4px 0 0;padding-left:22px;max-width:78ch}
+.sumlist li{margin:6px 0}
+.tag{display:inline-block;font-family:var(--f-body);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:0 7px;border:1.5px solid currentColor;vertical-align:1px;white-space:nowrap;line-height:1.55}
+.tag.can{color:var(--volt)}
+.tag.app{color:var(--curr)}
+.hand{border:1.5px dashed var(--curr);border-radius:8px;padding:12px 14px;background:var(--bg);margin-top:12px}
+.hand h3{font-family:var(--f-display);font-size:15px;margin:0 0 4px}
+.hand .row label{flex:0 0 auto}
+.hand input[type=number]{font:inherit;width:9ch;padding:5px 8px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--ink);font-family:var(--f-mono)}
+.hand .row{flex-wrap:wrap;gap:8px}
+.hand .verdict{font-size:14px;margin:6px 0 0}
+details.fold{border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:0}
+details.fold>summary{cursor:pointer;font-weight:600;padding:10px 14px;list-style:none;display:flex;align-items:center;gap:8px}
+details.fold>summary::before{content:"\25B8";color:var(--mute);display:inline-block;transition:transform .15s}
+details.fold[open]>summary::before{transform:rotate(90deg)}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>.foldbody{padding:0 14px 14px}
+@media (prefers-reduced-motion:reduce){details.fold>summary::before{transition:none}}
+/* ---- guided experiments, advanced controls ---- */
+.exps{display:flex;flex-direction:column;gap:8px;margin:6px 0 4px}
+details.exp{border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:0}
+details.exp>summary{cursor:pointer;font-weight:600;padding:9px 12px;font-size:14px}
+details.exp .expbody{padding:0 12px 12px}
+.pred{margin:0 0 8px;max-width:84ch}
+.predlab{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;color:var(--curr);font-weight:600;text-transform:uppercase;margin-right:6px}
+details.see{border:1px solid var(--line);border-radius:6px;background:var(--panel);margin-top:6px}
+details.see>summary{cursor:pointer;font-weight:600;padding:8px 12px;font-size:13px}
+details.see .seebody{padding:0 12px 10px;font-size:13px;max-width:90ch}
+details.see .seebody p{margin:6px 0}
+.live{font-family:var(--f-mono);font-size:12px;line-height:1.6;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;overflow-wrap:anywhere}
+.expbanner{margin:0 0 8px;padding:8px 12px;border:1px solid var(--curr);background:var(--hl);border-radius:6px;font-size:13px}
+.advlist{display:flex;flex-direction:column;gap:2px;max-width:760px}
+.advrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:5px 0;border-bottom:1px solid var(--line)}
+.advrow:last-child{border-bottom:0}
+.advrow label{flex:0 0 190px;font-size:13px}
+.advrow input[type=range]{flex:1 1 140px;min-width:120px;accent-color:var(--volt)}
+.advrow select{flex:1 1 200px;min-width:0}
+.advrow output{flex:0 0 64px;text-align:right;font-family:var(--f-mono);font-size:12px}
+.advrow .tag{margin-left:auto}
+.keyline{font-size:12.5px;color:var(--mute);margin:6px 0 8px;max-width:84ch}
+@media (max-width:600px){.advrow label{flex-basis:100%}.advrow .tag{margin-left:0}}
 </style>
 </head>
 <body>
@@ -161,45 +214,77 @@ details.q p{margin:8px 0 2px}
     <p class="crumb"><span class="cap">Step 3 of 3</span> &nbsp;·&nbsp; <a href="../basics/">Step 1: CAN bus vs separate wires</a> &nbsp;·&nbsp; <a href="../frame/">&larr; Step 2: how does a message win the bus? (read this first)</a> &nbsp;·&nbsp; <a href="../">CAN home</a> &nbsp;·&nbsp; <a href="../reference/">Reference</a></p>
     <h1>CAN bus simulator: six sensors and a dashboard</h1>
     <p>Six sensor nodes measure a vehicle: wheel speed, engine speed, throttle, steering angle, coolant temperature and fuel level. Each one samples its sensor on a timer, packs the reading into a CAN frame and sends it over the simulated bus. A dashboard node listens, decodes every frame it receives and shows the latest value of each sensor.</p>
-    <p>A CAN frame carries no &ldquo;this is fresh&rdquo; flag. If frames stop arriving, the dashboard simply keeps the last number, so the only way to notice is to check <b>how old</b> that number is. Overload the bus or fill it with noise and you can watch the readings go stale while the real vehicle keeps moving.</p>
-    <p class="path"><b>Path through this page:</b> 1) Meet the sensors and what each frame looks like. 2) Set the bus and pick when trouble starts. 3) Press Play and watch the dashboard, the chart of true against displayed values, the bus timeline and the frame log. 4) Read the whole-run table to see who lost samples and by how much. 5) Check yourself.</p>
+    <p>A CAN frame carries no &ldquo;this is fresh&rdquo; flag <span class="tag can">CAN rule</span>. If frames stop arriving, the dashboard simply keeps the last number, so the only way to notice is to check <b>how old</b> that number is. Deciding what counts as too old is up to the dashboard <span class="tag app">dashboard&rsquo;s choice</span>. Overload the bus or fill it with noise and you can watch the readings go <a class="gt" data-gt="STALE" href="../reference/#g-stale">stale</a> while the real vehicle keeps moving.</p>
+    <aside class="obj" aria-label="Learning objectives">
+      <h2>After this page you can</h2>
+      <ul>
+        <li>predict how bus load, priority and noise change which readings arrive late, go stale or are lost, and check the prediction against a run;</li>
+        <li>work out a bus load by hand and compare it with the simulator;</li>
+        <li>tell apart what CAN itself does (arbitration, retransmission, error counters) from what this dashboard decided (stale limit, one buffer per sensor, restart time).</li>
+      </ul>
+    </aside>
+    <p class="path"><b>Path through this page:</b> 1) Meet the sensors and their frames. 2) Pick a guided experiment, predict, then run it. 3) Watch the dashboard, the chart and the bus timeline. 4) Read the whole-run table. 5) Check yourself.</p>
+    <p class="keyline"><b>Two kinds of rule are marked on this page.</b> <span class="tag can">CAN rule</span> is how every CAN bus behaves, whatever is connected. <span class="tag app">dashboard&rsquo;s choice</span> is a decision made by this particular application; another design could choose differently.</p>
   </header>
 
   <section class="panel" id="sensors">
     <h2>1. The sensors and their frames</h2>
     <p class="lead">Every sensor sends one message with its own identifier. The value is scaled to an integer (<span class="mono">raw = (value &minus; offset) / scale</span>), rounded, and sent least-significant byte first, so the frame is only as precise as its scale step. A lower identifier means a higher priority. You can change how often each sensor sends.</p>
     <div class="tw"><table class="cmp sens"><thead><tr><th>Sensor</th><th>CAN ID</th><th>Range</th><th>Encoding</th><th>Data</th><th>Sends every</th></tr></thead><tbody id="sensTbody"></tbody></table></div>
-    <p class="note">Identifiers, scales and ranges are illustrative, and each sensor has its own node so that one node going bus-off hides one sensor. In a real vehicle several of these would share a controller, and they often sit on different buses behind a gateway. The demo drains the fuel tank far faster than a real one so that you can see it move.</p>
+    <p class="note">The identifiers, scales and ranges are illustrative and chosen by the application <span class="tag app">dashboard&rsquo;s choice</span>, while the frame layout, with its <a class="gt" data-gt="DLC" href="../reference/#g-dlc">data length (DLC)</a>, is fixed by CAN <span class="tag can">CAN rule</span>. Each sensor has its own node so that one node going bus-off hides one sensor. In a real vehicle several of these would share a controller, and they often sit on different buses behind a gateway. The demo drains the fuel tank far faster than a real one so that you can see it move.</p>
   </section>
 
   <section class="panel" id="bus">
     <h2>2. The bus and the trouble</h2>
-    <p class="lead">The run lasts 16 seconds and starts healthy. At the moment you choose, trouble begins: other ECUs start flooding the bus, noise starts corrupting frames, or both, and after a while it stops again. Try a preset, then change the sliders.</p>
-    <div class="preset" id="presets" role="group" aria-label="Presets"></div>
+    <p class="lead">The run lasts 16 seconds and starts healthy. From 4 s to 10 s trouble begins: other ECUs flood the bus, noise corrupts frames, or both. Start with a guided experiment, then change the controls yourself.</p>
+    <h3 class="sub" style="margin:10px 0 2px">Guided experiments: start here</h3>
+    <p class="note" style="margin:0 0 8px;max-width:90ch">Each one asks you to predict what will happen, sets up the bus, and then shows what the simulator does. Press &ldquo;Run this experiment&rdquo;, watch the dashboard and then read section 4.</p>
+    <div class="exps" id="exps"></div>
+
+    <details class="fold" id="hlFold" style="margin-top:12px">
+      <summary>Calculate the bus load by hand, then check it</summary>
+      <div class="foldbody">
+        <p class="note" style="margin:0 0 6px;max-width:84ch">The six sensors alone, at the bit rate and periods set on this page (<b id="hlSet"></b>). Bus load is bits sent per second divided by the bit rate. A standard frame with n data bytes is 8n + 47 bits, counting the 3-bit gap and leaving out stuff bits. Work it out, type the answer in percent and press Check.</p>
+        <div class="row"><label for="hlIn" style="flex:0 0 auto">Bus load (%)</label><input type="number" id="hlIn" min="0" step="0.1" inputmode="decimal" style="font:inherit;width:9ch;padding:5px 8px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--ink);font-family:var(--f-mono)"><button type="button" class="set" id="hlGo">Check</button><button type="button" id="hlShow">Show the working</button></div>
+        <p class="verdict" id="hlRes" aria-live="polite" style="font-size:14px"></p>
+        <div class="calc" id="hlWork" hidden style="white-space:pre-wrap"></div>
+      </div>
+    </details>
+
+    <h3 class="sub" style="margin:16px 0 4px">Or set up the bus yourself</h3>
     <div class="ctlgrid">
       <div>
         <div class="row"><label for="cRate">Bit rate</label><select id="cRate"><option value="125000">125 kbit/s</option><option value="250000">250 kbit/s</option><option value="500000" selected>500 kbit/s</option><option value="1000000">1 Mbit/s</option></select></div>
-        <div class="row"><label for="cStuff">Bit stuffing</label><select id="cStuff"><option value="random" selected>Real data (computed)</option><option value="none">None (best case)</option><option value="worst">Worst case</option></select></div>
-        <div class="row"><label for="cSync">Sampling</label><select id="cSync"><option value="0" selected>Spread out (a few ms apart)</option><option value="1">All on the same tick</option></select></div>
       </div>
       <div>
         <div class="row"><label for="cExtra">Extra traffic</label><input id="cExtra" type="range" min="0" max="150" step="5" value="0"><output id="oExtra"></output></div>
-        <div class="row"><label for="cPrio">Extra traffic priority</label><select id="cPrio"></select></div>
-        <div class="row"><label for="cNoise">Noise (frames hit)</label><input id="cNoise" type="range" min="0" max="50" step="1" value="0"><output id="oNoise"></output></div>
-        <div class="row"><label for="cRest">Restart after bus-off</label><select id="cRest"><option value="0">Minimum (128 &times; 11 bit times)</option><option value="100" selected>After 100 ms</option><option value="500">After 500 ms</option></select></div>
       </div>
       <div>
-        <div class="row"><label for="cAt">Trouble starts at</label><input id="cAt" type="range" min="1" max="10" step="0.5" value="4"><output id="oAt"></output></div>
-        <div class="row"><label for="cLen">Trouble lasts</label><input id="cLen" type="range" min="1" max="12" step="0.5" value="6"><output id="oLen"></output></div>
-        <div class="row"><label for="cK">Stale after</label><select id="cK"><option value="2">2 missed periods</option><option value="3" selected>3 missed periods</option><option value="5">5 missed periods</option></select></div>
+        <div class="row"><label for="cNoise">Noise (frames hit)</label><input id="cNoise" type="range" min="0" max="50" step="1" value="0"><output id="oNoise"></output></div>
       </div>
     </div>
+    <details class="fold" id="adv" style="margin-top:10px">
+      <summary>Advanced settings <span class="tag app" id="advN" hidden></span></summary>
+      <div class="foldbody">
+        <div class="advlist">
+          <div class="advrow"><label for="cPrio">Extra traffic priority</label><select id="cPrio"></select><span class="tag can">CAN rule: lower ID wins</span></div>
+          <div class="advrow"><label for="cStuff">Bit stuffing</label><select id="cStuff"><option value="random" selected>Real data (computed)</option><option value="none">None (best case)</option><option value="worst">Worst case</option></select><span class="tag can">CAN rule</span></div>
+          <div class="advrow"><label for="cSync">Sampling</label><select id="cSync"><option value="0" selected>Spread out (a few ms apart)</option><option value="1">All on the same tick</option></select><span class="tag app">dashboard&rsquo;s choice</span></div>
+          <div class="advrow"><label for="cAt">Trouble starts at</label><input id="cAt" type="range" min="1" max="10" step="0.5" value="4"><output id="oAt"></output></div>
+          <div class="advrow"><label for="cLen">Trouble lasts</label><input id="cLen" type="range" min="1" max="12" step="0.5" value="6"><output id="oLen"></output></div>
+          <div class="advrow"><label for="cRest">Restart after bus-off</label><select id="cRest"><option value="0">Minimum (128 &times; 11 bit times)</option><option value="100" selected>After 100 ms</option><option value="500">After 500 ms</option></select><span class="tag app">dashboard&rsquo;s choice (CAN sets the minimum)</span></div>
+          <div class="advrow"><label for="cK">Stale after</label><select id="cK"><option value="2">2 missed periods</option><option value="3" selected>3 missed periods</option><option value="5">5 missed periods</option></select><span class="tag app">dashboard&rsquo;s choice</span></div>
+        </div>
+        <div class="btns tight" style="margin-top:8px"><button type="button" id="bSeed">Re-roll the noise</button></div>
+      </div>
+    </details>
     <p class="note" id="busNote"></p>
-    <div class="btns tight"><button type="button" id="bSeed">Re-roll the noise</button></div>
+    <div class="btns tight"><button type="button" id="bReset">Back to a healthy bus</button></div>
   </section>
 
   <section class="panel" id="dashPanel">
     <h2>3. The dashboard</h2>
+    <p class="expbanner" id="expBanner" hidden></p>
     <p class="lead" id="dashLead">Press Play. Each tile shows what the dashboard node currently believes, how long ago the last frame for that sensor arrived, and what the sensor is really reading right now.</p>
     <div class="tiles" id="topTiles"></div>
     <div class="dash" id="dash"></div>
@@ -214,8 +299,10 @@ details.q p{margin:8px 0 2px}
     <canvas id="cvBus" class="cv" role="img" aria-label="Timeline of frames on the bus, one lane per message"></canvas>
     <div class="row" style="margin-top:6px"><label for="cBusWin">Timeline window</label><select id="cBusWin"><option value="2000">2 ms</option><option value="10000" selected>10 ms</option><option value="40000">40 ms</option><option value="200000">200 ms</option></select></div>
 
-    <h2 class="sub" style="margin-top:14px">Frame log</h2>
-    <div class="flog" id="flog" role="log" aria-label="Most recent frames on the bus"></div>
+    <details class="fold" style="margin-top:14px">
+      <summary>Frame log (every frame, with its decoded value)</summary>
+      <div class="foldbody"><div class="flog" id="flog" role="log" aria-label="Most recent frames on the bus"></div></div>
+    </details>
 
     <p class="vh" id="srSum" aria-live="polite"></p>
   </section>
@@ -235,13 +322,16 @@ details.q p{margin:8px 0 2px}
     <h2>4. What happened over the whole run</h2>
     <p class="lead">Every sensor is compared with its own period. <b>Samples taken</b> is how many readings the sensor sampled, and <b>Lost</b> counts samples that were replaced in the transmit buffer by a newer one before the bus took them. <b>Stale</b> is the share of the run in which the dashboard&rsquo;s reading was older than the stale limit. <b>Worst error</b> is the largest gap between the true signal and the displayed value, checked every millisecond, as a percentage of that sensor&rsquo;s chart span.</p>
     <div class="tiles" id="resTiles"></div>
-    <div class="tw"><table class="cmp res"><thead><tr><th>Sensor</th><th>Samples taken</th><th>Lost</th><th>Retries</th><th>Mean delay</th><th>Max delay</th><th>Longest silence</th><th>Stale</th><th>Worst error</th></tr></thead><tbody id="resBody"></tbody></table></div>
+    <div class="tw"><table class="cmp res"><thead><tr><th>Sensor</th><th>Samples taken</th><th>Lost <span class="tag app">dashboard</span></th><th>Retries <span class="tag can">CAN</span></th><th>Mean delay</th><th>Max delay</th><th>Longest silence</th><th>Stale <span class="tag app">dashboard</span></th><th>Worst error</th></tr></thead><tbody id="resBody"></tbody></table></div>
     <p class="note" id="resNote"></p>
+    <p class="keyline"><span class="tag can">CAN</span> follows from the protocol: a damaged frame is sent again, and the delays come from arbitration. <span class="tag app">dashboard</span> follows from this application&rsquo;s own choices: <b>Lost</b> exists because each sensor has one transmit buffer, and <b>Stale</b> depends on the stale limit.</p>
     <h2 class="sub" style="margin-top:12px">Calculated worst-case delay</h2>
     <p class="note" style="margin:0 0 6px">The same response-time analysis as in Step 2, applied to this message set with the extra traffic present and no noise. It is a bound on how long a sample can wait plus its own transmission; the run above never has to hit it.</p>
     <div class="tw"><table class="cmp res"><thead><tr><th>Sensor</th><th>Period</th><th>Worst-case bound</th><th>Observed max delay</th><th>Verdict</th></tr></thead><tbody id="rtaBody"></tbody></table></div>
-    <h2 class="sub" style="margin-top:12px">Node health</h2>
-    <div class="tw"><table class="cmp res"><thead><tr><th>Node</th><th>Frames sent</th><th>Error frames</th><th>Highest error counter</th><th>Times bus-off</th></tr></thead><tbody id="nodeBody"></tbody></table></div>
+    <details class="fold" style="margin-top:12px">
+      <summary>Node health: error counters and bus-off</summary>
+      <div class="foldbody"><div class="tw"><table class="cmp res"><thead><tr><th>Node</th><th>Frames sent</th><th>Error frames</th><th>Highest error counter (<a class="gt" data-gt="TEC" href="../reference/#g-tec">TEC</a>)</th><th>Times <a class="gt" data-gt="BUSOFF" href="../reference/#g-bus-off">bus-off</a></th></tr></thead><tbody id="nodeBody"></tbody></table></div></div>
+    </details>
   </section>
 
   <section class="panel" id="check">
@@ -252,7 +342,16 @@ details.q p{margin:8px 0 2px}
     <details class="q"><summary>Slow sensors seem to survive bad conditions better. Is that luck?</summary><p>No. Coolant temperature and fuel level change slowly, so an old value is still close to the truth, and the worst-error column stays small even when the silence is long. Wheel speed and steering angle change quickly, so the same silence leaves the dashboard far from the truth. How stale is too stale depends on how fast the quantity moves, which is why the stale limit here is a multiple of each sensor&rsquo;s own period and not a fixed time.</p></details>
     <details class="q"><summary>Why does 5% noise barely matter but 30% empties the dashboard?</summary><p>Each noise hit destroys a frame, which is sent again, and raises the sender&rsquo;s transmit error counter by 8; every good frame lowers it by 1. At 5% the counter drifts down and the node recovers between hits, so you only see extra delay. Once more than about one frame in nine is hit, the counter climbs, the node goes error-passive at 128 and bus-off above 255, and it stays silent until it restarts. The bus only requires a minimum recovery sequence of 128 &times; 11 bit times (about 3 ms at 500 kbit/s), and when a node actually restarts is usually left to the controller software, so the setting &ldquo;Restart after bus-off&rdquo; lets you compare the minimum with longer delays. Step 2 shows the counters moving one frame at a time.</p></details>
     <details class="q"><summary>Bus load is under 100% and still readings arrive late. How?</summary><p>Load is an average, and delay is caused by what is on the bus at the moment a sample becomes ready. If several sensors sample on the same tick they queue behind one another, and a frame in progress or a retransmission pushes everything back. Switch Sampling to &ldquo;All on the same tick&rdquo; and compare the maximum delay of the lowest-priority sensor.</p></details>
-    <details class="q"><summary>A sample was replaced in the transmit buffer and never sent. Has the dashboard lost information?</summary><p>Yes, one sample, but this is deliberate. Each sensor here has a single transmit buffer, so when a new reading is ready the unsent old one is dropped. If instead every sample waited in a queue, an overloaded bus would deliver old readings in order and ever later; for a sensor you almost always want the newest value. The Lost column counts these drops.</p></details>
+    <details class="q"><summary>A sample was replaced in the transmit buffer and never sent. Has the dashboard lost information?</summary><p>Yes, one sample, but this is deliberate, and it is the application&rsquo;s choice, not a CAN rule <span class="tag app">dashboard&rsquo;s choice</span>. Each sensor here has a single transmit buffer, so when a new reading is ready the unsent old one is dropped. If instead every sample waited in a queue, an overloaded bus would deliver old readings in order and ever later; for a sensor you almost always want the newest value. The Lost column counts these drops.</p></details>
+  </section>
+
+  <section class="panel" id="summary">
+    <h2>In three lines</h2>
+    <ol class="sumlist">
+      <li>CAN gives every message a priority and sends damaged frames again, but it has <b>no freshness flag</b>: when frames stop arriving, the receiver keeps the last value unless the application checks its age.</li>
+      <li>Who suffers depends on <b>priority and load</b>, not on how important the sensor is: a full bus starves the lowest priorities first, a babbling high-priority node starves everyone, and a flood at the lowest priority can leave every sensor untouched.</li>
+      <li><b>Noise</b> is tolerated until more than about one frame in nine is hit; then a node reaches bus-off and goes silent. What the dashboard shows meanwhile, and when it restarts, is its own choice.</li>
+    </ol>
   </section>
 
   <section class="panel" id="reading">
@@ -409,6 +508,73 @@ function simulate(cfg){
 return {bits:bits,crc15:crc15,crc15trace:crc15trace,stuff:stuff,destuff:destuff,frame:frame,wcBits:wcBits,plainBits:plainBits,arbKey:arbKey,maxLen:maxLen,TPROP:TPROP,rng:rng,sensorRaw:sensorRaw,packSample:packSample,unpackSample:unpackSample,lastRx:lastRx,rta:rta,simulate:simulate}
 })();
 
+/* ===== Teaching aids, shared by the CAN step pages (not part of the CAN core): hover definitions taken from the reference page glossary. ===== */
+var GLOSS={
+ DLC:["DLC (data length code)", "Four bits that say how many data bytes follow. Values 9 to 15 also mean 8 bytes in classical CAN.", "dlc"],
+ RTR:["RTR and SRR", "RTR (remote transmission request) is dominant in a data frame and recessive in a remote frame. SRR (substitute remote request) takes its place in an extended frame and is always recessive.", "rtr-and-srr"],
+ SRR:["RTR and SRR", "RTR (remote transmission request) is dominant in a data frame and recessive in a remote frame. SRR (substitute remote request) takes its place in an extended frame and is always recessive.", "rtr-and-srr"],
+ TEC:["TEC (transmit error counter)", "The counter a node keeps of its own transmit errors: plus 8 for an error, minus 1 for a good frame. It sets the error-active, error-passive and bus-off states.", "tec"],
+ SOF:["SOF (start of frame)", "The first bit of a frame, always dominant. It gives the other nodes an edge to synchronise on.", "sof"],
+ CRC:["CRC (cyclic redundancy check)", "A 15-bit remainder of the frame bits divided by a fixed polynomial. The receiver repeats the calculation and signals an error if the results differ.", "crc"],
+ ACK:["ACK slot and ACK delimiter", "Two bits after the CRC. The transmitter sends the ACK slot recessive, and any receiver that got the frame without detecting an error overwrites it with a dominant bit. The delimiter that follows is always recessive.", "ack-slot-and-ack-delimiter"],
+ EOF:["EOF (end of frame)", "Seven recessive bits that finish a frame. Together with the three-bit gap (IFS) it makes the 13-bit tail that is not stuffed.", "eof"],
+ IFS:["IFS (interframe space)", "Three recessive bits between frames. The simulator counts them as part of a frame’s length.", "ifs"],
+ WIREDAND:["Wired AND", "A bus whose level is the AND of all the bits driven onto it: 0 if any node drives 0.", "wired-and"],
+ DOMINANT:["Dominant", "The state a node drives actively, logic 0. If any node drives dominant the bus is dominant.", "dominant"],
+ RECESSIVE:["Recessive", "The state of the bus when no node drives it, logic 1.", "recessive"],
+ TERMINATION:["Termination", "A 120 Ω resistor at each end of the bus. It matches the cable so that edges do not reflect. Two in parallel read about 60 Ω.", "termination"],
+ STUFF:["Bit stuffing", "After five equal bits the sender inserts one of the opposite value, and the receiver removes it. It guarantees edges for synchronisation. The frame length therefore depends on the data.", "bit-stuffing"],
+ BUSOFF:["Bus-off", "The state of a node whose transmit error counter has passed 255. It stops taking part until it has seen a recovery sequence of 128 times 11 recessive bits, and the software chooses when to try.", "bus-off"],
+ ERRPASSIVE:["Error-active and error-passive", "The two states below bus-off. An error-active node signals errors with six dominant bits. A node with a transmit counter of 128 or more is error-passive: its error flag is recessive and it must wait an extra 8 bit times before it sends again.", "error-active-and-error-passive"],
+ MAILBOX:["Mailbox (transmit buffer)", "The place where a controller holds a frame to be sent. In Step 3 each sensor has one, so a new sample replaces an unsent older one, which is counted as lost.", "mailbox"],
+ STALE:["Stale", "A value that is older than the allowed limit, here more than a chosen number of the sensor’s own periods. CAN gives no warning, so the receiver has to check the age.", "stale"],
+ ARB:["Arbitration", "The way nodes decide who sends when several start at once. They send the identifier bit by bit, read the bus, and drop out when they see a dominant bit while sending a recessive one.", "arbitration"],
+ ARBFIELD:["Arbitration field", "The identifier plus the RTR bit (or the SRR, IDE and RTR bits of an extended frame). Arbitration compares it from the first bit.", "arbitration-field"],
+ PRIORITY:["Priority", "Set by the identifier: the lower the number, the higher the priority. It decides who wins arbitration and so who waits.", "priority"],
+ STARVATION:["Starvation", "A low-priority message never gets the bus because higher-priority traffic keeps it busy. The lowest-priority messages go first.", "starvation"],
+ BUSLOAD:["Bus load", "The share of time the bus is busy sending frames, from 0 to 100%. A bus with a load below 100% can still delay a message, because delay depends on what is on the bus at the moment it becomes ready.", "bus-load"],
+ BABBLING:["Babbling node", "A node that sends far more often than it should, for example a faulty ECU or a bug. If its identifier has a high priority it starves every lower-priority message.", "babbling-node"],
+ BLOCKING:["Blocking", "A message that has just become ready waits because a lower-priority frame is already on the wire. A frame in progress is never interrupted, so the wait is at most one frame.", "blocking"],
+ TRANSCEIVER:["Controller and transceiver", "The controller is the digital block (or chip) that builds and checks frames. The transceiver turns its logic levels into the differential voltages on the bus and back.", "controller-and-transceiver"],
+ CANHL:["CAN_H and CAN_L", "The two wires of the twisted pair. Recessive: both near 2.5 V. Dominant: CAN_H about 3.5 V and CAN_L about 1.5 V.", "can-h-and-can-l"],
+ COMMON:["Common-mode noise", "Noise that moves both wires of a pair by the same amount. A differential receiver cancels it because it looks only at the difference. Transceivers still have an input range, about −2 V to +7 V.", "common-mode-noise"],
+ SAMPLEPT:["Sample point", "The moment inside a bit when the receiver reads the bus, as a share of the bit time (commonly 75 to 87.5%).", "sample-point"],
+ DIFF:["Differential signalling", "Sending a bit as the difference between two wires instead of the voltage on one wire. It rejects noise common to both wires.", "differential-signalling"],
+ ECU:["ECU (electronic control unit)", "A small computer in a vehicle, such as the engine controller or a door module. On CAN it is a node.", "ecu"],
+ ID:["Identifier (ID)", "The number in the arbitration field. It names what the message is (for example engine speed), not who it is for, and its value sets the priority: lower wins.", "identifier"],
+ ERRFLAG:["Error frame (error flag)", "A burst that a node sends when it detects an error. It breaks the stuffing rule on purpose so that every node sees the error and discards the frame.", "error-frame"],
+ BITRATE:["Bit rate", "How many bits the bus carries per second. Classical CAN runs from about 10 kbit/s to 1 Mbit/s. All nodes must use the same rate.", "bit-rate"],
+ BITTIME:["Bit time", "The duration of one bit, 1 / bit rate. It is split into time quanta and four segments: Sync, Propagation, Phase 1 and Phase 2.", "bit-time"],
+ RESPONSE:["Response time", "The time from a message becoming ready to its last bit arriving. It includes blocking, waiting for higher-priority frames and the frame’s own length.", "response-time"],
+ QUANT:["Quantisation", "Rounding a value to a whole number of scale steps so that it fits in the data bytes. The largest error is half a step.", "quantisation"],
+ ALIVE:["Alive counter", "A small number in the data bytes that goes up by one with each frame. A receiver that sees it repeat knows the sender is frozen even though frames still arrive. It is an application-level add-on, not part of the CAN frame.", "alive-counter"],
+ GATEWAY:["Gateway", "A node that connects two buses and passes selected messages between them. Real vehicles often put different sensors on different buses behind a gateway.", "gateway"],
+ BITERR:["Bit error", "A transmitting node reads a bus level different from what it sent, outside the arbitration field and the ACK slot. It signals an error.", "bit-error"],
+ STUFFERR:["Stuff error", "Six equal bits in a row between the start of the frame and the CRC sequence. It signals an error.", "stuff-error"],
+ FORMERR:["Form error", "A fixed-form bit (a delimiter, or the EOF) has the wrong value.", "form-error"],
+ ACKERR:["ACK error", "The transmitter reads a recessive ACK slot: no node acknowledged the frame, so it signals an error and sends the frame again.", "ack-error"],
+ CRCERR:["CRC error", "The received CRC does not match the one the receiver calculated. The receiver does not acknowledge and sends an error flag after the ACK delimiter.", "crc-error"],
+ PHASE:["Phase segments", "The two parts of the bit after the propagation segment. The receiver samples between them and lengthens or shortens them to stay in step with edges.", "phase-segments"],
+ PROP:["Propagation segment", "The part of the bit that allows the signal to cross the bus and come back, plus the transceiver delays.", "propagation-segment"],
+ NONDESTR:["Non-destructive arbitration", "The losing node stops without damaging the winning frame, so no bandwidth is lost to the collision.", "non-destructive-arbitration"]};
+function GT(k,label){var g=GLOSS[k];if(!g)return label||k;return '<a class="gt" data-gt="'+k+'" href="../reference/#g-'+g[2]+'">'+(label||k)+'</a>'}
+(function(){
+ var tip=document.createElement('div');tip.id='gtip';tip.setAttribute('role','tooltip');tip.hidden=true;document.body.appendChild(tip);var cur=null;
+ function show(a){var g=GLOSS[a.getAttribute('data-gt')];if(!g)return;cur=a;
+  tip.innerHTML='<b></b><span></span><em>Click for the reference page</em>';tip.firstChild.textContent=g[0];tip.childNodes[1].textContent=g[1];
+  tip.hidden=false;a.setAttribute('aria-describedby','gtip');
+  var r=a.getBoundingClientRect(),w=tip.offsetWidth,h=tip.offsetHeight,x=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2)),y=r.bottom+8;
+  if(y+h>innerHeight-8&&r.top-h-8>8)y=r.top-h-8;tip.style.left=x+'px';tip.style.top=y+'px'}
+ function hide(){if(cur)cur.removeAttribute('aria-describedby');cur=null;tip.hidden=true}
+ function tgt(e){var t=e.target;return t&&t.closest?t.closest('.gt'):null}
+ document.addEventListener('mouseover',function(e){var a=tgt(e);if(a)show(a)});
+ document.addEventListener('mouseout',function(e){if(tgt(e))hide()});
+ document.addEventListener('focusin',function(e){var a=tgt(e);if(a)show(a)});
+ document.addEventListener('focusout',function(e){if(tgt(e))hide()});
+ document.addEventListener('keydown',function(e){if(e.key==='Escape')hide()});
+ window.addEventListener('scroll',hide,{passive:true});
+})();
+
 (function(){
 'use strict';
 function $(id){return document.getElementById(id)}
@@ -442,13 +608,39 @@ function css(n){return getComputedStyle(document.documentElement).getPropertyVal
 var PER={};SENS.forEach(function(s){PER[s.key]=s.per});
 var P={rate:500000,stuff:'random',extra:0,prio:'mid',noise:0,rest:100,at:4,len:6,k:3,sync:0,seed:7,win:4000,busWin:10000,speed:1};
 var T=3e6,playing=false,raf=0,lastTs=0,R=null,lastLogIdx=-2,srAt=0,srTxt='';
-var PRESETS=[
- {n:'Healthy bus',d:{rate:500000,extra:0,prio:'mid',noise:0,rest:100,sync:0}},
- {n:'Overloaded, middle priority',d:{rate:125000,extra:150,prio:'mid',noise:0,rest:100,sync:0}},
- {n:'Babbling node',d:{rate:500000,extra:150,prio:'high',noise:0,rest:100,sync:0}},
- {n:'Low-priority flood',d:{rate:500000,extra:150,prio:'low',noise:0,rest:100,sync:0}},
- {n:'Noisy bus',d:{rate:500000,extra:0,prio:'mid',noise:40,rest:500,sync:0}},
- {n:'Slow, crowded and noisy',d:{rate:250000,extra:80,prio:'mid',noise:15,rest:100,sync:0}}];
+var DEF={rate:500000,stuff:'random',extra:0,prio:'mid',noise:0,rest:100,at:4,len:6,k:3,sync:0};
+var DEFPER={};SENS.forEach(function(s){DEFPER[s.key]=s.per});
+/* Guided experiments. "set" lists the controls the experiment changes; every other control is returned to its default.
+   The numbers in "see" were checked by running the same model (CAN.simulate, seed 7, 16 s) with these settings. */
+var EXPS=[
+ {t:'A healthy bus can still make sensors wait',
+  q:'The bus is only about 5% loaded. All six sensors now sample on exactly the same tick. Will any reading arrive late, and which sensor waits longest?',
+  set:{sync:1},
+  see:['Yes. Nothing goes stale, but the six frames queue up in priority order. Wheel speed (the lowest identifier) goes first and waits only for its own frame, about 0.13 ms. Fuel level goes last and waits about 0.74 ms, roughly six frame times, because five other frames are ahead of it.','Low load does not mean no waiting. Delay depends on what is on the bus at the moment a sample becomes ready, and here six became ready together. With sampling spread out (the default) the same sensors wait 0.13 ms at most.']},
+ {t:'Priority decides who starves',
+  q:'Other ECUs try to send 150% of what the bus can carry, with an identifier between throttle (0x130) and coolant (0x340), from 4 s to 10 s. Which sensors carry on as usual, and which are starved?',
+  set:{extra:150,prio:'mid'},
+  vars:[{l:'Same flood, lowest priority (0x600)',set:{extra:150,prio:'low'}}],
+  see:['Wheel speed, steering, engine speed and throttle have identifiers below 0x200, so they win every arbitration. Their longest wait is about 0.35 ms: one extra frame that was already on the wire, because a frame in progress is never interrupted.','Coolant (0x340) and fuel (0x3F0) lose every arbitration while the flood lasts. No frame of theirs gets through for 6 seconds, each new sample replaces the unsent one (11 and 5 samples lost), and both tiles go STALE: coolant after 1.5 s, fuel after 3 s.','Now press &ldquo;Same flood, lowest priority&rdquo;. Every sensor wins every arbitration, nothing is lost, and the longest wait is about 0.36 ms. The flood is just as heavy, but it is the extra traffic that waits.']},
+ {t:'One babbling node silences the car',
+  q:'A faulty ECU sends non-stop with an identifier lower than every sensor. No bus can carry more than 100% of its capacity, so something has to give. How many of the six readings survive?',
+  set:{extra:150,prio:'high'},
+  vars:[{l:'Try exactly 100% instead',set:{extra:100,prio:'high'}}],
+  see:['None. While the babbling node is active it wins every arbitration, so no sensor frame reaches the bus. Each sensor keeps replacing its waiting sample with a newer one (about 600 samples lost for wheel speed), the dashboard keeps the last value, and every tile goes STALE: wheel speed, steering and engine speed after 30 ms, throttle after 60 ms, coolant after 1.5 s and fuel after 3 s. When the fault stops at 10 s they all recover at once.','Now press &ldquo;Try exactly 100% instead&rdquo;. A node that uses 100% still leaves small gaps between its frames, so all six readings get through, but late: fuel now waits up to about 34 ms and wheel speed up to 1.4 ms. Overload, not just a high priority, is what silences the others.']},
+ {t:'Noise: nuisance or bus-off?',
+  q:'A transmit error counter goes up by 8 for a failed frame and down by 1 for a good one. Roughly what share of frames have to be hit before a node can climb to bus-off? Run with 15% noise, then try 5% and 40%.',
+  set:{noise:15},
+  vars:[{l:'Try 5%',set:{noise:5}},{l:'Try 40%',set:{noise:40}}],
+  see:['The counter rises on average only when more than about one frame in nine (11%) is hit. At 15% it drifts up by about 0.35 per frame, so only a node that sends many frames during the 6 s of trouble gets to 255: in this run that is wheel speed, once, bus-off for 100 ms, while the slower senders get through.','At 5% no node comes near the limit: you only see retries and slightly longer waits. At 40% four nodes (wheel speed, steering, engine speed and throttle) go bus-off again and again, 4 to 9 times each. The dashboard is stale only a few percent of the time even then, because each node restarts after 100 ms, which is the dashboard&rsquo;s choice (Advanced).']},
+ {t:'The same traffic on a slow bus',
+  q:'At 500 kbit/s, 100% extra traffic at 0x200 makes coolant wait about 1.9 ms and fuel about 3.3 ms. What happens to fuel at 125 kbit/s, where every bit takes 4 times as long?',
+  set:{rate:125000,extra:100,prio:'mid'},
+  see:['Fuel&rsquo;s longest wait jumps to about 84 ms. That is 25 times worse, not 4 times, and coolant goes from 1.9 ms to about 4.6 ms. Every frame takes four times as long, so the six sensors alone now use about 19% of the bus instead of about 5%, and with the extra traffic the bus is almost full. Close to 100% load, waiting grows far faster than the bit time.','Fuel still is not stale, because its period is a whole second, but the margin has shrunk a lot. Try 250 kbit/s to see how quickly it changes.']},
+ {t:'Everything at once',
+  q:'The bus runs at 250 kbit/s, other ECUs add 80% extra traffic at a middle priority, and noise hits 15% of frames. Will the dashboard go stale, and which node ends up worst off?',
+  set:{rate:250000,extra:80,prio:'mid',noise:15},
+  see:['The dashboard copes: the worst case is wheel speed and engine speed, each stale for only about 0.5% of the run, with 10 samples lost each. The node that suffers is the one with the heavy traffic: the other ECUs go bus-off 11 times, because they send far more frames and so give noise many more chances to hit them in a row.','Priority protects the sensors from the flood, and the nodes that send least are least likely to be taken off the bus by noise.']}
+];
 
 /* ---------- build one run ---------- */
 function build(){
@@ -483,8 +675,7 @@ function initTable(){
   document.querySelectorAll('[data-per]').forEach(function(el){el.addEventListener('change',function(){PER[el.getAttribute('data-per')]=+el.value;rebuild()})});
   $('dash').innerHTML=SENS.map(function(s,i){return '<div class="stile nodata" id="st'+i+'"><div class="sh"><span class="sname">'+s.name+'</span><span class="badge">NO DATA</span></div><div class="sval"><span class="num">\u2014</span><small>'+s.unit+'</small></div><div class="sbar"><i></i></div><div class="sinfo"><span class="age"></span><span class="tru"></span></div><div class="sid">ID 0x'+hex(s.id,3)+' \u00B7 '+s.bytes+' B</div></div>'}).join('');
   $('cPrio').innerHTML=Object.keys(XP).map(function(k){return '<option value="'+k+'"'+(k===P.prio?' selected':'')+'>'+XP[k].label+'</option>'}).join('');
-  $('presets').innerHTML=PRESETS.map(function(p,i){return '<button type="button" data-pre="'+i+'">'+p.n+'</button>'}).join('');
-  document.querySelectorAll('[data-pre]').forEach(function(b){b.addEventListener('click',function(){applyPreset(+b.getAttribute('data-pre'))})});
+  buildExps();
   $('topTiles').innerHTML=['Bus load, last 100 ms','Stale sensors','Corrupted frames so far','Trouble'].map(function(t,i){return '<div class="tile"><div class="big" id="tt'+i+'">\u2014</div><div class="sub">'+t+'</div></div>'}).join('');
 }
 function paintColors(){
@@ -496,6 +687,7 @@ function paintColors(){
 function readCtl(){
   P.rate=+$('cRate').value;P.stuff=$('cStuff').value;P.sync=+$('cSync').value;P.extra=+$('cExtra').value;P.prio=$('cPrio').value;P.noise=+$('cNoise').value;P.rest=+$('cRest').value;P.at=+$('cAt').value;P.len=+$('cLen').value;P.k=+$('cK').value;P.win=+$('cWin').value;P.busWin=+$('cBusWin').value;P.speed=+$('cSpeed').value;
   $('oExtra').textContent=P.extra+'%';$('oNoise').textContent=P.noise+'%';$('oAt').textContent=P.at.toFixed(1)+' s';$('oLen').textContent=P.len.toFixed(1)+' s';
+  var an=advChanged(),ae=$('advN');ae.hidden=an===0;ae.textContent=an+' changed from the default';
 }
 function note(){
   var bps=0;SENS.forEach(function(s){bps+=CAN.plainBits(false,s.bytes)*1.1*1000/PER[s.key]});
@@ -506,21 +698,53 @@ function note(){
   if(P.extra===0&&P.noise===0)t+='With no extra traffic and no noise the trouble sliders change nothing. ';
   $('busNote').textContent=t;
 }
-function setCtl(d){
-  if('rate' in d)$('cRate').value=d.rate;if('extra' in d)$('cExtra').value=d.extra;if('prio' in d)$('cPrio').value=d.prio;if('noise' in d)$('cNoise').value=d.noise;if('sync' in d)$('cSync').value=d.sync;if('rest' in d)$('cRest').value=d.rest;
-}
+function setAll(d){var m={},k;for(k in DEF)m[k]=DEF[k];for(k in d)m[k]=d[k];
+  $('cRate').value=m.rate;$('cStuff').value=m.stuff;$('cSync').value=m.sync;$('cExtra').value=m.extra;$('cPrio').value=m.prio;$('cNoise').value=m.noise;$('cRest').value=m.rest;$('cAt').value=m.at;$('cLen').value=m.len;$('cK').value=m.k;
+  SENS.forEach(function(s){PER[s.key]=DEFPER[s.key];var el=document.querySelector('[data-per="'+s.key+'"]');if(el)el.value=DEFPER[s.key]})}
+function advChanged(){var n=0,k;['prio','stuff','sync','rest','at','len','k'].forEach(function(key){if(String(P[key])!==String(DEF[key]))n++});SENS.forEach(function(s){if(PER[s.key]!==DEFPER[s.key])n++});return n}
 var deb=0;
 function rebuild(now){
   readCtl();note();
   if(deb)clearTimeout(deb);
-  var go=function(){deb=0;build();renderResults();layout();update(true)};
+  var go=function(){deb=0;build();renderResults();layout();update(true);hlSet();var w=$('hlWork');if(w&&!w.hidden)w.innerHTML=hlWork();$('hlRes').textContent=''};
   if(now)go();else deb=setTimeout(go,120);
 }
-function applyPreset(i){
-  setCtl(PRESETS[i].d);readCtl();rebuild(true);
+var CUR=-1;
+function liveSummary(){
+  var parts=[],stale=[],lost=0,off=[];
+  R.res.forEach(function(r,i){parts.push(SENS[i].short+' '+(r.sent?fT(r.max):'none sent'));if(r.stale>=1)stale.push(SENS[i].short+' '+Math.round(r.stale)+'%');lost+=r.lost});
+  R.sim.nodes.forEach(function(n){if(n.busOffs)off.push(n.name+' &times;'+n.busOffs)});
+  return '<b>What the simulator did on this run</b><br>longest wait: '+parts.join(' &middot; ')+'<br>samples lost: '+lost+' &nbsp; stale for more than 1% of the run: '+(stale.length?stale.join(', '):'none')+'<br>nodes that went bus-off: '+(off.length?off.join(', '):'none')}
+function runExp(i,v){
+  var e=EXPS[i],d={},k;for(k in e.set)d[k]=e.set[k];if(v!=null)for(k in e.vars[v].set)d[k]=e.vars[v].set[k];
+  setAll(d);readCtl();note();rebuild(true);
+  CUR=i;var el=$('live'+i);if(el)el.innerHTML=liveSummary();
+  var bn=$('expBanner');bn.hidden=false;bn.innerHTML='Experiment '+(i+1)+': <b>'+e.t+'</b>'+(v!=null?' ('+e.vars[v].l.toLowerCase()+')':'')+'. <a href="#exp'+i+'" id="expBack">Back to the question</a>';
+  document.getElementById('expBack').addEventListener('click',function(ev){ev.preventDefault();var d2=$('exp'+i);d2.open=true;d2.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})});
   var still=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(still){T=(P.at+Math.min(P.len,3))*1e6;setPlaying(false);update(true)}else{T=0;setPlaying(true)}
+  $('dashPanel').scrollIntoView({block:'start',behavior:still?'auto':'smooth'});
 }
+function buildExps(){
+  $('exps').innerHTML=EXPS.map(function(e,i){
+    var vb=(e.vars||[]).map(function(v,j){return '<button type="button" data-var="'+i+':'+j+'">'+v.l+'</button>'}).join('');
+    return '<details class="exp" id="exp'+i+'"'+(i===0?' open':'')+'><summary>'+(i+1)+'. '+e.t+'</summary><div class="expbody"><p class="pred"><span class="predlab">Predict</span>'+e.q+'</p><div class="btns tight"><button type="button" class="set" data-run="'+i+'">Run this experiment</button>'+vb+'</div><details class="see"><summary>Show what to expect</summary><div class="seebody">'+e.see.map(function(p){return '<p>'+p+'</p>'}).join('')+'<div class="live" id="live'+i+'">Press &ldquo;Run this experiment&rdquo; to fill this in from the simulator.</div></div></details></div></details>'}).join('');
+  document.querySelectorAll('[data-run]').forEach(function(b){b.addEventListener('click',function(){runExp(+b.getAttribute('data-run'),null)})});
+  document.querySelectorAll('[data-var]').forEach(function(b){b.addEventListener('click',function(){var p=b.getAttribute('data-var').split(':');runExp(+p[0],+p[1])})});
+}
+/* ---------- hand calculation: bus load of the six sensors ---------- */
+function loadBy(){var a=0,b=0,rows=SENS.map(function(s){var pl=CAN.plainBits(false,s.bytes),wc=CAN.wcBits(false,s.bytes),per=PER[s.key];a+=pl*1000/per;b+=wc*1000/per;return {s:s,pl:pl,wc:wc,per:per}});return {rows:rows,plainBps:a,worstBps:b,plain:a/P.rate*100,worst:b/P.rate*100}}
+function measuredLoad(t0,t1){var L=R.sim.log,busy=0;for(var q=0;q<L.length;q++){var e=L[q];if(e.t1<=t0)continue;if(e.t0>=t1)break;busy+=Math.min(e.t1,t1)-Math.max(e.t0,t0)}return busy/(t1-t0)*100}
+function hlSet(){$('hlSet').textContent=(P.rate/1000)+' kbit/s, periods '+SENS.map(function(s){return PER[s.key]}).join(', ')+' ms'}
+function hlWork(){var h=loadBy(),o='';h.rows.forEach(function(r){o+=r.s.name+': '+r.s.bytes+' byte'+(r.s.bytes>1?'s':'')+' &rarr; 8 &times; '+r.s.bytes+' + 47 = '+r.pl+' bits every '+r.per+' ms = '+Math.round(r.pl*1000/r.per)+' bit/s\n'});
+  var m=measuredLoad(0,P.at*1e6);
+  return o+'\ntotal '+Math.round(h.plainBps)+' bit/s &divide; '+P.rate+' bit/s = <b>'+h.plain.toFixed(1)+'%</b> with no stuff bits\nworst case (every frame fully stuffed): '+Math.round(h.worstBps)+' bit/s = <b>'+h.worst.toFixed(1)+'%</b>\nthe simulator measured <b>'+m.toFixed(1)+'%</b> over the first '+P.at.toFixed(1)+' s, before any trouble: real data has a few stuff bits, so it lies between the two'}
+function hlCheck(){var h=loadBy(),raw=$('hlIn').value.trim(),v=parseFloat(raw),r=$('hlRes');
+  if(raw===''||isNaN(v)){r.innerHTML='Type your answer in percent first.';return}
+  if(v>=h.plain-0.3&&v<=h.worst+0.3)r.innerHTML='<span class="good">Right.</span> It lies between the best case ('+h.plain.toFixed(1)+'%) and the worst case ('+h.worst.toFixed(1)+'%), and the simulator measured '+measuredLoad(0,P.at*1e6).toFixed(1)+'% before the trouble.';
+  else if(v<h.plain-0.3)r.innerHTML='<span class="bad">Too low.</span> The best case is '+h.plain.toFixed(1)+'%. A frame has 47 bits of overhead around its data, so counting only the data bits gives far too little. Open the working.';
+  else r.innerHTML='<span class="bad">Too high.</span> Even with every frame fully stuffed the load is '+h.worst.toFixed(1)+'%. Check that you used the period in seconds (10 ms is 0.01 s) and the bit rate in bit/s.';
+  $('hlWork').hidden=false;$('hlWork').innerHTML=hlWork()}
 
 /* ---------- results ---------- */
 function renderResults(){
@@ -670,6 +894,10 @@ $('cWin').addEventListener('change',function(){readCtl();update()});
 $('cBusWin').addEventListener('change',function(){readCtl();update()});
 $('cSpeed').addEventListener('change',readCtl);
 $('bSeed').addEventListener('click',function(){P.seed=(P.seed*7+13)%9973;rebuild(true)});
+$('bReset').addEventListener('click',function(){setAll({});readCtl();note();CUR=-1;$('expBanner').hidden=true;rebuild(true);T=3e6;setPlaying(false);update(true)});
+$('hlGo').addEventListener('click',hlCheck);
+$('hlIn').addEventListener('keydown',function(e){if(e.key==='Enter')hlCheck()});
+$('hlShow').addEventListener('click',function(){var w=$('hlWork');if(w.hidden){w.hidden=false;w.innerHTML=hlWork();this.textContent='Hide the working'}else{w.hidden=true;this.textContent='Show the working'}});
 $('bPlay').addEventListener('click',function(){setPlaying(!playing)});
 $('bRestart').addEventListener('click',function(){T=0;setPlaying(true)});
 $('cTime').addEventListener('input',function(){T=+$('cTime').value*1000;update();$('bPlay').textContent=playing?'Pause':(T>=DUR*1e6?'Replay':'Play')});
@@ -678,7 +906,7 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',func
 document.addEventListener('visibilitychange',function(){lastTs=0});
 
 initTable();
-readCtl();note();build();
+readCtl();note();build();hlSet();
 layout();renderResults();paintColors();
 setPlaying(false);update(true);
 })();

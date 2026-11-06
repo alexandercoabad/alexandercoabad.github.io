@@ -22,6 +22,7 @@ Personal site with browser simulators for my chip projects. Each simulator is on
 | `can/index.html` | CAN bus overview: lesson plan linking the three steps |
 | `can/basics/index.html` | CAN lesson, Step 1: CAN bus vs separate wires (wired-AND bus, differential signalling, bit timing, stuffing) |
 | `can/frame/index.html` | CAN lesson, Step 2: how a message wins the bus (frame fields, CRC, stuffing, arbitration, acknowledgement, error counters) |
+| `can/pilot-sheet.md` | One-page observation sheet for a classroom pilot of the CAN lessons |
 | `can/reference/index.html` | CAN reference: equations with worked examples, glossary, symbols and units, settings (with measured effects), questions, further reading |
 | `can/bus/index.html` | CAN lesson, Step 3: six sensors (wheel speed, engine speed, throttle, steering angle, coolant temperature, fuel level) send CAN frames to a dashboard; overload or noise makes the readings go stale |
 
@@ -113,6 +114,14 @@ The three CAN pages are self-contained and share one small simulation core, `var
 Sensor samples (used by Step 3): a message can carry a `sensor` spec (`min`, `max`, `scale`, `offset`, `bytes`, `signed`) and a `signal(tUs)` function. The value is sampled when the message is released, scaled and packed little-endian into the data bytes (`CAN.packSample` / `CAN.unpackSample`), and every delivered frame is recorded in `result.rx[i]` as `{t, s, d}` (end of frame, sample instant, data bytes), so a receiver can decode what actually crossed the bus and work out how old it is (`CAN.lastRx` finds the latest delivery at a given time). Extra `simulate` options: `mailbox` (one transmit buffer per message, a newer sample replaces an unsent older one and is counted in `stats[i].over`), per-message `startMs` / `stopMs` (extra traffic that begins and ends), `errFromMs` / `errToMs` (the window in which noise can hit frames) and `busOffMs` (how long a bus-off node stays silent). Without these options `simulate` behaves exactly as before.
 
 The reference page (`can/reference/index.html`) is static HTML and does not contain the simulation core. Its worked examples and the measured effects in its settings table were produced by running the core (500 kbit/s, 16 s run, noise seed 7), so re-check them if you change the core.
+
+Lesson design (all three CAN pages): each page opens with three learning objectives and ends with a three-line summary. Step 1 and Step 3 have a prediction prompt, and Steps 1, 2 and 3 each have a hand calculation that checks the student's number against the model (longest bus length, frame length in bits and microseconds, bus load). `can/pilot-sheet.md` is a one-page observation sheet for trying the lessons with students.
+
+Hover definitions: a term with a dotted underline (DLC, RTR, SRR, TEC, CRC, arbitration and so on) shows its glossary definition on hover or focus and links to its anchor on the reference page (`can/reference/#g-...`, highlighted on arrival). The text comes from the `GLOSS` table, which is pasted verbatim into Steps 1, 2 and 3, so keep the three copies identical; each entry's last item is the glossary anchor and must match an `id="g-..."` on the reference page. Step 2 links terms automatically (`autoGT` links the first occurrence of each term in a step's text); Steps 1 and 3 place them by hand with `GT(key)`.
+
+Step 2 (`can/frame/`): a strip above each step's figure draws the whole frame as one bar and highlights the part that step works on (it follows the identifier, data and bit rate you chose in step 1). The arbitration step is drawn as a logic-analyser view: one trace per node, the bus as their AND, a time axis in microseconds at the chosen bit rate, the 75% sample point of each bit and a running "bus read" line. Step 4 holds the frame-length hand calculation.
+
+Step 3 (`can/bus/`): six guided experiments (predict, run, "show what to expect"). Every figure in the "what to expect" text was checked against the simulation core; re-check them if you change the core or the default settings. Experiment 3 uses 150% extra traffic because at exactly 100% all six readings arrive late rather than lost.
 
 ## Adding another project
 

@@ -107,6 +107,39 @@ details.q p{margin:8px 0 2px}
 input[type=text]{font:inherit}
 .row label{flex:0 0 150px}
 @media (max-width:600px){.row label{flex-basis:110px}.row output{flex-basis:70px}}
+
+/* ---- teaching aids (shared by the CAN step pages) ---- */
+.gt{color:inherit;text-decoration:underline dotted var(--mute);text-underline-offset:3px;text-decoration-thickness:1.5px;cursor:help}
+.gt:hover,.gt:focus-visible{text-decoration-style:solid;text-decoration-color:var(--volt);color:var(--volt)}
+#gtip{position:fixed;z-index:60;max-width:300px;background:var(--ink);color:var(--bg);border-radius:6px;padding:9px 11px;font-size:12px;line-height:1.45;box-shadow:0 8px 22px rgba(0,0,0,.28);pointer-events:none;font-weight:400;text-transform:none;letter-spacing:0;text-align:left}
+#gtip b{display:block;margin-bottom:3px;font-weight:600}
+#gtip span{display:block}
+#gtip em{display:block;opacity:.7;font-style:normal;margin-top:5px;font-size:11px}
+.obj{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--volt);border-radius:8px;padding:12px 16px;max-width:78ch}
+.obj h2{font-family:var(--f-body);font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--mute);font-weight:600;margin:0 0 4px}
+.obj ul{margin:4px 0 0;padding-left:20px}
+.obj li{margin:3px 0;font-size:13.5px}
+.sumlist{margin:4px 0 0;padding-left:22px;max-width:78ch}
+.sumlist li{margin:6px 0}
+.tag{display:inline-block;font-family:var(--f-body);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:0 7px;border:1.5px solid currentColor;vertical-align:1px;white-space:nowrap;line-height:1.55}
+.tag.can{color:var(--volt)}
+.tag.app{color:var(--curr)}
+.hand{border:1.5px dashed var(--curr);border-radius:8px;padding:12px 14px;background:var(--bg);margin-top:12px}
+.hand h3{font-family:var(--f-display);font-size:15px;margin:0 0 4px}
+.hand .row label{flex:0 0 auto}
+.hand input[type=number]{font:inherit;width:9ch;padding:5px 8px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--ink);font-family:var(--f-mono)}
+.hand .row{flex-wrap:wrap;gap:8px}
+.hand .verdict{font-size:14px;margin:6px 0 0}
+details.fold{border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:0}
+details.fold>summary{cursor:pointer;font-weight:600;padding:10px 14px;list-style:none;display:flex;align-items:center;gap:8px}
+details.fold>summary::before{content:"\25B8";color:var(--mute);display:inline-block;transition:transform .15s}
+details.fold[open]>summary::before{transform:rotate(90deg)}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>.foldbody{padding:0 14px 14px}
+@media (prefers-reduced-motion:reduce){details.fold>summary::before{transition:none}}
+.vtabs{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+#schemSvg,#wireSvg{max-width:860px;margin-inline:auto}
+.pull{border-left:4px solid var(--curr);padding:2px 0 2px 12px;margin:10px 0 0;max-width:80ch;font-size:13px}
 </style>
 </head>
 <body>
@@ -114,10 +147,18 @@ input[type=text]{font:inherit}
   <header>
     <p class="crumb"><span class="cap">Step 1 of 3</span> &nbsp;·&nbsp; CAN basics &nbsp;·&nbsp; <a href="../">CAN home</a> &nbsp;·&nbsp; <a href="../reference/">Reference</a> &nbsp;·&nbsp; <a href="../frame/">Next: how a message wins the bus &rarr;</a></p>
     <h1>CAN bus vs separate wires</h1>
-    <p>A modern car has dozens of small computers (ECUs) that all need to talk to each other: the engine, the brakes, the doors, the dashboard. Running a private wire between every pair would be a harness nobody could build. A <b>Controller Area Network (CAN)</b> puts all of them on <b>one twisted pair of wires</b>. Anyone can talk, everyone listens, and a simple rule decides who goes first when two talk at once. This page builds the bus, shows why two wires beat one, and shows what limits its speed and length, before Step 2 follows one message onto the bus.</p>
+    <p>A car has dozens of small computers (ECUs) that must all talk to each other, and a private wire between every pair would be a harness nobody could build, so CAN puts them all on <b>one shared pair of wires</b>.</p>
+    <aside class="obj" aria-label="Learning objectives">
+      <h2>After this page you can</h2>
+      <ul>
+        <li>predict the level on a shared bus from what each node sends, using the circuit of a transistor pulling a line low against a pull-up (a wired AND);</li>
+        <li>explain why a twisted differential pair keeps working in noise that corrupts a single wire;</li>
+        <li>work out the longest bus for a given bit rate with the round-trip rule, and say why bit stuffing exists.</li>
+      </ul>
+    </aside>
     <nav class="toc" aria-label="On this page">
-      <a href="#what">What a CAN bus is</a>
       <a href="#wire">1. Wire up the bus</a>
+      <a href="#what">Background</a>
       <a href="#noise">2. Two wires and noise</a>
       <a href="#timing">3. Bits on the wire</a>
       <a href="#flaws">4. Why it is not perfect</a>
@@ -127,34 +168,15 @@ input[type=text]{font:inherit}
     </nav>
   </header>
 
-  <section class="panel" id="what">
-    <h2>What a CAN bus is</h2>
-    <p class="lead">Every node (an ECU with a CAN controller and a <b>transceiver</b>) connects to the same two wires, called <b>CAN_H</b> and <b>CAN_L</b>. Nothing on the bus says &ldquo;this message is for node 5&rdquo;. Instead, every message carries an <b>identifier</b> that says <i>what the message is</i> (for example &ldquo;engine speed&rdquo;), and every node decides for itself whether it cares. At the two ends of the wire sit <b>120 &Omega; terminating resistors</b>. A node can put one of two states on the bus. In the <b>dominant</b> state it drives the wires apart (logic 0). In the <b>recessive</b> state it lets go of them (logic 1). If one node is dominant and another is recessive, <b>dominant wins</b>. That single rule is what makes a shared wire work, and it is the basis of arbitration in Step 2.</p>
-    <div class="analogy">
-      <div class="card"><h3>Think of a meeting room</h3><p class="cn" style="margin:0">Everyone can hear everyone. Anyone can speak when the room is quiet. If two people start together, each keeps listening to their own voice against the room. The one who hears something different from what they said stops and waits. Nobody has to shout over the other, and the first speaker is not interrupted. CAN does exactly this, one bit at a time.</p></div>
-      <div class="card"><h3>Think of a shared rope</h3><p class="cn" style="margin:0">A rope lies slack across a room. Any person may pull it taut. If nobody pulls, the rope is slack (recessive, 1). If one person or ten pull, the rope is taut (dominant, 0). You cannot tell how many people pulled, only that at least one did. Slack is the default, and pulling always wins. That is a wired AND of everyone&rsquo;s bits.</p></div>
-      <div class="card"><h3>Why cars care</h3><p class="cn" style="margin:0">With point-to-point links, 20 ECUs need up to 190 links (n(n&minus;1)/2). On a bus they need 20 short stubs onto one pair of wires. That saves weight, cost and connectors, and a new ECU can be added without touching the others. The price is that all of them <b>share</b> the same capacity, so who goes first has to be decided.</p></div>
-    </div>
-
-    <h3 class="sub" style="margin-top:16px">Why it is called CAN, and what it is used for</h3>
-    <div class="analogy">
-      <div class="card"><h3>Why &ldquo;CAN&rdquo;?</h3>
-        <p class="cn"><b>Controller Area Network:</b> a network of controllers (small computers) in one local area, such as a car. It was developed by Bosch in the 1980s for road vehicles and became an international standard (ISO 11898).</p>
-        <p class="cn" style="margin:0">It is <b>message-based</b>, not address-based, and <b>multi-master</b>: any node may start a message.</p></div>
-      <div class="card"><h3>Where you meet it</h3>
-        <p class="cn">Cars and trucks first, then everything else that needs many small, reliable, cheap links: factory machinery, lifts, medical equipment, ships, agricultural machines, robots and the diagnostic port (OBD-II) under a car dashboard.</p>
-        <p class="cn" style="margin:0">It is built for <b>short messages that arrive on time</b> and for surviving a noisy electrical environment, not for moving large files.</p></div>
-      <div class="card"><h3>As a design choice</h3>
-        <p class="cn">Compare with a point-to-point UART link: no arbitration needed, but one cable per pair. Compare with SPI: very fast, but one master and one chip-select wire per slave. CAN trades speed (at most 1 Mbit/s in the classical version) for <b>many nodes, two wires, built-in priorities and built-in error checking</b>.</p>
-        <p class="cn" style="margin:0">Section 5 puts the numbers side by side.</p></div>
-    </div>
-    <p class="note" style="max-width:80ch"><b>This page is about classical CAN</b> (CAN 2.0A with 11-bit and 2.0B with 29-bit identifiers). CAN FD, which sends the data part faster and longer, is covered in the table in section 5 but is not simulated.</p>
-  </section>
-
   <section class="panel" id="wire">
     <h2>1. Wire up the bus</h2>
-    <p class="lead">Four nodes share one bus. Each node can <b>drive dominant</b> (pull the wires apart, logic 0) or stay <b>recessive</b> (let go, logic 1). Press the buttons and watch the two wires. Nobody ever drives the bus <i>to</i> recessive: recessive is simply what is left when nobody is pulling. Then try the fault button: one node stuck in the dominant state silences every other node.</p>
-    <svg id="wireSvg" viewBox="0 0 700 262" role="img" aria-label="Four nodes connected to the CAN_H and CAN_L wires with a 120 ohm resistor at each end, showing the bus level"></svg>
+    <p class="lead">Four nodes share one pair of wires, <a class="gt" data-gt="CANHL" href="../reference/#g-can-h-and-can-l">CAN_H and CAN_L</a>. Nothing on the bus says &ldquo;this message is for node 5&rdquo;: every message carries an <a class="gt" data-gt="ID" href="../reference/#g-identifier">identifier</a> that says <i>what it is</i>, and every node decides for itself whether it cares. A node can drive the bus <a class="gt" data-gt="DOMINANT" href="../reference/#g-dominant">dominant</a> (logic 0) or let go and stay <a class="gt" data-gt="RECESSIVE" href="../reference/#g-recessive">recessive</a> (logic 1). <b>If any node is dominant, the bus is dominant.</b> <b>Predict first:</b> if only B drives dominant, what do A, C and D read? Then press the buttons to check, and try the fault button.</p>
+    <div class="vtabs" role="group" aria-label="View of the bus">
+      <button type="button" class="on" id="vLogic" aria-pressed="true">Circuit: transistors and a pull-up</button>
+      <button type="button" id="vWire" aria-pressed="false">Real bus: CAN_H and CAN_L</button>
+    </div>
+    <svg id="schemSvg" viewBox="0 0 700 300" role="img" aria-label="Circuit of four nodes, each a transistor between the bus line and ground, with one pull-up resistor from the supply to the bus line"></svg>
+    <svg id="wireSvg" viewBox="0 0 700 262" role="img" aria-label="Four nodes connected to the CAN_H and CAN_L wires with a 120 ohm resistor at each end, showing the bus level" hidden></svg>
     <div class="actbar">
       <div class="btns" style="margin:0" id="wBtns">
         <button type="button" class="set" id="wA" aria-pressed="false">A: drive dominant</button>
@@ -165,6 +187,14 @@ input[type=text]{font:inherit}
         <button type="button" class="reset" id="wFault" aria-pressed="false">Fault: D stuck dominant</button>
       </div>
       <p class="status" id="wMsg" aria-live="polite" style="margin:6px 0 0;min-height:3em"></p>
+    </div>
+    <div id="vNoteL">
+      <p class="pull"><b>Reading the circuit.</b> Each node is a transistor between the bus line and ground. To send a <b>0</b> a node turns its transistor <b>on</b> and pulls the line low. To send a <b>1</b> it turns it <b>off</b> and does nothing at all: the pull-up resistor (the job the <a class="gt" data-gt="TERMINATION" href="../reference/#g-termination">terminator</a> does) holds the line high. With several transistors on, the line is still just low, so nobody can tell how many are pulling. The bus level is therefore <b>A AND B AND C AND D</b>, a <a class="gt" data-gt="WIREDAND" href="../reference/#g-wired-and">wired AND</a>.</p>
+      <p class="pull"><b>You have met this circuit.</b> I&sup2;C works the same way: SDA and SCL are open-drain lines with pull-up resistors, and any device can pull the line low. &ldquo;Low wins&rdquo; there is the same rule as &ldquo;dominant wins&rdquo; here. CAN changes two things: it sends each bit as a difference between two wires (Section 2), and it has no clock wire (Section 3).</p>
+      <p class="note" style="max-width:80ch">Simplified on purpose. A real <a class="gt" data-gt="TRANSCEIVER" href="../reference/#g-controller-and-transceiver">transceiver</a> has a transistor for each wire, one pulling CAN_H up and one pulling CAN_L down (the next tab), and the 120 &Omega; terminators and the receivers&rsquo; bias hold both wires near 2.5 V when nobody drives. Read as logic, it is the same wired AND.</p>
+    </div>
+    <div id="vNoteW" hidden>
+      <p class="pull"><b>Reading the real bus.</b> Inside each transceiver two switches (transistors) do the work: one connects CAN_H towards the supply and one connects CAN_L towards ground. Both closed is dominant: the pair is driven apart. Both open is recessive: nothing is driven and the 120 &Omega; terminators let the wires settle together. The switches are drawn closed when a node is dominant.</p>
     </div>
     <div class="two" style="margin-top:12px">
       <div class="card">
@@ -185,6 +215,31 @@ input[type=text]{font:inherit}
       </div>
     </div>
   </section>
+
+  <details class="fold" id="what">
+    <summary>Background (optional): analogies, history and where you meet CAN</summary>
+    <div class="foldbody">
+      <div class="analogy">
+      <div class="card"><h3>Think of a meeting room</h3><p class="cn" style="margin:0">Everyone can hear everyone. Anyone can speak when the room is quiet. If two people start together, each keeps listening to their own voice against the room. The one who hears something different from what they said stops and waits. Nobody has to shout over the other, and the first speaker is not interrupted. CAN does exactly this, one bit at a time.</p></div>
+      <div class="card"><h3>Think of a shared rope</h3><p class="cn" style="margin:0">A rope lies slack across a room. Any person may pull it taut. If nobody pulls, the rope is slack (recessive, 1). If one person or ten pull, the rope is taut (dominant, 0). You cannot tell how many people pulled, only that at least one did. Slack is the default, and pulling always wins. That is a wired AND of everyone&rsquo;s bits.</p></div>
+      <div class="card"><h3>Why cars care</h3><p class="cn" style="margin:0">With point-to-point links, 20 ECUs need up to 190 links (n(n&minus;1)/2). On a bus they need 20 short stubs onto one pair of wires. That saves weight, cost and connectors, and a new ECU can be added without touching the others. The price is that all of them <b>share</b> the same capacity, so who goes first has to be decided.</p></div>
+    </div>
+
+    <h3 class="sub" style="margin-top:16px">Why it is called CAN, and what it is used for</h3>
+    <div class="analogy">
+      <div class="card"><h3>Why &ldquo;CAN&rdquo;?</h3>
+        <p class="cn"><b>Controller Area Network:</b> a network of controllers (small computers) in one local area, such as a car. It was developed by Bosch in the 1980s for road vehicles and became an international standard (ISO 11898).</p>
+        <p class="cn" style="margin:0">It is <b>message-based</b>, not address-based, and <b>multi-master</b>: any node may start a message.</p></div>
+      <div class="card"><h3>Where you meet it</h3>
+        <p class="cn">Cars and trucks first, then everything else that needs many small, reliable, cheap links: factory machinery, lifts, medical equipment, ships, agricultural machines, robots and the diagnostic port (OBD-II) under a car dashboard.</p>
+        <p class="cn" style="margin:0">It is built for <b>short messages that arrive on time</b> and for surviving a noisy electrical environment, not for moving large files.</p></div>
+      <div class="card"><h3>As a design choice</h3>
+        <p class="cn">Compare with a point-to-point UART link: no arbitration needed, but one cable per pair. Compare with SPI: very fast, but one master and one chip-select wire per slave. CAN trades speed (at most 1 Mbit/s in the classical version) for <b>many nodes, two wires, built-in priorities and built-in error checking</b>.</p>
+        <p class="cn" style="margin:0">Section 5 puts the numbers side by side.</p></div>
+    </div>
+    <p class="note" style="max-width:80ch"><b>This page is about classical CAN</b> (CAN 2.0A with 11-bit and 2.0B with 29-bit identifiers). CAN FD, which sends the data part faster and longer, is covered in the table in section 5 but is not simulated.</p>
+    </div>
+  </details>
 
   <section class="panel" id="noise">
     <h2>2. Two wires and noise</h2>
@@ -225,6 +280,13 @@ input[type=text]{font:inherit}
       </div>
     </div>
     <p class="note" style="max-width:90ch"><b>The round-trip rule.</b> The signal needs 2 &times; (L &times; 5 ns/m + node delay) to go to the far end and come back, and that has to fit before the sample point: 2 &times; (L &times; 5 ns/m + t<sub>node</sub>) &le; sample point &times; T<sub>bit</sub>. The 5 ns per metre (cable) and the node delay (transmitter plus receiver plus controller) are illustrative values. Real designs use a bit-timing calculation that also includes oscillator tolerance and edge resynchronisation. Typical sample points are 75 to 87.5%.</p>
+    <div class="hand" id="hcLen">
+      <h3>Calculate it by hand, then check</h3>
+      <p class="note" style="margin:0 0 6px;max-width:80ch">Take the settings above (<b id="hcSet"></b>). Use the round-trip rule to find the longest bus in metres, type your answer, and press Check. Try another bit rate and do it again.</p>
+      <div class="row"><label for="hcIn" style="flex:0 0 auto">Longest bus (m)</label><input type="number" id="hcIn" min="0" step="1" inputmode="decimal"><button type="button" class="set" id="hcGo">Check</button><button type="button" id="hcShow">Show the working</button></div>
+      <p class="verdict" id="hcRes" aria-live="polite"></p>
+      <div class="calc" id="hcWork" hidden></div>
+    </div>
     <div class="tw" style="margin-top:8px">
       <table class="cmp">
         <thead><tr><th>Bit rate</th><th>Bit time</th><th>Rule-of-thumb length</th><th>This model (sample point and delay above)</th></tr></thead>
@@ -320,6 +382,15 @@ input[type=text]{font:inherit}
     <details class="q"><summary>Why does the sender insert a bit after five equal bits, and does that mean a frame has a fixed length?</summary><p>The bus has no clock wire, so receivers need edges to stay in step. Stuffing guarantees an edge at least every six bits. The number of stuff bits depends on the data, so the same frame with different payloads has different lengths. A standard frame with 8 data bytes is 111 bits with no stuffing and at most 135 bits including the 24 worst-case stuff bits.</p></details>
     <details class="q"><summary>The bus is dead and every node reports errors. Name two physical things you could check first.</summary><p>Whether a node is stuck dominant (try disconnecting nodes one at a time and watch the bus idle at about 2.5 V on both wires), and whether the terminators are right (about 60 &Omega; between CAN_H and CAN_L with the power off: 120 &Omega; means one is missing, and an open circuit means both are). Short circuits between the wires or to ground, and a mismatched bit rate on one node, are also common.</p></details>
     <details class="q"><summary>Why can a CAN node send only 8 data bytes, and is that a problem for a camera or a firmware update?</summary><p>The classical frame was designed for small control messages that must arrive quickly and predictably, and a short frame also limits how long a high-priority message can be blocked. A camera stream or a firmware image has to be split into many frames by a higher-layer protocol, and the overhead in section 4 means only about half the raw bit rate carries data. CAN FD raises the payload to 64 bytes for that reason, and Ethernet is used where large data is the main job.</p></details>
+  </section>
+
+  <section class="panel" id="summary">
+    <h2>In three lines</h2>
+    <ol class="sumlist">
+      <li>A CAN bus is a <b>wired AND</b>: a node sends 0 by turning a transistor on and sends 1 by letting go, so if anyone is dominant the bus is 0, and every node can read back what it sent.</li>
+      <li>The bit is the <b>difference between two twisted wires</b>, so noise that hits both equally cancels, and a 120 &Omega; terminator at each end stops edges reflecting.</li>
+      <li>With <b>no clock wire</b> the data must keep making edges (bit stuffing), and a signal must reach the far end and come back before the sample point, so a faster bit rate means a shorter bus (about 130 m at 500 kbit/s in this model).</li>
+    </ol>
   </section>
 
   <section class="panel" id="next" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
@@ -480,6 +551,73 @@ function simulate(cfg){
 return {bits:bits,crc15:crc15,crc15trace:crc15trace,stuff:stuff,destuff:destuff,frame:frame,wcBits:wcBits,plainBits:plainBits,arbKey:arbKey,maxLen:maxLen,TPROP:TPROP,rng:rng,sensorRaw:sensorRaw,packSample:packSample,unpackSample:unpackSample,lastRx:lastRx,rta:rta,simulate:simulate}
 })();
 
+/* ===== Teaching aids, shared by the CAN step pages (not part of the CAN core): hover definitions taken from the reference page glossary. ===== */
+var GLOSS={
+ DLC:["DLC (data length code)", "Four bits that say how many data bytes follow. Values 9 to 15 also mean 8 bytes in classical CAN.", "dlc"],
+ RTR:["RTR and SRR", "RTR (remote transmission request) is dominant in a data frame and recessive in a remote frame. SRR (substitute remote request) takes its place in an extended frame and is always recessive.", "rtr-and-srr"],
+ SRR:["RTR and SRR", "RTR (remote transmission request) is dominant in a data frame and recessive in a remote frame. SRR (substitute remote request) takes its place in an extended frame and is always recessive.", "rtr-and-srr"],
+ TEC:["TEC (transmit error counter)", "The counter a node keeps of its own transmit errors: plus 8 for an error, minus 1 for a good frame. It sets the error-active, error-passive and bus-off states.", "tec"],
+ SOF:["SOF (start of frame)", "The first bit of a frame, always dominant. It gives the other nodes an edge to synchronise on.", "sof"],
+ CRC:["CRC (cyclic redundancy check)", "A 15-bit remainder of the frame bits divided by a fixed polynomial. The receiver repeats the calculation and signals an error if the results differ.", "crc"],
+ ACK:["ACK slot and ACK delimiter", "Two bits after the CRC. The transmitter sends the ACK slot recessive, and any receiver that got the frame without detecting an error overwrites it with a dominant bit. The delimiter that follows is always recessive.", "ack-slot-and-ack-delimiter"],
+ EOF:["EOF (end of frame)", "Seven recessive bits that finish a frame. Together with the three-bit gap (IFS) it makes the 13-bit tail that is not stuffed.", "eof"],
+ IFS:["IFS (interframe space)", "Three recessive bits between frames. The simulator counts them as part of a frame’s length.", "ifs"],
+ WIREDAND:["Wired AND", "A bus whose level is the AND of all the bits driven onto it: 0 if any node drives 0.", "wired-and"],
+ DOMINANT:["Dominant", "The state a node drives actively, logic 0. If any node drives dominant the bus is dominant.", "dominant"],
+ RECESSIVE:["Recessive", "The state of the bus when no node drives it, logic 1.", "recessive"],
+ TERMINATION:["Termination", "A 120 Ω resistor at each end of the bus. It matches the cable so that edges do not reflect. Two in parallel read about 60 Ω.", "termination"],
+ STUFF:["Bit stuffing", "After five equal bits the sender inserts one of the opposite value, and the receiver removes it. It guarantees edges for synchronisation. The frame length therefore depends on the data.", "bit-stuffing"],
+ BUSOFF:["Bus-off", "The state of a node whose transmit error counter has passed 255. It stops taking part until it has seen a recovery sequence of 128 times 11 recessive bits, and the software chooses when to try.", "bus-off"],
+ ERRPASSIVE:["Error-active and error-passive", "The two states below bus-off. An error-active node signals errors with six dominant bits. A node with a transmit counter of 128 or more is error-passive: its error flag is recessive and it must wait an extra 8 bit times before it sends again.", "error-active-and-error-passive"],
+ MAILBOX:["Mailbox (transmit buffer)", "The place where a controller holds a frame to be sent. In Step 3 each sensor has one, so a new sample replaces an unsent older one, which is counted as lost.", "mailbox"],
+ STALE:["Stale", "A value that is older than the allowed limit, here more than a chosen number of the sensor’s own periods. CAN gives no warning, so the receiver has to check the age.", "stale"],
+ ARB:["Arbitration", "The way nodes decide who sends when several start at once. They send the identifier bit by bit, read the bus, and drop out when they see a dominant bit while sending a recessive one.", "arbitration"],
+ ARBFIELD:["Arbitration field", "The identifier plus the RTR bit (or the SRR, IDE and RTR bits of an extended frame). Arbitration compares it from the first bit.", "arbitration-field"],
+ PRIORITY:["Priority", "Set by the identifier: the lower the number, the higher the priority. It decides who wins arbitration and so who waits.", "priority"],
+ STARVATION:["Starvation", "A low-priority message never gets the bus because higher-priority traffic keeps it busy. The lowest-priority messages go first.", "starvation"],
+ BUSLOAD:["Bus load", "The share of time the bus is busy sending frames, from 0 to 100%. A bus with a load below 100% can still delay a message, because delay depends on what is on the bus at the moment it becomes ready.", "bus-load"],
+ BABBLING:["Babbling node", "A node that sends far more often than it should, for example a faulty ECU or a bug. If its identifier has a high priority it starves every lower-priority message.", "babbling-node"],
+ BLOCKING:["Blocking", "A message that has just become ready waits because a lower-priority frame is already on the wire. A frame in progress is never interrupted, so the wait is at most one frame.", "blocking"],
+ TRANSCEIVER:["Controller and transceiver", "The controller is the digital block (or chip) that builds and checks frames. The transceiver turns its logic levels into the differential voltages on the bus and back.", "controller-and-transceiver"],
+ CANHL:["CAN_H and CAN_L", "The two wires of the twisted pair. Recessive: both near 2.5 V. Dominant: CAN_H about 3.5 V and CAN_L about 1.5 V.", "can-h-and-can-l"],
+ COMMON:["Common-mode noise", "Noise that moves both wires of a pair by the same amount. A differential receiver cancels it because it looks only at the difference. Transceivers still have an input range, about −2 V to +7 V.", "common-mode-noise"],
+ SAMPLEPT:["Sample point", "The moment inside a bit when the receiver reads the bus, as a share of the bit time (commonly 75 to 87.5%).", "sample-point"],
+ DIFF:["Differential signalling", "Sending a bit as the difference between two wires instead of the voltage on one wire. It rejects noise common to both wires.", "differential-signalling"],
+ ECU:["ECU (electronic control unit)", "A small computer in a vehicle, such as the engine controller or a door module. On CAN it is a node.", "ecu"],
+ ID:["Identifier (ID)", "The number in the arbitration field. It names what the message is (for example engine speed), not who it is for, and its value sets the priority: lower wins.", "identifier"],
+ ERRFLAG:["Error frame (error flag)", "A burst that a node sends when it detects an error. It breaks the stuffing rule on purpose so that every node sees the error and discards the frame.", "error-frame"],
+ BITRATE:["Bit rate", "How many bits the bus carries per second. Classical CAN runs from about 10 kbit/s to 1 Mbit/s. All nodes must use the same rate.", "bit-rate"],
+ BITTIME:["Bit time", "The duration of one bit, 1 / bit rate. It is split into time quanta and four segments: Sync, Propagation, Phase 1 and Phase 2.", "bit-time"],
+ RESPONSE:["Response time", "The time from a message becoming ready to its last bit arriving. It includes blocking, waiting for higher-priority frames and the frame’s own length.", "response-time"],
+ QUANT:["Quantisation", "Rounding a value to a whole number of scale steps so that it fits in the data bytes. The largest error is half a step.", "quantisation"],
+ ALIVE:["Alive counter", "A small number in the data bytes that goes up by one with each frame. A receiver that sees it repeat knows the sender is frozen even though frames still arrive. It is an application-level add-on, not part of the CAN frame.", "alive-counter"],
+ GATEWAY:["Gateway", "A node that connects two buses and passes selected messages between them. Real vehicles often put different sensors on different buses behind a gateway.", "gateway"],
+ BITERR:["Bit error", "A transmitting node reads a bus level different from what it sent, outside the arbitration field and the ACK slot. It signals an error.", "bit-error"],
+ STUFFERR:["Stuff error", "Six equal bits in a row between the start of the frame and the CRC sequence. It signals an error.", "stuff-error"],
+ FORMERR:["Form error", "A fixed-form bit (a delimiter, or the EOF) has the wrong value.", "form-error"],
+ ACKERR:["ACK error", "The transmitter reads a recessive ACK slot: no node acknowledged the frame, so it signals an error and sends the frame again.", "ack-error"],
+ CRCERR:["CRC error", "The received CRC does not match the one the receiver calculated. The receiver does not acknowledge and sends an error flag after the ACK delimiter.", "crc-error"],
+ PHASE:["Phase segments", "The two parts of the bit after the propagation segment. The receiver samples between them and lengthens or shortens them to stay in step with edges.", "phase-segments"],
+ PROP:["Propagation segment", "The part of the bit that allows the signal to cross the bus and come back, plus the transceiver delays.", "propagation-segment"],
+ NONDESTR:["Non-destructive arbitration", "The losing node stops without damaging the winning frame, so no bandwidth is lost to the collision.", "non-destructive-arbitration"]};
+function GT(k,label){var g=GLOSS[k];if(!g)return label||k;return '<a class="gt" data-gt="'+k+'" href="../reference/#g-'+g[2]+'">'+(label||k)+'</a>'}
+(function(){
+ var tip=document.createElement('div');tip.id='gtip';tip.setAttribute('role','tooltip');tip.hidden=true;document.body.appendChild(tip);var cur=null;
+ function show(a){var g=GLOSS[a.getAttribute('data-gt')];if(!g)return;cur=a;
+  tip.innerHTML='<b></b><span></span><em>Click for the reference page</em>';tip.firstChild.textContent=g[0];tip.childNodes[1].textContent=g[1];
+  tip.hidden=false;a.setAttribute('aria-describedby','gtip');
+  var r=a.getBoundingClientRect(),w=tip.offsetWidth,h=tip.offsetHeight,x=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2)),y=r.bottom+8;
+  if(y+h>innerHeight-8&&r.top-h-8>8)y=r.top-h-8;tip.style.left=x+'px';tip.style.top=y+'px'}
+ function hide(){if(cur)cur.removeAttribute('aria-describedby');cur=null;tip.hidden=true}
+ function tgt(e){var t=e.target;return t&&t.closest?t.closest('.gt'):null}
+ document.addEventListener('mouseover',function(e){var a=tgt(e);if(a)show(a)});
+ document.addEventListener('mouseout',function(e){if(tgt(e))hide()});
+ document.addEventListener('focusin',function(e){var a=tgt(e);if(a)show(a)});
+ document.addEventListener('focusout',function(e){if(tgt(e))hide()});
+ document.addEventListener('keydown',function(e){if(e.key==='Escape')hide()});
+ window.addEventListener('scroll',hide,{passive:true});
+})();
+
 (function(){
 function $(id){return document.getElementById(id)}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -492,6 +630,7 @@ var W={d:[0,0,0,0],f:0},NM=['A','B','C','D'],CX=[120,250,380,510];
 function level(){return (W.d.some(function(x){return x})||W.f)?0:1}
 function dominantNodes(){var a=[];for(var i=0;i<4;i++)if(W.d[i]||(W.f&&i===3))a.push(NM[i]);return a}
 function drawWire(){
+  drawSchem();
   var lv=level(),dom=lv===0,yH=108,yL=146,o='',vH=dom?3.5:2.5,vL=dom?1.5:2.5;
   o+='<line x1="52" x2="588" y1="'+yH+'" y2="'+yH+'" stroke="var(--curr)" stroke-width="3"/><line x1="52" x2="588" y1="'+yL+'" y2="'+yL+'" stroke="var(--volt)" stroke-width="3"/>';
   o+='<text x="600" y="'+(yH+4)+'" font-size="12" fill="var(--curr)">CAN_H</text><text x="600" y="'+(yL+4)+'" font-size="12" fill="var(--volt)">CAN_L</text>';
@@ -505,7 +644,7 @@ function drawWire(){
     o+='<text x="'+cx+'" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">Node '+NM[i]+(stuck?' FAULT':'')+'</text>';
     o+='<text x="'+cx+'" y="45" text-anchor="middle" font-size="11" fill="'+(drv?'var(--curr)':'var(--mute)')+'">sends '+(drv?'0':'1')+'</text>';
     o+='<text x="'+cx+'" y="61" text-anchor="middle" font-size="11" fill="var(--ink)">reads '+lv+'</text>';
-    o+='<line x1="'+(cx-10)+'" x2="'+(cx-10)+'" y1="72" y2="'+yH+'" stroke="var(--curr)" stroke-width="2"/><line x1="'+(cx+10)+'" x2="'+(cx+10)+'" y1="72" y2="'+yL+'" stroke="var(--volt)" stroke-width="2"/>';
+    o+=stub(cx-10,yH,'var(--curr)',drv)+stub(cx+10,yL,'var(--volt)',drv);
     o+='<circle cx="'+(cx-10)+'" cy="'+yH+'" r="3" fill="var(--curr)"/><circle cx="'+(cx+10)+'" cy="'+yL+'" r="3" fill="var(--volt)"/>';
   }
   /* voltage scale */
@@ -531,6 +670,50 @@ function drawWire(){
 [0,1,2,3].forEach(function(i){$('w'+NM[i]).addEventListener('click',function(){W.d[i]=W.d[i]?0:1;drawWire()})});
 $('wRel').addEventListener('click',function(){W.d=[0,0,0,0];W.f=0;drawWire()});
 $('wFault').addEventListener('click',function(){W.f=W.f?0:1;drawWire()});
+
+/* two-wire view: each stub has a switch that is closed while the node drives dominant */
+function stub(x,yEnd,col,on){var c=on?col:'var(--mute)';
+  return '<line x1="'+x+'" x2="'+x+'" y1="72" y2="82" stroke="'+c+'" stroke-width="2"/>'+
+   '<line x1="'+x+'" x2="'+x+'" y1="98" y2="'+yEnd+'" stroke="'+col+'" stroke-width="2"/>'+
+   '<circle cx="'+x+'" cy="82" r="2.6" fill="'+c+'"/><circle cx="'+x+'" cy="98" r="2.6" fill="'+c+'"/>'+
+   (on?'<line x1="'+x+'" x2="'+x+'" y1="82" y2="98" stroke="'+c+'" stroke-width="2.6"/>':'<line x1="'+x+'" x2="'+(x+8)+'" y1="82" y2="95" stroke="'+c+'" stroke-width="2"/>')}
+/* circuit view: every node is a transistor between the bus line and ground, one pull-up from Vcc */
+function drawSchem(){
+  var lv=level(),dom=lv===0,o='',yV=28,yB=140,yG=274,XS=[210,340,470,600],i,busCol=dom?'var(--curr)':'var(--volt)';
+  o+='<line x1="60" x2="650" y1="'+yV+'" y2="'+yV+'" stroke="var(--ink)" stroke-width="2"/><text x="14" y="'+(yV+4)+'" font-size="12" font-weight="700" fill="var(--ink)">Vcc</text><text x="14" y="'+(yV+17)+'" font-size="10" fill="var(--mute)">logic 1</text>';
+  o+='<line x1="60" x2="650" y1="'+yG+'" y2="'+yG+'" stroke="var(--ink)" stroke-width="2"/><text x="14" y="'+(yG+4)+'" font-size="12" font-weight="700" fill="var(--ink)">GND</text><text x="14" y="'+(yG+17)+'" font-size="10" fill="var(--mute)">logic 0</text>';
+  /* pull-up */
+  o+='<line x1="84" x2="84" y1="'+yV+'" y2="54" stroke="'+(dom?'var(--curr)':'var(--mute)')+'" stroke-width="2"/><rect x="76" y="54" width="16" height="46" fill="var(--bg)" stroke="var(--ink)" stroke-width="1.6"/><line x1="84" x2="84" y1="100" y2="'+yB+'" stroke="'+(dom?'var(--curr)':'var(--mute)')+'" stroke-width="2"/>';
+  if(dom)o+='<path class="flow" d="M84 '+(yV+2)+' V'+(yB-2)+'" fill="none" stroke="var(--curr)" stroke-width="3"/>';
+  o+='<text x="102" y="74" font-size="12" font-weight="600" fill="var(--ink)">pull-up resistor</text><text x="102" y="90" font-size="10.5" fill="var(--mute)">acts as the terminator</text>';
+  /* bus line */
+  o+='<line x1="84" x2="650" y1="'+yB+'" y2="'+yB+'" stroke="'+busCol+'" stroke-width="4" stroke-linecap="round"/><text x="656" y="'+(yB+4)+'" font-size="12" font-weight="700" fill="'+busCol+'">BUS</text><circle cx="84" cy="'+yB+'" r="4" fill="'+busCol+'"/>';
+  /* readout */
+  var sends=[],d;for(i=0;i<4;i++){d=W.d[i]||(W.f&&i===3);sends.push(d?0:1)}
+  o+='<rect x="292" y="44" width="344" height="72" rx="8" fill="'+(dom?'var(--hl)':'var(--bg)')+'" stroke="'+(dom?'var(--curr)':'var(--line)')+'" stroke-width="'+(dom?2:1)+'"/>';
+  o+='<text x="464" y="72" text-anchor="middle" font-size="19" font-weight="700" fill="'+busCol+'">Bus = '+lv+(dom?'  (dominant)':'  (recessive)')+'</text>';
+  o+='<text x="464" y="99" text-anchor="middle" font-size="13" fill="var(--ink)">A &middot; B &middot; C &middot; D = '+sends.join(' &middot; ')+' = '+lv+'</text>';
+  for(i=0;i<4;i++){
+    var cx=XS[i],on=!!(W.d[i]||(W.f&&i===3)),stuck=W.f&&i===3,c=on?'var(--curr)':'var(--mute)',jx=cx+16,gy1=194,gy2=226;
+    /* node box */
+    o+='<rect x="'+(cx-100)+'" y="184" width="66" height="54" rx="6" fill="'+(on?'var(--hl)':'var(--bg)')+'" stroke="'+c+'" stroke-width="'+(on?2.4:1.3)+'"/>';
+    o+='<text x="'+(cx-67)+'" y="201" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">Node '+NM[i]+'</text>';
+    o+='<text x="'+(cx-67)+'" y="216" text-anchor="middle" font-size="10.5" fill="'+(stuck?'var(--err)':c)+'">'+(stuck?'stuck ON':'sends '+sends[i])+'</text>';
+    o+='<text x="'+(cx-67)+'" y="231" text-anchor="middle" font-size="10.5" fill="var(--ink)">reads '+lv+'</text>';
+    /* gate lead and transistor */
+    o+='<line x1="'+(cx-34)+'" x2="'+(cx-8)+'" y1="210" y2="210" stroke="'+c+'" stroke-width="1.8"/><line x1="'+(cx-8)+'" x2="'+(cx-8)+'" y1="188" y2="232" stroke="'+c+'" stroke-width="2.4"/>';
+    if(on)o+='<line x1="'+cx+'" x2="'+cx+'" y1="'+gy1+'" y2="'+gy2+'" stroke="var(--curr)" stroke-width="3.2"/>';
+    else o+='<line x1="'+cx+'" x2="'+cx+'" y1="188" y2="198" stroke="'+c+'" stroke-width="2.4"/><line x1="'+cx+'" x2="'+cx+'" y1="203" y2="217" stroke="'+c+'" stroke-width="2.4"/><line x1="'+cx+'" x2="'+cx+'" y1="222" y2="232" stroke="'+c+'" stroke-width="2.4"/>';
+    o+='<polyline points="'+cx+','+gy1+' '+jx+','+gy1+' '+jx+','+yB+'" fill="none" stroke="'+c+'" stroke-width="'+(on?2.4:1.4)+'"/><polyline points="'+cx+','+gy2+' '+jx+','+gy2+' '+jx+','+yG+'" fill="none" stroke="'+c+'" stroke-width="'+(on?2.4:1.4)+'"/>';
+    o+='<circle cx="'+jx+'" cy="'+yB+'" r="3.4" fill="'+busCol+'"/>';
+    if(on)o+='<path class="flow" d="M'+jx+' '+(yB+2)+' V'+gy1+' H'+cx+' V'+gy2+' H'+jx+' V'+(yG-2)+'" fill="none" stroke="var(--curr)" stroke-width="2.6"/>';
+    o+='<text x="'+(jx+8)+'" y="'+(yB+24)+'" font-size="11" font-weight="700" fill="'+c+'">'+(on?'ON':'off')+'</text><text x="'+(jx+8)+'" y="'+(yB+36)+'" font-size="9.5" fill="var(--mute)">transistor</text>';
+  }
+  $('schemSvg').innerHTML=o;
+}
+function setView(v){$('schemSvg').toggleAttribute('hidden',v!=='logic');$('wireSvg').toggleAttribute('hidden',v!=='wire');$('vNoteL').hidden=v!=='logic';$('vNoteW').hidden=v!=='wire';pressed('vLogic',v==='logic');pressed('vWire',v==='wire')}
+$('vLogic').addEventListener('click',function(){setView('logic')});
+$('vWire').addEventListener('click',function(){setView('wire')});
 
 /* ---------- 2. noise ---------- */
 var PAT=[1,0,1,1,0,0,1,0,1,0,1,1,0,1,0,0],SPB=10,NS=PAT.length*SPB,NZ={se:false,seed:117,n:null};
@@ -624,6 +807,24 @@ function drawTiming(){
 }
 ['tRate','tLen','tSp','tLoop'].forEach(function(id){$(id).addEventListener('input',drawTiming)});
 
+/* hand calculation: longest bus */
+function handSet(){var rate=parseInt($('tRate').value,10),sp=parseFloat($('tSp').value),tl=parseFloat($('tLoop').value);$('hcSet').textContent=(rate/1000)+' kbit/s, sample point '+Math.round(sp)+'%, node delay '+tl+' ns one way, 5 ns per metre';return {rate:rate,sp:sp/100,tl:tl}}
+function handWork(h){var Tb=1e9/h.rate,bud=h.sp*Tb,m=CAN.maxLen(h.rate,h.sp,h.tl);
+  return '<span class="m">bit time</span>            T = 1 / '+(h.rate/1000)+' kbit/s = '+fmtT(Tb)+'\n<span class="m">budget before sample</span>  '+Math.round(h.sp*100)+'% &times; '+fmtT(Tb)+' = '+fmtT(bud)+'\n<span class="m">node delay, there and back</span>  2 &times; '+h.tl+' ns = '+(2*h.tl)+' ns\n<span class="m">left for the cable</span>   '+fmtT(bud)+' &minus; '+(2*h.tl)+' ns = '+fmtT(bud-2*h.tl)+'\n<span class="m">cable, there and back</span>  2 &times; L &times; 5 ns/m = 10 ns/m &times; L\n<span class="m">so</span>  L = '+fmtT(bud-2*h.tl)+' / 10 ns/m = <b>'+(m>=1?Math.round(m)+' m':'none')+'</b>'}
+function hcCheck(){var h=handSet(),m=CAN.maxLen(h.rate,h.sp,h.tl),raw=$('hcIn').value.trim(),v=parseFloat(raw),r=$('hcRes');
+  if(raw===''||isNaN(v)){r.innerHTML='Type your answer in metres first.';return}
+  var err=Math.abs(v-m)/Math.max(m,1);
+  if(err<=0.03)r.innerHTML='<span class="good">Matches the model: '+Math.round(m)+' m.</span> Now change the bit rate or the node delay and predict again.';
+  else if(Math.abs(v-m)<=Math.max(5,m*0.1))r.innerHTML='<span class="good">Close.</span> The model gives '+Math.round(m*10)/10+' m. Check your rounding in the working.';
+  else if(m>0&&Math.abs(v-m/2)/m<0.05)r.innerHTML='<span class="bad">Off by a factor of two.</span> The model gives '+Math.round(m)+' m. The signal has to go to the far end <i>and come back</i>, so a metre of bus costs 2 &times; 5 ns, not 5 ns.';
+  else r.innerHTML='<span class="bad">Not yet.</span> The model gives '+Math.round(m)+' m. Open &ldquo;Show the working&rdquo; and compare it with yours line by line.';
+  $('hcWork').hidden=false;$('hcWork').style.whiteSpace='pre-wrap';$('hcWork').innerHTML=handWork(h)}
+$('hcGo').addEventListener('click',hcCheck);
+$('hcIn').addEventListener('keydown',function(e){if(e.key==='Enter')hcCheck()});
+$('hcShow').addEventListener('click',function(){var w=$('hcWork');if(w.hidden){w.hidden=false;w.style.whiteSpace='pre-wrap';w.innerHTML=handWork(handSet());this.textContent='Hide the working'}else{w.hidden=true;this.textContent='Show the working'}});
+['tRate','tSp','tLoop'].forEach(function(id){$(id).addEventListener('input',function(){handSet();$('hcRes').textContent='';$('hcWork').hidden=true;$('hcShow').textContent='Show the working'})});
+handSet();
+
 /* stuffing demo */
 function drawStuff(){
   var raw=$('sIn').value.replace(/[^01]/g,'').slice(0,48);
@@ -690,7 +891,7 @@ $('tmBoth').addEventListener('click',function(){TM=2;drawTerm()});
 $('tmOne').addEventListener('click',function(){TM=1;drawTerm()});
 $('tmNone').addEventListener('click',function(){TM=0;drawTerm()});
 
-drawWire();drawNoise();drawTiming();drawStuff();drawTerm();
+drawWire();drawNoise();drawTiming();drawStuff();drawTerm();setView("logic");
 })();
 
 </script>
