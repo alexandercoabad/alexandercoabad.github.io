@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CAN bus tutorial</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#EBEFF2; --panel:#F8FAFB; --ink:#15212B; --mute:#587080; --line:#C7D1D8;
+  --volt:#1D63C9; --curr:#C2620A; --cell:#22313D; --err:#B3261E; --ok:#1E7B4A; --hl:#FBE9D2;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+    --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+  --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+:root{color-scheme:light}
+html{padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+a{color:var(--volt)}
+header h1{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,4vw,34px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;max-width:72ch;color:var(--mute)}
+.crumb{font-size:13px;margin:0 0 8px}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.toc a{border:1px solid var(--line);border-radius:999px;padding:3px 12px;text-decoration:none;color:var(--ink);background:var(--panel);font-size:13px}
+.toc a:hover{border-color:var(--volt)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+h2{font-family:var(--f-display);font-size:18px;font-weight:600;margin:0 0 8px;letter-spacing:.01em}
+.cap{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--mute);font-weight:600}
+.lead{margin:0 0 12px;max-width:78ch;font-size:14px}
+.note{font-size:12px;color:var(--mute);margin:8px 0 0}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{border:1px solid var(--line);border-radius:6px;padding:12px;background:var(--bg);min-width:0}
+.card h3{font-family:var(--f-display);font-size:15px;margin:0 0 4px}
+.row{display:flex;align-items:center;gap:10px;margin:7px 0}
+.row label{flex:0 0 130px;font-size:13px}
+.row input[type=range]{flex:1;min-width:0;accent-color:var(--volt)}
+.row output{flex:0 0 96px;text-align:right;font-family:var(--f-mono);font-size:12px}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 10px}
+button{cursor:pointer}
+button:hover:not(:disabled){border-color:var(--volt)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.set{border-color:var(--curr);color:var(--curr);font-weight:600}
+button.reset{border-color:var(--err);color:var(--err);font-weight:600}
+button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-mono)}
+.read{font-family:var(--f-mono);font-size:13px;margin:6px 0}
+.read b{font-weight:500}
+.big{font-family:var(--f-display);font-weight:700;font-size:26px;line-height:1.15}
+.status{min-height:2.9em;font-size:13px;margin:6px 0}
+.good{color:var(--ok)} .bad{color:var(--err)}
+.analogy{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:10px 0 0}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute)}
+td:first-child{font-weight:600;white-space:nowrap}
+#cellSvg{max-width:340px;margin-left:auto;margin-right:auto}
+#rrSvg{max-width:340px;margin-left:auto;margin-right:auto}
+#gauge,#gauge2{max-width:340px;margin-left:auto;margin-right:auto}
+.cmp td:first-child{white-space:normal}
+@media (max-width:600px){.cmp th,.cmp td{padding:6px 6px;font-size:12px}}
+.tw{overflow-x:auto}
+.actbar{position:sticky;bottom:0;z-index:5;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:10px 0;box-shadow:0 -4px 10px rgba(0,0,0,.08)}
+.mapgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.mapgrid .card p{margin:4px 0 0;font-size:13px}
+details.q{border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0;background:var(--bg)}
+details.q summary{cursor:pointer;font-weight:600}
+details.q p{margin:8px 0 2px}
+.verdict{font-family:var(--f-display);font-size:18px;font-weight:600;margin:8px 0 2px}
+.credit{font-size:12px;color:var(--mute);text-align:center;padding-top:6px;border-top:1px solid var(--line)}
+.flow{stroke-dasharray:6 5;animation:dash .7s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-11}}
+@media (prefers-reduced-motion:reduce){.flow{animation:none}}
+.refs{margin:6px 0 4px;padding-left:24px;font-size:13px;line-height:1.5;max-width:92ch}
+.refs li{margin:8px 0}
+.refs .why{display:block;color:var(--mute);font-size:12px;margin-top:2px}
+.sub{font-family:var(--f-display);font-size:15px;margin:6px 0 4px}
+.cn{margin:0 0 8px;font-size:13px;color:var(--ink)}
+
+</style></head><body><div class="wrap">
+<header><p class="crumb"><a href="../">Home</a></p><h1>CAN bus tutorial</h1>
+<p>An interactive introduction to the Controller Area Network, in the same style as the ReRAM and PCM lessons. More steps are being added one at a time.</p></header>
+<section class="panel"><h2>Lessons</h2>
+<p class="lead"><span class="cap">Step 1 of 3</span> &nbsp;<a href="basics/"><b>CAN bus vs separate wires</b></a>: the wired-AND bus, differential signalling, bit timing and stuffing.</p>
+<p class="note">Step 2 (how a message wins the bus) and Step 3 (bus simulator) are coming.</p></section>
+<footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>
+</div></body></html>
