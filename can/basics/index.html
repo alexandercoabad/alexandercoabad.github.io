@@ -112,7 +112,7 @@ input[type=text]{font:inherit}
 <body>
 <div class="wrap">
   <header>
-    <p class="crumb"><span class="cap">Step 1 of 3</span> &nbsp;·&nbsp; CAN basics &nbsp;·&nbsp; <a href="../">CAN home</a> &nbsp;·&nbsp; <a href="../frame/">Next: how a message wins the bus &rarr;</a></p>
+    <p class="crumb"><span class="cap">Step 1 of 3</span> &nbsp;·&nbsp; CAN basics &nbsp;·&nbsp; <a href="../">CAN home</a> &nbsp;·&nbsp; <a href="../reference/">Reference</a> &nbsp;·&nbsp; <a href="../frame/">Next: how a message wins the bus &rarr;</a></p>
     <h1>CAN bus vs separate wires</h1>
     <p>A modern car has dozens of small computers (ECUs) that all need to talk to each other: the engine, the brakes, the doors, the dashboard. Running a private wire between every pair would be a harness nobody could build. A <b>Controller Area Network (CAN)</b> puts all of them on <b>one twisted pair of wires</b>. Anyone can talk, everyone listens, and a simple rule decides who goes first when two talk at once. If you did the <a href="../../reram/">ReRAM</a> and <a href="../../pcm/">PCM</a> lessons, the idea of a shared wire will feel familiar, but the physics is different: there, a shared bit line <b>added currents</b>. Here, a shared bus <b>combines voltage levels with a logical AND</b>. This page builds the bus, shows why two wires beat one, and shows what limits its speed and length, before Step 2 follows one message onto the bus.</p>
     <nav class="toc" aria-label="On this page">

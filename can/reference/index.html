@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CAN Reference</title>
+<meta name="description" content="CAN bus reference: equations with worked examples, a searchable glossary, symbols and units, what every setting does, and further reading.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --bg:#EBEFF2; --panel:#F8FAFB; --ink:#15212B; --mute:#587080; --line:#C7D1D8;
+  --volt:#1D63C9; --curr:#C2620A; --cell:#22313D; --err:#B3261E; --ok:#1E7B4A; --hl:#FBE9D2;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+    --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+  --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+:root{color-scheme:light}
+html{padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px);scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+a{color:var(--volt)}
+header h1{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,4vw,34px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;max-width:72ch;color:var(--mute)}
+.crumb{font-size:13px;margin:0 0 8px!important;color:var(--ink)!important}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.toc a{border:1px solid var(--line);border-radius:999px;padding:3px 12px;text-decoration:none;color:var(--ink);background:var(--panel);font-size:13px}
+.toc a:hover{border-color:var(--volt)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0;scroll-margin-top:12px}
+h2{font-family:var(--f-display);font-size:18px;font-weight:600;margin:0 0 8px;letter-spacing:.01em}
+h3{font-family:var(--f-display);font-size:15px;font-weight:600;margin:0 0 4px}
+.cap{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--mute);font-weight:600}
+.lead{margin:0 0 12px;max-width:78ch;font-size:14px}
+.note{font-size:12px;color:var(--mute);margin:8px 0 0}
+.card{border:1px solid var(--line);border-radius:6px;padding:12px;background:var(--bg);min-width:0}
+.card p{margin:6px 0 0;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+select,input,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 10px}
+button{cursor:pointer}
+button:hover{border-color:var(--volt)}
+button.set{border-color:var(--curr);color:var(--curr);font-weight:600}
+:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute)}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.s{font-family:var(--f-mono);font-weight:500;white-space:nowrap;color:var(--curr)}
+table.ct td.c{font-weight:600;min-width:130px}
+table.ct td.u{white-space:nowrap;color:var(--mute)}
+table.ct td:nth-child(3){min-width:300px}
+.eqg{grid-template-columns:repeat(auto-fit,minmax(min(100%,430px),1fr))}
+.gh{margin:16px 0 6px}
+details.q{border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0;background:var(--bg)}
+details.q summary{cursor:pointer;font-weight:600}
+details.q p{margin:8px 0 2px}
+.credit{font-size:12px;color:var(--mute);text-align:center;padding-top:6px;border-top:1px solid var(--line)}
+/* signal chain */
+.chain{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:10px 26px}
+.chain li{position:relative;flex:1 1 130px;min-width:0;border:1px solid var(--line);border-radius:6px;padding:10px;background:var(--bg)}
+.chain li::after{content:"\2192";position:absolute;right:-20px;top:50%;transform:translateY(-50%);color:var(--mute);font-size:16px}
+.chain li:last-child::after{content:none}
+.chain .tag{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;border-radius:999px;padding:0 8px;margin-bottom:4px;border:1px solid var(--line);color:var(--mute)}
+.chain .tag.an{border-color:var(--curr);color:var(--curr)}
+.chain .f{font-family:var(--f-mono);font-size:12px;margin-top:4px;color:var(--ink)}
+.chain p{margin:2px 0 0;font-size:12px;color:var(--mute)}
+@media (max-width:640px){.chain li::after{content:none}}
+/* equations */
+pre.eq{margin:6px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);border-radius:6px;font-family:var(--f-mono);font-size:13px;line-height:1.6;overflow-x:auto;white-space:pre;font-variant-numeric:tabular-nums}
+.ex b,.where{color:var(--mute)}
+.where{font-size:12px!important}
+/* glossary */
+.gf{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px}
+.gf input{flex:1 1 240px;min-width:0}
+dl.gl{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:10px}
+.term{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg);min-width:0}
+.term dt{font-weight:600;font-size:13px}
+.term dd{margin:3px 0 0;font-size:13px}
+.refs{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px;max-width:90ch}
+.path{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px}
+.path a.card{text-decoration:none;color:var(--ink)}
+.path a.card:hover{border-color:var(--volt)}
+.path .cap{display:block;margin-bottom:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="crumb"><span class="cap">Reference</span> &nbsp;&middot;&nbsp; <a href="../basics/">Step 1: CAN basics</a> &nbsp;&middot;&nbsp; <a href="../frame/">Step 2: one message</a> &nbsp;&middot;&nbsp; <a href="../bus/">Step 3: the bus simulator</a> &nbsp;&middot;&nbsp; <a href="../">CAN home</a></p>
+    <h1>CAN reference</h1>
+    <p>The equations, terms, symbols and settings used across the three CAN steps, in one place. Keep it open next to the simulator, or use it to look something up when a word is new. Everything here describes classical CAN (2.0A and 2.0B) as a teaching model, and the numbers in the worked examples were taken from the simulators themselves.</p>
+    <nav class="toc" aria-label="On this page">
+      <a href="#path">Learning path</a><a href="#chain">Message path</a><a href="#eq">Equations</a><a href="#glossary">Glossary</a><a href="#symbols">Symbols and units</a><a href="#controls">Settings</a><a href="#faq">Questions</a><a href="#read">Further reading</a>
+    </nav>
+  </header>
+
+  <section class="panel" id="path">
+    <h2>Learning path</h2>
+    <p class="lead">Three short lessons, each building on the one before. If you are new to this, go in order.</p>
+    <div class="path">
+      <a class="card" href="../basics/"><span class="cap">Step 1</span><h3>CAN bus vs separate wires</h3><p>The wired-AND bus, why two twisted wires beat noise, what limits speed and length, and why bits get stuffed.</p></a>
+      <a class="card" href="../frame/"><span class="cap">Step 2</span><h3>How a message wins the bus</h3><p>One message from numbers to bits: frame fields, CRC, stuffing, arbitration against two other nodes, acknowledgement and error counters.</p></a>
+      <a class="card" href="../bus/"><span class="cap">Step 3</span><h3>Six sensors and a dashboard</h3><p>A whole network on one bus. Add extra traffic or noise and watch the readings go stale, then compare the observed delays with the calculated bound.</p></a>
+    </div>
+  </section>
+
+  <section class="panel" id="chain">
+    <h2>The path of a sensor reading in one line</h2>
+    <p class="lead">Everything in the simulators sits somewhere on this path. The first and last steps are in software. The middle is what the bus hardware does.</p>
+    <ol class="chain">
+      <li><span class="tag">software</span><h3>Sample</h3><div class="f">value</div><p>A sensor node measures, for example 87.3 km/h.</p></li>
+      <li><span class="tag">software</span><h3>Scale</h3><div class="f">raw = round((v − offset) / scale)</div><p>The value becomes an integer in 1 or 2 bytes.</p></li>
+      <li><span class="tag">controller</span><h3>Frame and CRC</h3><div class="f">SOF · ID · DLC · data · CRC</div><p>The controller adds the fields and the 15-bit CRC.</p></li>
+      <li><span class="tag">controller</span><h3>Stuff</h3><div class="f">after 5 equal bits</div><p>An opposite bit is added so receivers keep their clocks.</p></li>
+      <li><span class="tag an">bus</span><h3>Arbitrate</h3><div class="f">wired AND</div><p>If others start too, the lowest identifier wins.</p></li>
+      <li><span class="tag an">bus</span><h3>Wires</h3><div class="f">V_diff ≈ 0 V or 2 V</div><p>Bits go out as a voltage difference on CAN_H and CAN_L.</p></li>
+      <li><span class="tag">controller</span><h3>Check and acknowledge</h3><div class="f">destuff, CRC, ACK</div><p>Receivers remove stuff bits, check the CRC and send the ACK.</p></li>
+      <li><span class="tag">software</span><h3>Decode and age</h3><div class="f">v = raw × scale + offset</div><p>The dashboard converts back and notes when the frame arrived.</p></li>
+    </ol>
+  </section>
+
+  <section class="panel" id="eq">
+    <h2>Key equations</h2>
+    <p class="lead">Each one has a worked example with the numbers the simulators use (500 kbit/s, an 80% sample point, 150 ns of node delay) and a pointer to where you can see it. Equations 4, 12 and 14 describe this teaching model, not a particular device or the complete standard.</p>
+    <div class="grid eqg">
+<div class="card"><h3>1. The wired AND</h3><pre class="eq">bus = b_A AND b_B AND b_C ...
+dominant = 0, recessive = 1</pre><p>The bus is recessive (1) only when no node drives dominant. If any node drives dominant (0), the bus is 0. Every node reads the bus back while it sends, so it can compare what it sent with what is there.</p><p class="ex"><b>Example.</b> A sends 1, B sends 0, C sends 1: the bus is 0. A and C read 0, so both see a mismatch and know someone else is dominant. B reads 0, which is what it sent.</p><p class="where">Used in: Step 1, section 1. Step 2, step 5.</p></div>
+<div class="card"><h3>2. Differential levels and the receiver rule</h3><pre class="eq">V_diff = V(CAN_H) − V(CAN_L)
+recessive: 2.5 V and 2.5 V, V_diff ≈ 0 V
+dominant:  3.5 V and 1.5 V, V_diff ≈ 2 V
+receiver: V_diff &gt; 0.9 V → dominant
+          V_diff &lt; 0.5 V → recessive
+          in between → keep the last bit</pre><p>The receiver looks only at the difference of the two wires, so noise that moves both wires together cancels. The gap between 0.5 V and 0.9 V is margin. A real transceiver also has a common-mode input range of about −2 V to +7 V.</p><p class="ex"><b>Example.</b> A 3 V spike on both wires turns recessive into 5.5 V / 5.5 V and dominant into 6.5 V / 4.5 V. The difference is still 0 V or 2 V, and both are inside the −2 V to +7 V range, so the bits are read correctly. A single wire against ground with a 2.5 V threshold would read a 0 as a 1.</p><p class="where">Used in: Step 1, section 2.</p></div>
+<div class="card"><h3>3. Bit time and sample point</h3><pre class="eq">T_bit = 1 / bit rate
+T_bit = (Sync + Prop + Phase1 + Phase2) time quanta
+sample point = (Sync + Prop + Phase1) / total quanta</pre><p>There is no clock wire. Each node divides the bit into time quanta from its own oscillator and reads the bus once per bit, at the sample point. Typical sample points are 75 to 87.5%.</p><p class="ex"><b>Example.</b> At 500 kbit/s T_bit = 2 µs. An 80% sample point reads the bus 1.6 µs after the bit starts. If the bit is 10 quanta of 200 ns, that is after the eighth quantum.</p><p class="where">Used in: Step 1, section 3. Step 2 and Step 3, bit rate.</p></div>
+<div class="card"><h3>4. The longest bus (round-trip rule)</h3><pre class="eq">2 × (L × t_prop + t_node) ≤ SP × T_bit
+L_max = (SP × T_bit − 2 × t_node) / (2 × t_prop)
+t_prop = 5 ns/m</pre><p>A node checks the bus while it sends, so its bit has to reach the far end and come back before the sample point. A faster bit rate leaves less time, so the bus has to be shorter. The 5 ns/m and the node delay are illustrative.</p><p class="ex"><b>Example.</b> SP = 80% and t_node = 150 ns. At 500 kbit/s: (1600 − 300) / 10 = 130 m. At 1 Mbit/s: (800 − 300) / 10 = 50 m. At 250 kbit/s 290 m, at 125 kbit/s 610 m. Doubling the rate cuts the length by a little more than half, because t_node does not shrink.</p><p class="where">Used in: Step 1, section 3, bus length, sample point and node delay sliders.</p></div>
+<div class="card"><h3>5. Frame length in bits (classical CAN)</h3><pre class="eq">standard, no stuffing:  8n + 47
+extended, no stuffing:  8n + 67
+worst-case stuffing:
+  standard  8n + 47 + ⌊(34 + 8n − 1) / 4⌋
+  extended  8n + 67 + ⌊(54 + 8n − 1) / 4⌋</pre><p>n is the number of data bytes (0 to 8). The 34 fixed bits of a standard frame are SOF 1, ID 11, RTR 1, IDE 1, r0 1, DLC 4 and the CRC 15. An extended frame has 54. These and the data bits are the ones that get stuffed. The 13 bits of tail (CRC delimiter, ACK slot, ACK delimiter, 7 EOF bits and the 3-bit gap) are not. Worst case adds one stuff bit per 4 bits of the stuffed part.</p><p class="ex"><b>Example.</b> A standard frame with 8 data bytes is 111 bits with no stuffing and at most 135 with worst-case stuffing, which is 270 µs at 500 kbit/s. An extended frame is 131 and 160 bits. A 2-byte frame is 63 and 75 bits.</p><p class="where">Used in: Step 1, section 4 tiles. Step 2, steps 2 and 4. Step 3, Bit stuffing setting.</p></div>
+<div class="card"><h3>6. CRC-15</h3><pre class="eq">G(x) = x¹⁵ + x¹⁴ + x¹⁰ + x⁸ + x⁷ + x⁴ + x³ + 1   (0x4599)
+CRC = remainder of (message bits × x¹⁵) ÷ G(x)
+message = SOF to the end of the data field</pre><p>The sender divides the bits from the start of the frame to the end of the data field by a fixed polynomial and sends the 15-bit remainder. The receiver does the same and compares. The CRC is computed before bit stuffing and does not cover stuff bits. The simulator runs it one bit at a time: shift left, and if the top bit XOR the new bit is 1, XOR in 0x4599.</p><p class="ex"><b>Example.</b> A standard frame with ID 0x0A0, no RTR, DLC = 2 and data 1A 22 has 35 message bits and CRC = 0x4F31.</p><p class="where">Used in: Step 2, step 3.</p></div>
+<div class="card"><h3>7. Bit stuffing</h3><pre class="eq">after 5 equal bits, insert 1 bit of the opposite value
+the stuff bit starts the next run
+applies from SOF to the end of the CRC sequence
+receiver: a 6th equal bit is a stuff error</pre><p>A long run of equal bits has no edges for the receivers to synchronise on. After every five equal bits the sender adds the opposite bit, and the receiver removes it. The stuff bit counts toward the next run of five, so a stuff bit can itself cause another one.</p><p class="ex"><b>Example.</b> Five zeros 00000 go on the wire as 000001. The 63-bit frame in equation 6 gets 2 stuff bits and becomes 65 bits.</p><p class="where">Used in: Step 1, section 3. Step 2, step 4. Step 3, Bit stuffing setting.</p></div>
+<div class="card"><h3>8. Arbitration</h3><pre class="eq">send the identifier MSB first, reading the bus on every bit
+if I sent 1 and read 0: I lose, stop, listen
+smaller arbitration field wins (0 is dominant)</pre><p>At the first bit where two arbitration fields differ, the smaller one has a 0 (dominant) and the larger one a 1 (recessive). The 0 overwrites the 1, so the larger one sees a mismatch and drops out. The winner’s bits are never damaged, so arbitration is non-destructive. The arbitration field includes the bits after the identifier: for a standard and an extended frame with the same 11 leading bits, the standard frame wins because its RTR bit is dominant while the extended frame’s SRR bit is recessive.</p><p class="ex"><b>Example.</b> 0x0A0 = 00010100000 and 0x120 = 00100100000. They first differ at the third bit, 0 against 1, so 0x0A0 (wheel speed) wins and 0x120 (engine speed) waits for the next gap.</p><p class="where">Used in: Step 2, step 5. Step 3, identifiers and the priority of the extra traffic.</p></div>
+<div class="card"><h3>9. Bus load</h3><pre class="eq">U = Σ C_i / T_i
+measured load = (time the bus is busy) / (run length)
+C_i = (bits in frame i) × T_bit</pre><p>Each message uses C_i of bus time every T_i. The sum is the share of time the bus is busy. Load is an average: a message can still wait for others at a moment when the average is low.</p><p class="ex"><b>Example.</b> At 500 kbit/s with worst-case stuffing, the 2-byte frames take 75 × 2 µs = 150 µs and the 1-byte frames 65 × 2 µs = 130 µs. Wheel, steering and engine every 10 ms: 3 × 1.5% = 4.5%. Throttle every 20 ms: 0.65%. Coolant and fuel add 0.04%. The total is 5.2%. At 125 kbit/s every term is 4 times bigger: 20.8%.</p><p class="where">Used in: Step 3, load readings, Bit rate setting.</p></div>
+<div class="card"><h3>10. Scaling a sensor value into data bytes</h3><pre class="eq">raw = round((value − offset) / scale)
+value = raw × scale + offset
+raw is sent least-significant byte first, in 1 or 2 bytes
+signed values use two’s complement</pre><p>A frame carries integers, not decimals. The sensor value is converted to an integer, so the dashboard can only show values that are a whole number of scale steps from the offset. The largest rounding error is half a step, scale / 2.</p><p class="ex"><b>Example.</b> Wheel speed (scale 0.01): 87.3 km/h → raw 8730 = 0x221A → bytes 1A 22. Steering (scale 0.1, signed, 2 bytes): −12.5° → raw −125 = 0xFF83 → bytes 83 FF. Throttle (scale 0.4): 33.3% → raw 83 → 33.2%, a rounding error of 0.1. Coolant (offset −40): 90 °C → raw 130 = 0x82.</p><p class="where">Used in: Step 3, section 1 (sensor table).</p></div>
+<div class="card"><h3>11. Error counters and bus-off</h3><pre class="eq">failed send: TEC ← TEC + 8
+good send:   TEC ← TEC − 1  (not below 0)
+TEC ≥ 128: error-passive
+TEC &gt; 255: bus-off, silent until recovery
+recovery ≥ 128 × 11 recessive bit times</pre><p>Every transmit error is worth eight good frames, so a node that fails only occasionally drifts back to zero, and a node that fails often climbs. An error-passive node waits longer before it may send again, and a bus-off node stays off the bus until it has seen the recovery sequence. The standard also has counter rules this teaching model skips.</p><p class="ex"><b>Example.</b> Break-even is when 8p = 1 − p, so p = 1/9: a node that loses about one frame in nine holds steady, fewer and it recovers, more and it climbs. At 500 kbit/s the minimum recovery is 128 × 11 × 2 µs = 2.8 ms. In the Step 3 simulator with 40% noise (noise seed 7), the run has 28 bus-off events among the sensor nodes.</p><p class="where">Used in: Step 2, step 6. Step 3, Noise and Restart after bus-off.</p></div>
+<div class="card"><h3>12. Cost of a frame destroyed by noise (teaching model)</h3><pre class="eq">wasted time = (k + 6 + 8 + 3) × T_bit
+k = position of the damaged bit in the frame (1 to the end of the frame)
+the sender then sends the same frame again</pre><p>When a node detects an error it sends a 6-bit error flag, followed by an 8-bit delimiter and the 3-bit gap, and the frame is sent again. The simulator draws a hit frame as a red block of this length. Frames hit late in the frame cost more.</p><p class="ex"><b>Example.</b> A hit on bit 40 at 500 kbit/s: (40 + 6 + 8 + 3) × 2 µs = 114 µs wasted before the retry, about as long as a whole 1-byte frame (55 to 65 bits, 110 to 130 µs).</p><p class="where">Used in: Step 3, red blocks in the timeline, Noise setting.</p></div>
+<div class="card"><h3>13. Worst-case response time (Davis et al.)</h3><pre class="eq">C_i = worst-case frame time
+B_i = max C_k over messages with lower priority than i
+w_i = B_i + Σ over higher priority k of ⌈(w_i + J_k + T_bit) / T_k⌉ × C_k
+R_i = J_i + w_i + C_i</pre><p>A message can be blocked once by a lower-priority frame already on the wire, then delayed by every higher-priority message that is released while it waits. w_i appears on both sides, so the simulator starts at B_i and repeats until it stops changing. R_i is the bound to compare with the period. The bound assumes no noise.</p><p class="ex"><b>Example.</b> At 500 kbit/s with the six sensors: coolant is blocked at most by the 130 µs fuel frame, then waits for wheel, steering and engine (150 µs each) and throttle (130 µs) once each. w = 130 + 580 = 710 µs and R = 710 + 130 = 840 µs, against a period of 500 ms. Observed in a healthy run: at most 0.11 ms.</p><p class="where">Used in: Step 3, calculated worst-case table.</p></div>
+<div class="card"><h3>14. When a reading is stale</h3><pre class="eq">age = now − (time the last frame for this sensor ended)
+stale if age &gt; k × T_sensor
+stale share = (time stale) / (run length)</pre><p>A classical CAN frame has no freshness flag, so the receiver can only look at the clock. The limit is a multiple k of each sensor’s own period, because a slow signal can go longer without an update than a fast one.</p><p class="ex"><b>Example.</b> With k = 3: wheel speed (10 ms) is stale after 30 ms, coolant (500 ms) after 1.5 s and fuel (1000 ms) after 3 s. With 150% extra traffic at the middle priority at 125 kbit/s, coolant is stale for 34, 31 and 25% of the run at k = 2, 3 and 5.</p><p class="where">Used in: Step 3, Stale after setting, tiles and Stale column.</p></div>
+<div class="card"><h3>15. Payload efficiency</h3><pre class="eq">efficiency = 8n / (bits in the frame, including the gap)</pre><p>Most of a classical frame is overhead, so even at the best case only a little over half the bit rate carries data.</p><p class="ex"><b>Example.</b> 8 data bytes: 64 / 111 = 57.7% with no stuffing and 64 / 135 = 47.4% with worst-case stuffing. A 2-byte frame like wheel speed: 16 / 63 = 25.4% and 16 / 75 = 21.3%. A 1-byte frame: 12 to 15%.</p><p class="where">Used in: Step 1, section 4.</p></div>
+<div class="card"><h3>16. Links without a bus</h3><pre class="eq">links = n × (n − 1) / 2</pre><p>Connecting every pair of n nodes directly needs this many links, but a bus needs only n short stubs onto one pair of wires.</p><p class="ex"><b>Example.</b> 20 ECUs need up to 190 point-to-point links, or 20 stubs on a bus. The six sensors and the dashboard are 7 nodes: 21 pairs.</p><p class="where">Used in: Step 1, section 1.</p></div>
+    </div>
+  </section>
+
+  <section class="panel" id="glossary">
+    <h2>Glossary</h2>
+    <p class="lead" style="margin-bottom:8px">Type to filter the 58 terms by name or by anything in the definition.</p>
+    <div class="gf"><label for="gq" class="cap">Search</label><input type="search" id="gq" placeholder="for example: dominant, stuff, error-passive" autocomplete="off"><span class="note" id="gc" style="margin:0" aria-live="polite"></span></div>
+    <dl class="gl" id="gl">
+<div class="term" data-t="acceptance filter a setting in a receiving node’s controller that says which identifiers it wants. nothing on the bus is addressed to a node, so every node hears every frame and keeps the ones its filter lets through."><dt>Acceptance filter</dt><dd>A setting in a receiving node’s controller that says which identifiers it wants. Nothing on the bus is addressed to a node, so every node hears every frame and keeps the ones its filter lets through.</dd></div>
+<div class="term" data-t="ack error the transmitter reads a recessive ack slot: no node acknowledged the frame, so it signals an error and sends the frame again."><dt>ACK error</dt><dd>The transmitter reads a recessive ACK slot: no node acknowledged the frame, so it signals an error and sends the frame again.</dd></div>
+<div class="term" data-t="ack slot and ack delimiter two bits after the crc. the transmitter sends the ack slot recessive, and any receiver that got the frame without detecting an error overwrites it with a dominant bit. the delimiter that follows is always recessive."><dt>ACK slot and ACK delimiter</dt><dd>Two bits after the CRC. The transmitter sends the ACK slot recessive, and any receiver that got the frame without detecting an error overwrites it with a dominant bit. The delimiter that follows is always recessive.</dd></div>
+<div class="term" data-t="alive counter a small number in the data bytes that goes up by one with each frame. a receiver that sees it repeat knows the sender is frozen even though frames still arrive. it is an application-level add-on, not part of the can frame."><dt>Alive counter</dt><dd>A small number in the data bytes that goes up by one with each frame. A receiver that sees it repeat knows the sender is frozen even though frames still arrive. It is an application-level add-on, not part of the CAN frame.</dd></div>
+<div class="term" data-t="arbitration the way nodes decide who sends when several start at once. they send the identifier bit by bit, read the bus, and drop out when they see a dominant bit while sending a recessive one."><dt>Arbitration</dt><dd>The way nodes decide who sends when several start at once. They send the identifier bit by bit, read the bus, and drop out when they see a dominant bit while sending a recessive one.</dd></div>
+<div class="term" data-t="arbitration field the identifier plus the rtr bit (or the srr, ide and rtr bits of an extended frame). arbitration compares it from the first bit."><dt>Arbitration field</dt><dd>The identifier plus the RTR bit (or the SRR, IDE and RTR bits of an extended frame). Arbitration compares it from the first bit.</dd></div>
+<div class="term" data-t="babbling node a node that sends far more often than it should, for example a faulty ecu or a bug. if its identifier has a high priority it starves every lower-priority message."><dt>Babbling node</dt><dd>A node that sends far more often than it should, for example a faulty ECU or a bug. If its identifier has a high priority it starves every lower-priority message.</dd></div>
+<div class="term" data-t="bit error a transmitting node reads a bus level different from what it sent, outside the arbitration field and the ack slot. it signals an error."><dt>Bit error</dt><dd>A transmitting node reads a bus level different from what it sent, outside the arbitration field and the ACK slot. It signals an error.</dd></div>
+<div class="term" data-t="bit rate how many bits the bus carries per second. classical can runs from about 10 kbit/s to 1 mbit/s. all nodes must use the same rate."><dt>Bit rate</dt><dd>How many bits the bus carries per second. Classical CAN runs from about 10 kbit/s to 1 Mbit/s. All nodes must use the same rate.</dd></div>
+<div class="term" data-t="bit stuffing after five equal bits the sender inserts one of the opposite value, and the receiver removes it. it guarantees edges for synchronisation. the frame length therefore depends on the data."><dt>Bit stuffing</dt><dd>After five equal bits the sender inserts one of the opposite value, and the receiver removes it. It guarantees edges for synchronisation. The frame length therefore depends on the data.</dd></div>
+<div class="term" data-t="bit time the duration of one bit, 1 / bit rate. it is split into time quanta and four segments: sync, propagation, phase 1 and phase 2."><dt>Bit time</dt><dd>The duration of one bit, 1 / bit rate. It is split into time quanta and four segments: Sync, Propagation, Phase 1 and Phase 2.</dd></div>
+<div class="term" data-t="blocking a message that has just become ready waits because a lower-priority frame is already on the wire. a frame in progress is never interrupted, so the wait is at most one frame."><dt>Blocking</dt><dd>A message that has just become ready waits because a lower-priority frame is already on the wire. A frame in progress is never interrupted, so the wait is at most one frame.</dd></div>
+<div class="term" data-t="bus load the share of time the bus is busy sending frames, from 0 to 100%. a bus with a load below 100% can still delay a message, because delay depends on what is on the bus at the moment it becomes ready."><dt>Bus load</dt><dd>The share of time the bus is busy sending frames, from 0 to 100%. A bus with a load below 100% can still delay a message, because delay depends on what is on the bus at the moment it becomes ready.</dd></div>
+<div class="term" data-t="bus-off the state of a node whose transmit error counter has passed 255. it stops taking part until it has seen a recovery sequence of 128 times 11 recessive bits, and the software chooses when to try."><dt>Bus-off</dt><dd>The state of a node whose transmit error counter has passed 255. It stops taking part until it has seen a recovery sequence of 128 times 11 recessive bits, and the software chooses when to try.</dd></div>
+<div class="term" data-t="can (controller area network) a message-based, multi-master serial bus developed by bosch in the 1980s for vehicles and standardised as iso 11898."><dt>CAN (Controller Area Network)</dt><dd>A message-based, multi-master serial bus developed by Bosch in the 1980s for vehicles and standardised as ISO 11898.</dd></div>
+<div class="term" data-t="can fd a newer version that sends the data part at a faster rate and carries up to 64 bytes per frame. it is compared with classical can in step 1 but is not simulated."><dt>CAN FD</dt><dd>A newer version that sends the data part at a faster rate and carries up to 64 bytes per frame. It is compared with classical CAN in Step 1 but is not simulated.</dd></div>
+<div class="term" data-t="can_h and can_l the two wires of the twisted pair. recessive: both near 2.5 v. dominant: can_h about 3.5 v and can_l about 1.5 v."><dt>CAN_H and CAN_L</dt><dd>The two wires of the twisted pair. Recessive: both near 2.5 V. Dominant: CAN_H about 3.5 V and CAN_L about 1.5 V.</dd></div>
+<div class="term" data-t="common-mode noise noise that moves both wires of a pair by the same amount. a differential receiver cancels it because it looks only at the difference. transceivers still have an input range, about −2 v to +7 v."><dt>Common-mode noise</dt><dd>Noise that moves both wires of a pair by the same amount. A differential receiver cancels it because it looks only at the difference. Transceivers still have an input range, about −2 V to +7 V.</dd></div>
+<div class="term" data-t="controller and transceiver the controller is the digital block (or chip) that builds and checks frames. the transceiver turns its logic levels into the differential voltages on the bus and back."><dt>Controller and transceiver</dt><dd>The controller is the digital block (or chip) that builds and checks frames. The transceiver turns its logic levels into the differential voltages on the bus and back.</dd></div>
+<div class="term" data-t="crc (cyclic redundancy check) a 15-bit remainder of the frame bits divided by a fixed polynomial. the receiver repeats the calculation and signals an error if the results differ."><dt>CRC (cyclic redundancy check)</dt><dd>A 15-bit remainder of the frame bits divided by a fixed polynomial. The receiver repeats the calculation and signals an error if the results differ.</dd></div>
+<div class="term" data-t="crc error the received crc does not match the one the receiver calculated. the receiver does not acknowledge and sends an error flag after the ack delimiter."><dt>CRC error</dt><dd>The received CRC does not match the one the receiver calculated. The receiver does not acknowledge and sends an error flag after the ACK delimiter.</dd></div>
+<div class="term" data-t="data frame the normal frame that carries 0 to 8 bytes of data. a remote frame (rarely used) has no data and asks for the message with that identifier."><dt>Data frame</dt><dd>The normal frame that carries 0 to 8 bytes of data. A remote frame (rarely used) has no data and asks for the message with that identifier.</dd></div>
+<div class="term" data-t="differential signalling sending a bit as the difference between two wires instead of the voltage on one wire. it rejects noise common to both wires."><dt>Differential signalling</dt><dd>Sending a bit as the difference between two wires instead of the voltage on one wire. It rejects noise common to both wires.</dd></div>
+<div class="term" data-t="dlc (data length code) four bits that say how many data bytes follow. values 9 to 15 also mean 8 bytes in classical can."><dt>DLC (data length code)</dt><dd>Four bits that say how many data bytes follow. Values 9 to 15 also mean 8 bytes in classical CAN.</dd></div>
+<div class="term" data-t="dominant the state a node drives actively, logic 0. if any node drives dominant the bus is dominant."><dt>Dominant</dt><dd>The state a node drives actively, logic 0. If any node drives dominant the bus is dominant.</dd></div>
+<div class="term" data-t="ecu (electronic control unit) a small computer in a vehicle, such as the engine controller or a door module. on can it is a node."><dt>ECU (electronic control unit)</dt><dd>A small computer in a vehicle, such as the engine controller or a door module. On CAN it is a node.</dd></div>
+<div class="term" data-t="eof (end of frame) seven recessive bits that finish a frame. together with the three-bit gap (ifs) it makes the 13-bit tail that is not stuffed."><dt>EOF (end of frame)</dt><dd>Seven recessive bits that finish a frame. Together with the three-bit gap (IFS) it makes the 13-bit tail that is not stuffed.</dd></div>
+<div class="term" data-t="error frame (error flag) a burst that a node sends when it detects an error. it breaks the stuffing rule on purpose so that every node sees the error and discards the frame."><dt>Error frame (error flag)</dt><dd>A burst that a node sends when it detects an error. It breaks the stuffing rule on purpose so that every node sees the error and discards the frame.</dd></div>
+<div class="term" data-t="error-active and error-passive the two states below bus-off. an error-active node signals errors with six dominant bits. a node with a transmit counter of 128 or more is error-passive: its error flag is recessive and it must wait an extra 8 bit times before it sends again."><dt>Error-active and error-passive</dt><dd>The two states below bus-off. An error-active node signals errors with six dominant bits. A node with a transmit counter of 128 or more is error-passive: its error flag is recessive and it must wait an extra 8 bit times before it sends again.</dd></div>
+<div class="term" data-t="extended frame a frame with a 29-bit identifier (can 2.0b), sent as an 11-bit base id and an 18-bit extension. a standard frame has 11 bits (can 2.0a)."><dt>Extended frame</dt><dd>A frame with a 29-bit identifier (CAN 2.0B), sent as an 11-bit base ID and an 18-bit extension. A standard frame has 11 bits (CAN 2.0A).</dd></div>
+<div class="term" data-t="form error a fixed-form bit (a delimiter, or the eof) has the wrong value."><dt>Form error</dt><dd>A fixed-form bit (a delimiter, or the EOF) has the wrong value.</dd></div>
+<div class="term" data-t="gateway a node that connects two buses and passes selected messages between them. real vehicles often put different sensors on different buses behind a gateway."><dt>Gateway</dt><dd>A node that connects two buses and passes selected messages between them. Real vehicles often put different sensors on different buses behind a gateway.</dd></div>
+<div class="term" data-t="identifier (id) the number in the arbitration field. it names what the message is (for example engine speed), not who it is for, and its value sets the priority: lower wins."><dt>Identifier (ID)</dt><dd>The number in the arbitration field. It names what the message is (for example engine speed), not who it is for, and its value sets the priority: lower wins.</dd></div>
+<div class="term" data-t="ifs (interframe space) three recessive bits between frames. the simulator counts them as part of a frame’s length."><dt>IFS (interframe space)</dt><dd>Three recessive bits between frames. The simulator counts them as part of a frame’s length.</dd></div>
+<div class="term" data-t="jitter a variation in when a message becomes ready to send. the response-time calculation adds the jitter j to the wait."><dt>Jitter</dt><dd>A variation in when a message becomes ready to send. The response-time calculation adds the jitter J to the wait.</dd></div>
+<div class="term" data-t="mailbox (transmit buffer) the place where a controller holds a frame to be sent. in step 3 each sensor has one, so a new sample replaces an unsent older one, which is counted as lost."><dt>Mailbox (transmit buffer)</dt><dd>The place where a controller holds a frame to be sent. In Step 3 each sensor has one, so a new sample replaces an unsent older one, which is counted as lost.</dd></div>
+<div class="term" data-t="message-based frames carry an identifier for their content instead of a destination address. any node can listen to any message."><dt>Message-based</dt><dd>Frames carry an identifier for their content instead of a destination address. Any node can listen to any message.</dd></div>
+<div class="term" data-t="multi-master any node may start sending when the bus is idle. there is no central controller."><dt>Multi-master</dt><dd>Any node may start sending when the bus is idle. There is no central controller.</dd></div>
+<div class="term" data-t="node any device connected to the bus: a controller with a transceiver and the ecu behind them."><dt>Node</dt><dd>Any device connected to the bus: a controller with a transceiver and the ECU behind them.</dd></div>
+<div class="term" data-t="non-destructive arbitration the losing node stops without damaging the winning frame, so no bandwidth is lost to the collision."><dt>Non-destructive arbitration</dt><dd>The losing node stops without damaging the winning frame, so no bandwidth is lost to the collision.</dd></div>
+<div class="term" data-t="obd-ii the diagnostic connector under a car dashboard. most cars carry can on its pins 6 and 14."><dt>OBD-II</dt><dd>The diagnostic connector under a car dashboard. Most cars carry CAN on its pins 6 and 14.</dd></div>
+<div class="term" data-t="phase segments the two parts of the bit after the propagation segment. the receiver samples between them and lengthens or shortens them to stay in step with edges."><dt>Phase segments</dt><dd>The two parts of the bit after the propagation segment. The receiver samples between them and lengthens or shortens them to stay in step with edges.</dd></div>
+<div class="term" data-t="priority set by the identifier: the lower the number, the higher the priority. it decides who wins arbitration and so who waits."><dt>Priority</dt><dd>Set by the identifier: the lower the number, the higher the priority. It decides who wins arbitration and so who waits.</dd></div>
+<div class="term" data-t="propagation segment the part of the bit that allows the signal to cross the bus and come back, plus the transceiver delays."><dt>Propagation segment</dt><dd>The part of the bit that allows the signal to cross the bus and come back, plus the transceiver delays.</dd></div>
+<div class="term" data-t="quantisation rounding a value to a whole number of scale steps so that it fits in the data bytes. the largest error is half a step."><dt>Quantisation</dt><dd>Rounding a value to a whole number of scale steps so that it fits in the data bytes. The largest error is half a step.</dd></div>
+<div class="term" data-t="recessive the state of the bus when no node drives it, logic 1."><dt>Recessive</dt><dd>The state of the bus when no node drives it, logic 1.</dd></div>
+<div class="term" data-t="response time the time from a message becoming ready to its last bit arriving. it includes blocking, waiting for higher-priority frames and the frame’s own length."><dt>Response time</dt><dd>The time from a message becoming ready to its last bit arriving. It includes blocking, waiting for higher-priority frames and the frame’s own length.</dd></div>
+<div class="term" data-t="resynchronisation a receiver moves its sample point a little when an edge arrives earlier or later than expected, which absorbs small differences between nodes’ oscillators."><dt>Resynchronisation</dt><dd>A receiver moves its sample point a little when an edge arrives earlier or later than expected, which absorbs small differences between nodes’ oscillators.</dd></div>
+<div class="term" data-t="rtr and srr rtr (remote transmission request) is dominant in a data frame and recessive in a remote frame. srr (substitute remote request) takes its place in an extended frame and is always recessive."><dt>RTR and SRR</dt><dd>RTR (remote transmission request) is dominant in a data frame and recessive in a remote frame. SRR (substitute remote request) takes its place in an extended frame and is always recessive.</dd></div>
+<div class="term" data-t="sample point the moment inside a bit when the receiver reads the bus, as a share of the bit time (commonly 75 to 87.5%)."><dt>Sample point</dt><dd>The moment inside a bit when the receiver reads the bus, as a share of the bit time (commonly 75 to 87.5%).</dd></div>
+<div class="term" data-t="sof (start of frame) the first bit of a frame, always dominant. it gives the other nodes an edge to synchronise on."><dt>SOF (start of frame)</dt><dd>The first bit of a frame, always dominant. It gives the other nodes an edge to synchronise on.</dd></div>
+<div class="term" data-t="stale a value that is older than the allowed limit, here more than a chosen number of the sensor’s own periods. can gives no warning, so the receiver has to check the age."><dt>Stale</dt><dd>A value that is older than the allowed limit, here more than a chosen number of the sensor’s own periods. CAN gives no warning, so the receiver has to check the age.</dd></div>
+<div class="term" data-t="starvation a low-priority message never gets the bus because higher-priority traffic keeps it busy. the lowest-priority messages go first."><dt>Starvation</dt><dd>A low-priority message never gets the bus because higher-priority traffic keeps it busy. The lowest-priority messages go first.</dd></div>
+<div class="term" data-t="stuff error six equal bits in a row between the start of the frame and the crc sequence. it signals an error."><dt>Stuff error</dt><dd>Six equal bits in a row between the start of the frame and the CRC sequence. It signals an error.</dd></div>
+<div class="term" data-t="tec (transmit error counter) the counter a node keeps of its own transmit errors: plus 8 for an error, minus 1 for a good frame. it sets the error-active, error-passive and bus-off states."><dt>TEC (transmit error counter)</dt><dd>The counter a node keeps of its own transmit errors: plus 8 for an error, minus 1 for a good frame. It sets the error-active, error-passive and bus-off states.</dd></div>
+<div class="term" data-t="termination a 120 ω resistor at each end of the bus. it matches the cable so that edges do not reflect. two in parallel read about 60 ω."><dt>Termination</dt><dd>A 120 Ω resistor at each end of the bus. It matches the cable so that edges do not reflect. Two in parallel read about 60 Ω.</dd></div>
+<div class="term" data-t="time quantum the smallest unit of time in a bit, set by the node’s oscillator and prescaler. a bit has typically 8 to 25 of them."><dt>Time quantum</dt><dd>The smallest unit of time in a bit, set by the node’s oscillator and prescaler. A bit has typically 8 to 25 of them.</dd></div>
+<div class="term" data-t="wired and a bus whose level is the and of all the bits driven onto it: 0 if any node drives 0."><dt>Wired AND</dt><dd>A bus whose level is the AND of all the bits driven onto it: 0 if any node drives 0.</dd></div>
+    </dl>
+    <p class="note" id="gn" hidden>No term matches. Try a shorter word.</p>
+  </section>
+
+  <section class="panel" id="symbols">
+    <h2>Symbols and units</h2>
+    <p class="lead">The defaults are the values the simulators start with.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th><th>Default or rule</th></tr></thead>
+      <tbody>
+<tr><td class="s">bit rate</td><td>Bits sent per second on the bus</td><td>kbit/s</td><td class="num">500 in Step 3 (125, 250, 500 or 1000)</td></tr>
+<tr><td class="s">T_bit</td><td>Bit time, 1 / bit rate</td><td>µs</td><td class="num">2 at 500 kbit/s</td></tr>
+<tr><td class="s">SP</td><td>Sample point as a share of the bit</td><td>%</td><td class="num">80</td></tr>
+<tr><td class="s">L</td><td>Bus length</td><td>m</td><td class="num">50 in Step 1</td></tr>
+<tr><td class="s">t_prop</td><td>Signal delay per metre of cable</td><td>ns/m</td><td class="num">5</td></tr>
+<tr><td class="s">t_node</td><td>One-way delay of a node (transmitter, receiver and controller)</td><td>ns</td><td class="num">150</td></tr>
+<tr><td class="s">V_diff</td><td>CAN_H minus CAN_L</td><td>V</td><td class="num">about 0 recessive, 2 dominant</td></tr>
+<tr><td class="s">ID</td><td>Identifier, 11 bits (standard) or 29 bits (extended)</td><td>none</td><td class="num">0x0A0 to 0x3F0 for the sensors</td></tr>
+<tr><td class="s">n, DLC</td><td>Data bytes in the frame (0 to 8) and the length code that says so</td><td>bytes</td><td class="num">1 or 2 per sensor, 8 for the extra traffic</td></tr>
+<tr><td class="s">C_i</td><td>Time message i occupies the bus (worst case or actual)</td><td>µs</td><td class="num">75 bits = 150 µs at 500 kbit/s for a 2-byte frame</td></tr>
+<tr><td class="s">T_i</td><td>Period of message i</td><td>ms</td><td class="num">10, 10, 10, 20, 500 and 1000 ms</td></tr>
+<tr><td class="s">J_i</td><td>Release jitter of message i</td><td>ms</td><td class="num">0</td></tr>
+<tr><td class="s">B_i</td><td>Blocking by the longest lower-priority frame</td><td>µs</td><td class="num">at most one frame</td></tr>
+<tr><td class="s">w_i</td><td>Queuing delay: time from release until the frame wins the bus</td><td>µs</td><td class="num">solved by iteration</td></tr>
+<tr><td class="s">R_i</td><td>Worst-case response time, J + w + C</td><td>µs</td><td class="num">840 for coolant at 500 kbit/s</td></tr>
+<tr><td class="s">D_i</td><td>Deadline of message i</td><td>ms</td><td class="num">equal to its period</td></tr>
+<tr><td class="s">U</td><td>Bus load, Σ C_i / T_i</td><td>%</td><td class="num">5.2 worst case at 500 kbit/s</td></tr>
+<tr><td class="s">scale, offset, raw</td><td>Scaling of a sensor value: value = raw × scale + offset</td><td>units</td><td class="num">see the sensor table in Step 3</td></tr>
+<tr><td class="s">TEC</td><td>Transmit error counter</td><td>count</td><td class="num">+8 per error, −1 per good frame</td></tr>
+<tr><td class="s">error-passive, bus-off</td><td>Counter thresholds</td><td>count</td><td class="num">128 and above 255</td></tr>
+<tr><td class="s">k</td><td>Stale limit, as a number of the sensor’s own periods</td><td>periods</td><td class="num">3 (2, 3 or 5)</td></tr>
+<tr><td class="s">noise (frames hit)</td><td>Chance that a frame sent in the trouble window is destroyed</td><td>%</td><td class="num">0 (0 to 50)</td></tr>
+<tr><td class="s">extra traffic</td><td>Load from other ECUs, as a share of the bus capacity in 120-bit frames</td><td>%</td><td class="num">0 (0 to 150)</td></tr>
+<tr><td class="s">run length</td><td>Length of the Step 3 run</td><td>s</td><td class="num">16</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">At 500 kbit/s one bit lasts 2 µs, so a 111-bit frame lasts 222 µs. Every bit rate step of 125, 250, 500 and 1000 kbit/s halves the bit time. Identifiers are written in hexadecimal (0x0A0 is 160), and a lower number means a higher priority.</p>
+  </section>
+
+  <section class="panel" id="controls">
+    <h2>What each setting does</h2>
+    <p class="lead">Each row says what happens when you raise the setting. The Step 3 numbers were measured by running the simulator’s own bus model on its default six sensors with 500 kbit/s, real stuffed lengths, the 16 s run, trouble from 4 s to 10 s and noise seed 7, changing one setting at a time. They are a guide to the direction and size of each effect, and will shift if you change other settings or the simulator is updated. Stale shares are the share of the whole 16 s run.</p>
+<h3 class="gh">Step 1: the wired bus</h3><div class="tw"><table class="ct"><thead><tr><th>Control</th><th>What it is</th><th>Raise it, and what happens</th><th>Used in</th></tr></thead><tbody>
+<tr><td class="c">Common-mode noise (RMS)</td><td>Noise added to both wires equally, 0 to 8 V (2.0 V by default).</td><td>The single wire fails first, because its 2.5 V threshold is crossed by the noise. The differential pair keeps reading correctly until the noise pushes the wires outside the receiver’s input range (about −2 V to +7 V), where bits are marked “?”.</td><td class="u">Step 1, section 2</td></tr>
+<tr><td class="c">Imbalance between the wires (RMS)</td><td>A separate noise wave on each wire, 0 to 2 V (0.2 V by default).</td><td>This noise changes the difference, so it is the one that can make the CAN pair err. Twisting the wires keeps it small in practice. Raise it to see the margin between the 0.5 V and 0.9 V thresholds disappear.</td><td class="u">Step 1, section 2</td></tr>
+<tr><td class="c">Resample the noise</td><td>A new random noise wave with the same size.</td><td>The same sliders give different errors, so check a conclusion on more than one wave.</td><td class="u">Step 1, section 2</td></tr>
+<tr><td class="c">Bit rate</td><td>125, 250, 500 kbit/s or 1 Mbit/s.</td><td>The bit time halves each step, so frames take half the time, but the longest bus drops from 610 m to 290 m, 130 m and 50 m (80% sample point, 150 ns node delay).</td><td class="u">Steps 1, 2, 3</td></tr>
+<tr><td class="c">Bus length</td><td>1 m to 1 km on a log slider (50 m by default).</td><td>The round trip grows. When it no longer fits before the sample point, the bit rate is too high for that length. The page then shows the longest bus that would work, or “none” if the node delay alone does not fit.</td><td class="u">Step 1, section 3</td></tr>
+<tr><td class="c">Sample point</td><td>50 to 90% (80% by default).</td><td>A later sample point leaves more time for the round trip, so a longer bus works, but less time remains for the phase segments to correct for oscillator differences.</td><td class="u">Step 1, section 3</td></tr>
+<tr><td class="c">Node delay (one way)</td><td>50 to 300 ns (150 by default).</td><td>Counts twice in the round trip, so it shortens the longest bus. At 1 Mbit/s a 300 ns delay already leaves only 20 m.</td><td class="u">Step 1, section 3</td></tr>
+<tr><td class="c">Bits fed in / presets</td><td>The bit pattern for the stuffing demo.</td><td>Long runs of equal bits get more stuff bits. Alternating bits get none.</td><td class="u">Step 1, section 3</td></tr>
+<tr><td class="c">Data bytes</td><td>0 to 8 (8 by default).</td><td>The frame grows by 8 bits per byte (plus stuff bits), and payload efficiency goes from 0% at 0 bytes to 57.7% at 8 bytes with no stuffing.</td><td class="u">Step 1, section 4</td></tr>
+<tr><td class="c">Terminators</td><td>Both ends, one end or none.</td><td>Fewer terminators means more ringing after each edge, which can cross the receiver thresholds and look like extra edges.</td><td class="u">Step 1, section 4</td></tr>
+</tbody></table></div><h3 class="gh">Step 2: one message</h3><div class="tw"><table class="ct"><thead><tr><th>Control</th><th>What it is</th><th>Raise it, and what happens</th><th>Used in</th></tr></thead><tbody>
+<tr><td class="c">Identifier (hex)</td><td>The message’s name and priority.</td><td>A lower number wins arbitration. Giving two nodes the same ID makes them collide in the data field.</td><td class="u">Step 2, steps 1 and 5</td></tr>
+<tr><td class="c">Identifier length</td><td>Standard, 11 bits, or extended, 29 bits.</td><td>The extended frame is 20 bits longer, and loses to a standard frame with the same 11 leading bits.</td><td class="u">Step 2</td></tr>
+<tr><td class="c">Data length (DLC) and data</td><td>How many bytes (0 to 8) and what they are.</td><td>Each byte adds 8 bits, a different CRC, and possibly stuff bits.</td><td class="u">Step 2, steps 1 to 4</td></tr>
+<tr><td class="c">Bit rate</td><td>The rate used for the time labels.</td><td>Changes only how long things take, not which bits are sent.</td><td class="u">Step 2</td></tr>
+<tr><td class="c">Node identifiers (arbitration)</td><td>The IDs of the three competing nodes.</td><td>The lowest ID wins, and the others become receivers at the first bit where they differ.</td><td class="u">Step 2, step 5</td></tr>
+<tr><td class="c">Fault</td><td>None, noise at one receiver (CRC error), nobody acknowledges (ACK error), a corrupted sent bit (bit error), six equal bits (stuff error), or a corrupted fixed-form bit (form error).</td><td>Each fault is caught by a different check. The page shows which nodes raise an error frame and how the transmit error counter moves.</td><td class="u">Step 2, step 6</td></tr>
+<tr><td class="c">Flip a bit in transit</td><td>Chooses one bit of the message (from SOF to the end of the data) that arrives flipped at the receiver.</td><td>The receiver recomputes the CRC over the bits it received and finds that it no longer matches the CRC field, which is a CRC error. Set it to none and the frame is accepted.</td><td class="u">Step 2, step 3</td></tr>
+</tbody></table></div><h3 class="gh">Step 3: six sensors and a dashboard</h3><div class="tw"><table class="ct"><thead><tr><th>Control</th><th>What it is</th><th>Raise it, and what happens</th><th>Used in</th></tr></thead><tbody>
+<tr><td class="c">Bit rate</td><td>125, 250, 500 kbit/s or 1 Mbit/s (500 by default).</td><td>A healthy bus’s worst delay for wheel speed falls from 0.54 ms at 125 kbit/s to 0.27, 0.13 and 0.07 ms. The load over the whole run goes from 18% to 9%, 5% and 2%. A slow bus has less room when trouble starts.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Bit stuffing</td><td>Real data (computed), none (best case) or worst case.</td><td>Small effect on 1 and 2-byte frames: wheel speed’s worst delay is 0.12, 0.13 and 0.14 ms at 500 kbit/s. It matters more for 8-byte extra traffic, 111 bits against 135.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Sampling</td><td>Spread out (a few ms apart), or all on the same tick.</td><td>Sensors released together queue behind each other. The worst delay of fuel (the lowest priority) goes from 0.11 ms to 0.74 ms and steering from 0.13 to 0.27 ms. The average load is unchanged.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Extra traffic (0 to 150%)</td><td>Frames from other ECUs, in the trouble window only. 100% fills the bus with 120-bit frames.</td><td>At 500 kbit/s and middle priority, 100% makes coolant wait up to 1.9 ms and fuel 3.3 ms but nothing goes stale. At 150% coolant is stale for 31% of the run and fuel for 25%, and they lose 11 and 5 samples.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Extra traffic priority</td><td>Highest (0x010), middle (0x200) or lowest (0x600).</td><td>At 150% and 500 kbit/s: the lowest priority leaves every sensor at 0% stale. The middle priority starves only coolant and fuel. The highest priority starves all six: wheel, steering, engine and throttle are stale for 37% of the run, coolant 31% and fuel 25%.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Noise (frames hit), 0 to 50%</td><td>The chance that a frame sent during the trouble window is destroyed and sent again.</td><td>At 5% there are 103 error frames in the run and nothing goes stale. At 15% there are 353 and one bus-off. At 30%, 813 error frames and 16 bus-offs, with up to 3% stale. At 40%, 1,204 and 28, with up to 5% stale.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Restart after bus-off</td><td>Minimum (128 × 11 bit times), after 100 ms or after 500 ms.</td><td>At 40% noise the minimum keeps every reading fresh (0% stale, worst delay 3 to 4 ms) but produces more error frames (1,387, against 1,204 and 812). A 500 ms restart quietens the bus but the fast sensors are stale for up to 15% of the run.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Trouble starts at, lasts</td><td>When the trouble begins (1 to 10 s) and how long it lasts (1 to 12 s) in the 16 s run. Defaults 4 s and 6 s.</td><td>The stale share grows with the duration. A 150% highest-priority flood is stale for 19% of the run when it lasts 3 s, 37% for 6 s and 75% for 12 s.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Stale after (2, 3 or 5 periods)</td><td>How old a reading may be before it counts as stale.</td><td>A stricter limit flags more. In the 125 kbit/s overload with 150% middle-priority traffic, coolant is stale for 34, 31 and 25% of the run at 2, 3 and 5 periods, and fuel 31, 25 and 12%.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Period of each sensor</td><td>Every 1 ms to 1 s, per sensor (10, 10, 10, 20, 500, 1000 ms by default).</td><td>A shorter period raises the load, and the sensor’s own samples can overwrite each other in the buffer if the bus cannot keep up.</td><td class="u">Step 3, section 1</td></tr>
+<tr><td class="c">Re-roll the noise</td><td>A different random choice of which frames are hit.</td><td>Totals stay similar but the moments change, so compare settings with the same roll.</td><td class="u">Step 3</td></tr>
+<tr><td class="c">Chart window, timeline window, speed, time slider</td><td>How much of the run is drawn and how fast it plays.</td><td>Display only. They never change the result of the run.</td><td class="u">Step 3</td></tr>
+</tbody></table></div>
+  </section>
+
+  <section class="panel" id="faq">
+    <h2>Common questions</h2>
+<details class="q"><summary>Why does the lower identifier win?</summary><p>The identifier is sent most significant bit first. At the first bit where two identifiers differ, the smaller number has a 0, which is dominant, and the larger number has a 1, which is recessive. The bus shows 0, so the larger one sees a mismatch and stops.</p></details>
+<details class="q"><summary>Is a CAN message addressed to a node?</summary><p>No. The identifier says what the message is, and every node decides for itself whether it wants it (the acceptance filter). That is why a new node can be added without changing the others.</p></details>
+<details class="q"><summary>The transmitter saw a dominant ACK slot. Did the dashboard get the frame?</summary><p>Not necessarily. A dominant ACK slot means that at least one node received the frame without detecting an error. It does not say which node, so the sender cannot tell whether the intended receiver got it.</p></details>
+<details class="q"><summary>Why does a frame get longer with some data?</summary><p>Bit stuffing. The sender adds a bit after every five equal bits, so a payload of zeros or ones needs more stuff bits than alternating data. That is why the simulator can use the real stuffed length or the worst case.</p></details>
+<details class="q"><summary>Is a bus load below 100% safe?</summary><p>No. Load is an average. If several messages become ready together they queue behind each other, and a frame in progress is never interrupted, so a low-priority message can wait for several frames. Step 3 shows this with the Sampling setting.</p></details>
+<details class="q"><summary>Why do coolant and fuel go stale first?</summary><p>They have the lowest priority. When traffic with a middle priority fills the bus, higher-priority sensors still win every arbitration but coolant and fuel lose to it. The lowest-priority messages starve first.</p></details>
+<details class="q"><summary>Why does 5% noise barely matter and 30% empties the dashboard?</summary><p>Each hit adds 8 to the sender’s error counter and each good frame takes off 1. Below about one hit in nine the counter drifts back to zero. Above it, the counter climbs through 128 (error-passive) and 255 (bus-off), and the node is silent until it restarts.</p></details>
+<details class="q"><summary>Why does a faster restart after bus-off keep the readings fresher, and is it better?</summary><p>The node is back on the bus sooner, so fewer samples are lost. But it also sends more frames into a noisy bus, so there are more error frames (1,387 against 812 in the default 40% noise case). A real controller leaves the restart time to software, and a node that keeps disturbing the bus is better left off.</p></details>
+<details class="q"><summary>Why does the dashboard not warn me about an old value?</summary><p>A classical CAN frame has no freshness field. The receiver sees a frame when one arrives and nothing when none does. The check has to be made in the application, by noting when each frame arrived, and sometimes with an alive counter or a checksum in the data.</p></details>
+<details class="q"><summary>A sample was replaced in the transmit buffer and never sent. Is that a bug?</summary><p>No, it is a choice. With one buffer per message, a newer reading replaces an older unsent one. If every sample waited in a queue instead, an overloaded bus would deliver old readings later and later. For a sensor the newest value is almost always the one wanted.</p></details>
+<details class="q"><summary>Is the calculated worst-case delay a prediction?</summary><p>It is a bound. It assumes every higher-priority message is released at the worst moment and that no noise hits. The run usually stays well below it (for coolant at 500 kbit/s, the bound is 0.84 ms and a healthy run stays under 0.12 ms). Noise can break the bound, which is why the table says it assumes none.</p></details>
+<details class="q"><summary>Why can a classical CAN frame carry only 8 data bytes?</summary><p>It was designed for short control messages that must arrive quickly. A short frame also limits how long a high-priority message can be blocked. Large data has to be split into many frames by a higher-layer protocol. CAN FD carries up to 64 bytes.</p></details>
+<details class="q"><summary>The bus is dead. What do I check first?</summary><p>With the power off, measure the resistance between CAN_H and CAN_L: about 60 Ω is right, 120 Ω means one terminator is missing and an open circuit means both are. With the power on, a node stuck dominant holds the bus away from the idle 2.5 V. A wrong bit rate on one node, or a short between the wires or to ground, are also common.</p></details>
+  </section>
+
+  <section class="panel" id="read">
+    <h2>Further reading</h2>
+    <p class="lead">Start with the two Texas Instruments application reports, which are free and short. The Davis et al. paper is the source of the worst-case delay analysis, and the standards are the authoritative source but are sold by ISO. The numbers in the simulators are illustrative. Check each publisher page for the final details.</p>
+    <ol class="refs">
+<li>Corrigan, S. Introduction to the Controller Area Network (CAN). Texas Instruments application report SLOA101. <a href="https://www.ti.com/lit/SLOA101">ti.com/lit/SLOA101</a><br><span class="note">A readable walk through the frame, arbitration, error handling and the bus levels, with the same dominant and recessive picture used here.</span></li>
+<li>Corrigan, S. Controller Area Network Physical Layer Requirements. Texas Instruments application report SLLA270. <a href="https://www.ti.com/lit/slla270">ti.com/lit/slla270</a><br><span class="note">Termination, cable, stubs, bit timing and the relation between bus length and bit rate, which Step 1 simplifies.</span></li>
+<li>Di Natale, M., Zeng, H., Giusto, P. &amp; Ghosal, A. Understanding and Using the Controller Area Network Communication Protocol: Theory and Practice. Springer (2012). <a href="https://www.springer.com/gp/book/9781461403135">springer.com</a><br><span class="note">A textbook on the protocol, bit timing, error confinement (including the counter rules Step 2 skips) and timing analysis.</span></li>
+<li>Davis, R. I., Burns, A., Bril, R. J. &amp; Lukkien, J. J. Controller Area Network (CAN) schedulability analysis: Refuted, revisited and revised. Real-Time Systems 35, 239&ndash;272 (2007). <a href="https://doi.org/10.1007/s11241-007-9012-7">doi:10.1007/s11241-007-9012-7</a><br><span class="note">Shows how arbitration and the worst-case frame length (including stuff bits) set how long a message can wait. Equation 13 and the worst-case table in Step 3 use this analysis.</span></li>
+<li>Bosch. CAN Specification, Version 2.0 (1991).<br><span class="note">The original specification of the classical frame (parts A and B). Search the title to find a copy.</span></li>
+<li>ISO 11898-1 (data link layer) and ISO 11898-2 (high-speed physical layer).<br><span class="note">The international standards that define the frame and the bus levels used in these pages. Search the standard numbers on the ISO website.</span></li>
+    </ol>
+    <p class="note" style="max-width:80ch">Links can change, so searching the title always works. These are the same citations as in Steps 1 to 3; no new ones were added.</p>
+  </section>
+
+  <footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>
+</div>
+<script>
+(function(){
+var q=document.getElementById('gq'),items=Array.prototype.slice.call(document.querySelectorAll('#gl .term')),c=document.getElementById('gc'),n=document.getElementById('gn');
+function f(){
+  var v=q.value.trim().toLowerCase(),shown=0;
+  items.forEach(function(t){var m=!v||t.getAttribute('data-t').indexOf(v)>-1;t.hidden=!m;if(m)shown++});
+  c.textContent=v?shown+' of '+items.length+' terms':'';
+  n.hidden=shown>0;
+}
+q.addEventListener('input',f);
+})();
+</script>
+</body>
+</html>

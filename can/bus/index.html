@@ -158,7 +158,7 @@ details.q p{margin:8px 0 2px}
 <body>
 <div class="wrap">
   <header>
-    <p class="crumb"><span class="cap">Step 3 of 3</span> &nbsp;·&nbsp; <a href="../basics/">Step 1: CAN bus vs separate wires</a> &nbsp;·&nbsp; <a href="../frame/">&larr; Step 2: how does a message win the bus? (read this first)</a> &nbsp;·&nbsp; <a href="../">CAN home</a></p>
+    <p class="crumb"><span class="cap">Step 3 of 3</span> &nbsp;·&nbsp; <a href="../basics/">Step 1: CAN bus vs separate wires</a> &nbsp;·&nbsp; <a href="../frame/">&larr; Step 2: how does a message win the bus? (read this first)</a> &nbsp;·&nbsp; <a href="../">CAN home</a> &nbsp;·&nbsp; <a href="../reference/">Reference</a></p>
     <h1>CAN bus simulator: six sensors and a dashboard</h1>
     <p>Six sensor nodes measure a vehicle: wheel speed, engine speed, throttle, steering angle, coolant temperature and fuel level. Each one samples its sensor on a timer, packs the reading into a CAN frame and sends it over the simulated bus. A dashboard node listens, decodes every frame it receives and shows the latest value of each sensor.</p>
     <p>A CAN frame carries no &ldquo;this is fresh&rdquo; flag. If frames stop arriving, the dashboard simply keeps the last number, so the only way to notice is to check <b>how old</b> that number is. Overload the bus or fill it with noise and you can watch the readings go stale while the real vehicle keeps moving.</p>
@@ -272,8 +272,8 @@ details.q p{margin:8px 0 2px}
   </section>
 
   <section class="panel" id="next" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
-    <div><span class="cap">That is the series</span><h2 style="margin:2px 0 0">Back to the lesson plan</h2><p class="note" style="margin:4px 0 0;font-size:13px;max-width:62ch">Step 1 built the wired-AND bus, Step 2 followed one message onto it, and this step put six sensors and a dashboard on it. Revisit Step 2 to watch the error counters move one frame at a time.</p></div>
-    <a href="../" style="text-decoration:none"><button class="set" type="button" style="padding:10px 18px;font-size:15px">CAN home</button></a>
+    <div><span class="cap">Where to look things up</span><h2 style="margin:2px 0 0">Equations, terms and settings</h2><p class="note" style="margin:4px 0 0;font-size:13px;max-width:62ch">Step 1 built the wired-AND bus, Step 2 followed one message onto it, and this step put six sensors and a dashboard on it. The CAN reference page collects the equations with worked examples, a searchable glossary, symbols and units, and what every setting on these pages does. Revisit Step 2 to watch the error counters move one frame at a time.</p></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px"><a href="../reference/" style="text-decoration:none"><button class="set" type="button" style="padding:10px 18px;font-size:15px">Open the CAN reference &rarr;</button></a><a href="../" style="text-decoration:none"><button type="button" style="padding:10px 18px;font-size:15px">CAN home</button></a></div>
   </section>
 
   <footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>
