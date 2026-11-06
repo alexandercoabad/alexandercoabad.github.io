@@ -19,6 +19,16 @@ Personal site with browser simulators for my chip projects. Each simulator is on
 | `pcm/basics/index.html` | PCM lesson, Step 1: a phase-change cell compared with a ReRAM cell |
 | `pcm/write/index.html` | PCM lesson, Step 2: how a weight gets written into a PCM cell |
 | `pcm/reference/index.html` | PCM reference: equations, glossary, symbols and units, settings, questions, further reading |
+| `can/index.html` | CAN bus overview: lesson plan linking the three steps |
+| `can/basics/index.html` | CAN lesson, Step 1: CAN bus vs separate wires (wired-AND bus, differential signalling, bit timing, stuffing) |
+| `can/frame/index.html` | CAN lesson, Step 2: how a message wins the bus (frame fields, CRC, stuffing, arbitration, acknowledgement, error counters) |
+| `can/bus/index.html` | CAN lesson, Step 3: six sensors (wheel speed, engine speed, throttle, steering angle, coolant temperature, fuel level) send CAN frames to a dashboard; overload or noise makes the readings go stale |
+
+## CAN bus lessons
+
+The three CAN pages are self-contained and share one small simulation core, `var CAN=(function(){...})()`, which is pasted verbatim into each page (there is no build step, so keep the three copies identical when you change it). It covers frame layout, CRC-15, bit stuffing, arbitration keys, the Davis et al. response-time analysis and a discrete-event bus simulation (`CAN.simulate`).
+
+Sensor samples (used by Step 3): a message can carry a `sensor` spec (`min`, `max`, `scale`, `offset`, `bytes`, `signed`) and a `signal(tUs)` function. The value is sampled when the message is released, scaled and packed little-endian into the data bytes (`CAN.packSample` / `CAN.unpackSample`), and every delivered frame is recorded in `result.rx[i]` as `{t, s, d}` (end of frame, sample instant, data bytes), so a receiver can decode what actually crossed the bus and work out how old it is (`CAN.lastRx` finds the latest delivery at a given time). Extra `simulate` options: `mailbox` (one transmit buffer per message, a newer sample replaces an unsent older one and is counted in `stats[i].over`), per-message `startMs` / `stopMs` (extra traffic that begins and ends), `errFromMs` / `errToMs` (the window in which noise can hit frames) and `busOffMs` (how long a bus-off node stays silent). Without these options `simulate` behaves exactly as before.
 
 ## AgilA32 browser simulator
 

@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CAN bus simulator: sensors and a dashboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+
+:root{
+  --bg:#EBEFF2; --panel:#F8FAFB; --ink:#15212B; --mute:#587080; --line:#C7D1D8;
+  --volt:#1D63C9; --curr:#C2620A; --cell:#22313D; --err:#B3261E; --ok:#1E7B4A; --hl:#FBE9D2;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+    --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+  --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+:root{color-scheme:light}
+html{padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+a{color:var(--volt)}
+header h1{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,4vw,34px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;max-width:72ch;color:var(--mute)}
+.crumb{font-size:13px;margin:0 0 8px}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.toc a{border:1px solid var(--line);border-radius:999px;padding:3px 12px;text-decoration:none;color:var(--ink);background:var(--panel);font-size:13px}
+.toc a:hover{border-color:var(--volt)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+h2{font-family:var(--f-display);font-size:18px;font-weight:600;margin:0 0 8px;letter-spacing:.01em}
+.cap{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--mute);font-weight:600}
+.lead{margin:0 0 12px;max-width:78ch;font-size:14px}
+.note{font-size:12px;color:var(--mute);margin:8px 0 0}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{border:1px solid var(--line);border-radius:6px;padding:12px;background:var(--bg);min-width:0}
+.card h3{font-family:var(--f-display);font-size:15px;margin:0 0 4px}
+.row{display:flex;align-items:center;gap:10px;margin:7px 0}
+.row label{flex:0 0 130px;font-size:13px}
+.row input[type=range]{flex:1;min-width:0;accent-color:var(--volt)}
+.row output{flex:0 0 96px;text-align:right;font-family:var(--f-mono);font-size:12px}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 10px}
+button{cursor:pointer}
+button:hover:not(:disabled){border-color:var(--volt)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.set{border-color:var(--curr);color:var(--curr);font-weight:600}
+button.reset{border-color:var(--err);color:var(--err);font-weight:600}
+button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-mono)}
+.read{font-family:var(--f-mono);font-size:13px;margin:6px 0}
+.read b{font-weight:500}
+.big{font-family:var(--f-display);font-weight:700;font-size:26px;line-height:1.15}
+.status{min-height:2.9em;font-size:13px;margin:6px 0}
+.good{color:var(--ok)} .bad{color:var(--err)}
+.analogy{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:10px 0 0}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute)}
+td:first-child{font-weight:600;white-space:nowrap}
+#cellSvg{max-width:340px;margin-left:auto;margin-right:auto}
+#rrSvg{max-width:340px;margin-left:auto;margin-right:auto}
+#gauge,#gauge2{max-width:340px;margin-left:auto;margin-right:auto}
+.cmp td:first-child{white-space:normal}
+@media (max-width:600px){.cmp th,.cmp td{padding:6px 6px;font-size:12px}}
+.tw{overflow-x:auto}
+.actbar{position:sticky;bottom:0;z-index:5;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:10px 0;box-shadow:0 -4px 10px rgba(0,0,0,.08)}
+.mapgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.mapgrid .card p{margin:4px 0 0;font-size:13px}
+details.q{border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0;background:var(--bg)}
+details.q summary{cursor:pointer;font-weight:600}
+details.q p{margin:8px 0 2px}
+.verdict{font-family:var(--f-display);font-size:18px;font-weight:600;margin:8px 0 2px}
+.credit{font-size:12px;color:var(--mute);text-align:center;padding-top:6px;border-top:1px solid var(--line)}
+.flow{stroke-dasharray:6 5;animation:dash .7s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-11}}
+@media (prefers-reduced-motion:reduce){.flow{animation:none}}
+.refs{margin:6px 0 4px;padding-left:24px;font-size:13px;line-height:1.5;max-width:92ch}
+.refs li{margin:8px 0}
+.refs .why{display:block;color:var(--mute);font-size:12px;margin-top:2px}
+.sub{font-family:var(--f-display);font-size:15px;margin:6px 0 4px}
+.cn{margin:0 0 8px;font-size:13px;color:var(--ink)}
+/* ---- Step 3: sensors and dashboard ---- */
+.calc{font-family:var(--f-mono);font-size:13px;line-height:1.7;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;overflow-x:auto;font-variant-numeric:tabular-nums}
+.row label{flex:0 0 150px}
+.row select{flex:1;min-width:0}
+.row output{flex:0 0 84px}
+@media (max-width:600px){.row label{flex-basis:110px}.row output{flex-basis:64px}}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:8px 0}
+.tile{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg)}
+.tile .big{font-family:var(--f-display);font-weight:700;font-size:22px;line-height:1.15;font-variant-numeric:tabular-nums}
+.tile .sub{font-size:12px;color:var(--mute);margin-top:3px}
+.path{font-size:13px;max-width:82ch;margin:6px 0 0}
+.ctlgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:4px 22px}
+.ctlgrid .row{margin:5px 0}
+.ctlgrid .row label{flex:0 0 118px}
+.preset{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px}
+.preset button{padding:6px 12px}
+.sens td{font-variant-numeric:tabular-nums;font-size:13px}
+.sens td:first-child{white-space:normal}
+.sens select{padding:3px 6px;font-size:13px}
+.sens .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px;vertical-align:-1px}
+.mono{font-family:var(--f-mono);font-size:12px}
+.tw{overflow-x:auto}
+/* dashboard tiles */
+.dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:10px 0}
+.stile{border:1px solid var(--line);border-left-width:5px;border-radius:6px;padding:10px 12px;background:var(--bg);min-width:0}
+.stile .sh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.stile .sname{font-family:var(--f-display);font-weight:600;font-size:15px}
+.badge{font-family:var(--f-mono);font-size:11px;font-weight:600;letter-spacing:.05em;border-radius:999px;padding:1px 9px;border:1.5px solid currentColor}
+.fresh .badge{color:var(--ok)} .late .badge{color:var(--curr)} .stale .badge,.nodata .badge{color:var(--err)}
+.stile .sval{font-family:var(--f-display);font-weight:700;font-size:28px;line-height:1.2;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.stile .sval small{font-family:var(--f-body);font-weight:500;font-size:13px;color:var(--mute);margin-left:4px}
+.stale .sval,.nodata .sval{color:var(--err);text-decoration:line-through;text-decoration-thickness:1.5px;text-decoration-color:color-mix(in srgb,var(--err) 55%,transparent)}
+.late .sval{color:var(--curr)}
+.sbar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;position:relative;margin:4px 0 6px}
+.sbar i{position:absolute;top:0;bottom:0;left:0;background:var(--ink);opacity:.75;border-radius:3px}
+.stile .sinfo{font-family:var(--f-mono);font-size:12px;line-height:1.55;font-variant-numeric:tabular-nums}
+.stile .sinfo span{display:block}
+.stile .sid{font-size:11px;color:var(--mute);margin-top:4px}
+.stale .age,.nodata .age{color:var(--err);font-weight:600} .late .age{color:var(--curr);font-weight:600}
+.cv{display:block;width:100%;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.flog{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums}
+.flog div{display:grid;grid-template-columns:78px 40px 28px 196px minmax(0,1fr);gap:8px;padding:3px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.flog div:last-child{border-bottom:0;background:var(--hl)}
+.flog .e{color:var(--err);font-weight:600}
+.flog .k{color:var(--mute)}
+.flog .v{overflow:hidden;text-overflow:ellipsis}
+@media (max-width:700px){.flog div{grid-template-columns:70px 38px 24px minmax(0,1fr)}.flog div .k2{display:none}}
+.transport{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.transport input[type=range]{flex:1 1 200px;min-width:140px;accent-color:var(--volt)}
+.transport .tm{font-family:var(--f-mono);font-size:13px;min-width:11ch;text-align:right;font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--mute);margin:6px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:16px;height:0;border-top:2px solid currentColor}
+.legend i.sq{width:12px;height:10px;border:0;background:currentColor;opacity:.35;border-radius:2px}
+.res td{font-variant-numeric:tabular-nums;font-size:13px}
+.res td:first-child{white-space:normal}
+.res .bad{font-weight:600} .res .good{font-weight:600}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.btns.tight{margin:4px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="crumb"><span class="cap">Step 3 of 3</span> &nbsp;·&nbsp; <a href="../basics/">Step 1: CAN bus vs separate wires</a> &nbsp;·&nbsp; <a href="../frame/">&larr; Step 2: how does a message win the bus? (read this first)</a> &nbsp;·&nbsp; <a href="../">CAN home</a></p>
+    <h1>CAN bus simulator: six sensors and a dashboard</h1>
+    <p>Six sensor nodes measure a vehicle: wheel speed, engine speed, throttle, steering angle, coolant temperature and fuel level. Each one samples its sensor on a timer, packs the reading into a CAN frame and sends it over the simulated bus. A dashboard node listens, decodes every frame it receives and shows the latest value of each sensor.</p>
+    <p>A CAN frame carries no &ldquo;this is fresh&rdquo; flag. If frames stop arriving, the dashboard simply keeps the last number, so the only way to notice is to check <b>how old</b> that number is. Overload the bus or fill it with noise and you can watch the readings go stale while the real vehicle keeps moving.</p>
+    <p class="path"><b>Path through this page:</b> 1) Meet the sensors and what each frame looks like. 2) Set the bus and pick when trouble starts. 3) Press Play and watch the dashboard, the chart of true against displayed values, the bus timeline and the frame log. 4) Read the whole-run table to see who lost samples and by how much. 5) Check yourself.</p>
+  </header>
+
+  <section class="panel" id="sensors">
+    <h2>1. The sensors and their frames</h2>
+    <p class="lead">Every sensor sends one message with its own identifier. The value is scaled to an integer (<span class="mono">raw = (value &minus; offset) / scale</span>), rounded, and sent least-significant byte first, so the frame is only as precise as its scale step. A lower identifier means a higher priority. You can change how often each sensor sends.</p>
+    <div class="tw"><table class="cmp sens"><thead><tr><th>Sensor</th><th>CAN ID</th><th>Range</th><th>Encoding</th><th>Data</th><th>Sends every</th></tr></thead><tbody id="sensTbody"></tbody></table></div>
+    <p class="note">Identifiers, scales and ranges are illustrative, and each sensor has its own node so that one node going bus-off hides one sensor. In a real vehicle several of these would share a controller, and they often sit on different buses behind a gateway. The demo drains the fuel tank far faster than a real one so that you can see it move.</p>
+  </section>
+
+  <section class="panel" id="bus">
+    <h2>2. The bus and the trouble</h2>
+    <p class="lead">The run lasts 16 seconds and starts healthy. At the moment you choose, trouble begins: other ECUs start flooding the bus, noise starts corrupting frames, or both, and after a while it stops again. Try a preset, then change the sliders.</p>
+    <div class="preset" id="presets" role="group" aria-label="Presets"></div>
+    <div class="ctlgrid">
+      <div>
+        <div class="row"><label for="cRate">Bit rate</label><select id="cRate"><option value="125000">125 kbit/s</option><option value="250000">250 kbit/s</option><option value="500000" selected>500 kbit/s</option><option value="1000000">1 Mbit/s</option></select></div>
+        <div class="row"><label for="cStuff">Bit stuffing</label><select id="cStuff"><option value="random" selected>Real data (computed)</option><option value="none">None (best case)</option><option value="worst">Worst case</option></select></div>
+        <div class="row"><label for="cSync">Sampling</label><select id="cSync"><option value="0" selected>Spread out (a few ms apart)</option><option value="1">All on the same tick</option></select></div>
+      </div>
+      <div>
+        <div class="row"><label for="cExtra">Extra traffic</label><input id="cExtra" type="range" min="0" max="150" step="5" value="0"><output id="oExtra"></output></div>
+        <div class="row"><label for="cPrio">Extra traffic priority</label><select id="cPrio"></select></div>
+        <div class="row"><label for="cNoise">Noise (frames hit)</label><input id="cNoise" type="range" min="0" max="50" step="1" value="0"><output id="oNoise"></output></div>
+        <div class="row"><label for="cRest">Restart after bus-off</label><select id="cRest"><option value="0">Minimum (128 &times; 11 bit times)</option><option value="100" selected>After 100 ms</option><option value="500">After 500 ms</option></select></div>
+      </div>
+      <div>
+        <div class="row"><label for="cAt">Trouble starts at</label><input id="cAt" type="range" min="1" max="10" step="0.5" value="4"><output id="oAt"></output></div>
+        <div class="row"><label for="cLen">Trouble lasts</label><input id="cLen" type="range" min="1" max="12" step="0.5" value="6"><output id="oLen"></output></div>
+        <div class="row"><label for="cK">Stale after</label><select id="cK"><option value="2">2 missed periods</option><option value="3" selected>3 missed periods</option><option value="5">5 missed periods</option></select></div>
+      </div>
+    </div>
+    <p class="note" id="busNote"></p>
+    <div class="btns tight"><button type="button" id="bSeed">Re-roll the noise</button></div>
+  </section>
+
+  <section class="panel" id="dashPanel">
+    <h2>3. The dashboard</h2>
+    <p class="lead" id="dashLead">Press Play. Each tile shows what the dashboard node currently believes, how long ago the last frame for that sensor arrived, and what the sensor is really reading right now.</p>
+    <div class="tiles" id="topTiles"></div>
+    <div class="dash" id="dash"></div>
+
+    <h2 class="sub" style="margin-top:14px">True value against what the dashboard shows</h2>
+    <p class="note" style="margin:0 0 6px">Grey line: the real signal. Coloured steps: what the dashboard displayed. Red shading: the reading was older than the stale limit. The orange band marks the trouble period.</p>
+    <canvas id="cvTrace" class="cv" role="img" aria-label="Chart of the true value of each sensor against the value the dashboard displayed"></canvas>
+    <div class="row" style="margin-top:6px"><label for="cWin">Chart window</label><select id="cWin"><option value="2000">2 s</option><option value="4000" selected>4 s</option><option value="8000">8 s</option></select></div>
+
+    <h2 class="sub" style="margin-top:14px">The bus, frame by frame</h2>
+    <p class="note" style="margin:0 0 6px">One lane per message. A solid block is a frame on the wire. A pale bar before it is the sample waiting for the bus, so arbitration losses and queueing show as long pale bars. Red blocks are frames destroyed by noise, which are sent again.</p>
+    <canvas id="cvBus" class="cv" role="img" aria-label="Timeline of frames on the bus, one lane per message"></canvas>
+    <div class="row" style="margin-top:6px"><label for="cBusWin">Timeline window</label><select id="cBusWin"><option value="2000">2 ms</option><option value="10000" selected>10 ms</option><option value="40000">40 ms</option><option value="200000">200 ms</option></select></div>
+
+    <h2 class="sub" style="margin-top:14px">Frame log</h2>
+    <div class="flog" id="flog" role="log" aria-label="Most recent frames on the bus"></div>
+
+    <p class="vh" id="srSum" aria-live="polite"></p>
+  </section>
+
+  <section class="actbar" id="transport" aria-label="Playback">
+    <div class="transport">
+      <button type="button" class="set" id="bPlay">Play</button>
+      <button type="button" id="bRestart">Restart</button>
+      <label for="cSpeed" class="note" style="margin:0">Speed</label>
+      <select id="cSpeed"><option value="4">4&times;</option><option value="1" selected>1&times; real time</option><option value="0.25">0.25&times;</option><option value="0.05">0.05&times;</option><option value="0.01">0.01&times; (frame by frame)</option></select>
+      <input id="cTime" type="range" min="0" max="16000" step="10" value="3000" aria-label="Time in the run">
+      <span class="tm" id="oTime"></span>
+    </div>
+  </section>
+
+  <section class="panel" id="results">
+    <h2>4. What happened over the whole run</h2>
+    <p class="lead">Every sensor is compared with its own period. <b>Samples taken</b> is how many readings the sensor sampled, and <b>Lost</b> counts samples that were replaced in the transmit buffer by a newer one before the bus took them. <b>Stale</b> is the share of the run in which the dashboard&rsquo;s reading was older than the stale limit. <b>Worst error</b> is the largest gap between the true signal and the displayed value, checked every millisecond, as a percentage of that sensor&rsquo;s chart span.</p>
+    <div class="tiles" id="resTiles"></div>
+    <div class="tw"><table class="cmp res"><thead><tr><th>Sensor</th><th>Samples taken</th><th>Lost</th><th>Retries</th><th>Mean delay</th><th>Max delay</th><th>Longest silence</th><th>Stale</th><th>Worst error</th></tr></thead><tbody id="resBody"></tbody></table></div>
+    <p class="note" id="resNote"></p>
+    <h2 class="sub" style="margin-top:12px">Calculated worst-case delay</h2>
+    <p class="note" style="margin:0 0 6px">The same response-time analysis as in Step 2, applied to this message set with the extra traffic present and no noise. It is a bound on how long a sample can wait plus its own transmission; the run above never has to hit it.</p>
+    <div class="tw"><table class="cmp res"><thead><tr><th>Sensor</th><th>Period</th><th>Worst-case bound</th><th>Observed max delay</th><th>Verdict</th></tr></thead><tbody id="rtaBody"></tbody></table></div>
+    <h2 class="sub" style="margin-top:12px">Node health</h2>
+    <div class="tw"><table class="cmp res"><thead><tr><th>Node</th><th>Frames sent</th><th>Error frames</th><th>Highest error counter</th><th>Times bus-off</th></tr></thead><tbody id="nodeBody"></tbody></table></div>
+  </section>
+
+  <section class="panel" id="check">
+    <h2>Check yourself</h2>
+    <details class="q"><summary>The wiring is fine and no node has failed, yet a tile shows a confident number. Why does it not warn me?</summary><p>Because a classical CAN frame has no freshness field. The receiver sees a frame when one arrives and nothing at all when none does, so a dashboard that only remembers the last value has no way to tell. The fix is in the application: note when each frame arrived and treat a value as stale once it is older than a few periods, which is what the stale limit does here. Real systems often add an alive counter or a checksum in the data bytes so that a repeated or frozen frame can also be spotted.</p></details>
+    <details class="q"><summary>Why do coolant and fuel go stale first when the extra traffic has a middle priority?</summary><p>Arbitration is decided by identifier, lowest first. Extra traffic at 0x200 loses to wheel speed, steering, engine speed and throttle, so those four still get through, but it beats coolant (0x340) and fuel (0x3F0). When the bus has no room left, the lowest-priority messages are starved first. Try the highest-priority setting and every sensor goes with it.</p></details>
+    <details class="q"><summary>Extra traffic of 100% at the lowest priority, yet the sensors look healthy. Is the bus not overloaded?</summary><p>The bus is full, but the sensors win every arbitration, so the only cost is that a sensor frame may have to wait for the frame already on the wire to finish, because a frame in progress is never interrupted. That is at most one frame of the extra traffic, about a quarter of a millisecond at 500 kbit/s. The extra traffic is the one that suffers.</p></details>
+    <details class="q"><summary>Slow sensors seem to survive bad conditions better. Is that luck?</summary><p>No. Coolant temperature and fuel level change slowly, so an old value is still close to the truth, and the worst-error column stays small even when the silence is long. Wheel speed and steering angle change quickly, so the same silence leaves the dashboard far from the truth. How stale is too stale depends on how fast the quantity moves, which is why the stale limit here is a multiple of each sensor&rsquo;s own period and not a fixed time.</p></details>
+    <details class="q"><summary>Why does 5% noise barely matter but 30% empties the dashboard?</summary><p>Each noise hit destroys a frame, which is sent again, and raises the sender&rsquo;s transmit error counter by 8; every good frame lowers it by 1. At 5% the counter drifts down and the node recovers between hits, so you only see extra delay. Once more than about one frame in nine is hit, the counter climbs, the node goes error-passive at 128 and bus-off above 255, and it stays silent until it restarts. The bus only requires a minimum recovery sequence of 128 &times; 11 bit times (about 3 ms at 500 kbit/s), and when a node actually restarts is usually left to the controller software, so the setting &ldquo;Restart after bus-off&rdquo; lets you compare the minimum with longer delays. Step 2 shows the counters moving one frame at a time.</p></details>
+    <details class="q"><summary>Bus load is under 100% and still readings arrive late. How?</summary><p>Load is an average, and delay is caused by what is on the bus at the moment a sample becomes ready. If several sensors sample on the same tick they queue behind one another, and a frame in progress or a retransmission pushes everything back. Switch Sampling to &ldquo;All on the same tick&rdquo; and compare the maximum delay of the lowest-priority sensor.</p></details>
+    <details class="q"><summary>A sample was replaced in the transmit buffer and never sent. Has the dashboard lost information?</summary><p>Yes, one sample, but this is deliberate. Each sensor here has a single transmit buffer, so when a new reading is ready the unsent old one is dropped. If instead every sample waited in a queue, an overloaded bus would deliver old readings in order and ever later; for a sensor you almost always want the newest value. The Lost column counts these drops.</p></details>
+  </section>
+
+  <section class="panel" id="reading">
+    <h2>Further reading</h2>
+    <p class="note" style="margin:0 0 6px;font-size:13px;max-width:80ch">The same sources as Step 2: the frame, error and timing rules in this simulator come from them. The sensor ranges, scales and identifiers here are made up for teaching.</p>
+    <ol class="refs">
+      <li>Bosch. CAN Specification, Version 2.0 (1991), and ISO 11898-1.
+        <span class="why">The frame formats, arbitration, bit stuffing and the error-confinement rules (error-passive and bus-off thresholds) used in this simulator.</span></li>
+      <li>Corrigan, S. Introduction to the Controller Area Network (CAN). Texas Instruments application report SLOA101. <a href="https://www.ti.com/lit/SLOA101">ti.com/lit/SLOA101</a>
+        <span class="why">A short walk through the frame, arbitration and error handling.</span></li>
+      <li>Di Natale, M., Zeng, H., Giusto, P. &amp; Ghosal, A. Understanding and Using the Controller Area Network Communication Protocol: Theory and Practice. Springer (2012). <a href="https://www.springer.com/gp/book/9781461403135">springer.com</a>
+        <span class="why">Message timing, error handling and how periodic signals are packed into frames.</span></li>
+      <li>Davis, R. I., Burns, A., Bril, R. J. &amp; Lukkien, J. J. Controller Area Network (CAN) schedulability analysis: Refuted, revisited and revised. Real-Time Systems 35, 239&ndash;272 (2007). <a href="https://doi.org/10.1007/s11241-007-9012-7">doi:10.1007/s11241-007-9012-7</a>
+        <span class="why">The worst-case response-time analysis behind the calculated bound in the results.</span></li>
+    </ol>
+    <p class="note" style="max-width:80ch">Links can change, so searching the title always works. These citations are the ones already used in Step 2; I did not add new ones.</p>
+  </section>
+
+  <section class="panel" id="next" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
+    <div><span class="cap">That is the series</span><h2 style="margin:2px 0 0">Back to the lesson plan</h2><p class="note" style="margin:4px 0 0;font-size:13px;max-width:62ch">Step 1 built the wired-AND bus, Step 2 followed one message onto it, and this step put six sensors and a dashboard on it. Revisit Step 2 to watch the error counters move one frame at a time.</p></div>
+    <a href="../" style="text-decoration:none"><button class="set" type="button" style="padding:10px 18px;font-size:15px">CAN home</button></a>
+  </section>
+
+  <footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>
+</div>
+
+<script>
+var CAN=(function(){
+'use strict';
+var POLY=0x4599; /* x^15+x^14+x^10+x^8+x^7+x^4+x^3+1 */
+function bits(v,n){var a=[];for(var i=n-1;i>=0;i--)a.push(Math.floor(v/Math.pow(2,i))%2);return a}
+function crc15(b){var c=0;for(var i=0;i<b.length;i++){var nx=b[i]^((c>>14)&1);c=(c<<1)&0x7FFF;if(nx)c^=POLY}return c}
+/* crc15 with a trace, one row per message bit: {bit, top, crc} */
+function crc15trace(b){var c=0,t=[];for(var i=0;i<b.length;i++){var top=(c>>14)&1,nx=b[i]^top;c=(c<<1)&0x7FFF;if(nx)c^=POLY;t.push({bit:b[i],top:top,fb:nx,crc:c})}return t}
+/* bit stuffing: after 5 equal bits insert the opposite bit; the stuff bit starts a new run */
+function stuff(b){var out=[],isS=[],run=0,last=-1,n=0;
+  for(var i=0;i<b.length;i++){out.push(b[i]);isS.push(false);
+    if(b[i]===last)run++;else{last=b[i];run=1}
+    if(run===5){var s=1-b[i];out.push(s);isS.push(true);last=s;run=1;n++}}
+  return {bits:out,isStuff:isS,count:n}}
+/* receiver side: returns {bits, err:index of the 6th equal bit or -1} */
+function destuff(b){var out=[],run=0,last=-1;
+  for(var i=0;i<b.length;i++){
+    if(run===5){ if(b[i]===last)return {bits:out,err:i}; last=b[i];run=1;continue }
+    out.push(b[i]);
+    if(b[i]===last)run++;else{last=b[i];run=1}}
+  return {bits:out,err:-1}}
+/* one data frame (or remote frame) as fields. o = {id, ext, rtr, dlc, data[]} */
+function frame(o){
+  var f=[];function F(n,b,k){f.push({n:n,b:b,k:k})}
+  var dlc=Math.max(0,Math.min(15,o.dlc|0)),len=o.rtr?0:Math.min(dlc,8);
+  F('SOF',[0],'ctl');
+  if(!o.ext){F('Identifier',bits(o.id,11),'id');F('RTR',[o.rtr?1:0],'ctl');F('IDE',[0],'ctl');F('r0',[0],'ctl')}
+  else{F('Base ID',bits(Math.floor(o.id/262144),11),'id');F('SRR',[1],'ctl');F('IDE',[1],'ctl');F('Ext ID',bits(o.id%262144,18),'id');F('RTR',[o.rtr?1:0],'ctl');F('r1',[0],'ctl');F('r0',[0],'ctl')}
+  F('DLC',bits(dlc,4),'ctl');
+  for(var i=0;i<len;i++)F('Data '+i,bits((o.data&&o.data[i])|0,8),'data');
+  var pre=[];f.forEach(function(x){pre=pre.concat(x.b)});
+  var crc=crc15(pre);F('CRC',bits(crc,15),'crc');
+  var region=pre.concat(bits(crc,15));
+  F('CRC delim',[1],'del');F('ACK slot',[1],'ack');F('ACK delim',[1],'del');F('EOF',[1,1,1,1,1,1,1],'eof');F('IFS',[1,1,1],'ifs');
+  var st=stuff(region);
+  return {fields:f,pre:pre,crc:crc,region:region,stuffed:st,tailBits:13,
+          bitsNoStuff:region.length+13,bitsStuffed:st.bits.length+13,bitsToEOF:st.bits.length+10}}
+/* worst-case frame length in bits including the 3-bit gap (Davis et al. 2007) */
+function wcBits(ext,n){var g=ext?54:34;return 8*n+g+13+Math.floor((g+8*n-1)/4)}
+function plainBits(ext,n){return 8*n+(ext?54:34)+13}
+/* arbitration key: lexicographically smaller wins (dominant 0 beats recessive 1) */
+function arbKey(m){var id=m.ext?bits(Math.floor(m.id/262144),11).concat([1,1],bits(m.id%262144,18),[0]):bits(m.id,11).concat([m.rtr?1:0,0]);return id.join('')}
+/* bit timing: longest bus for a bit rate, sample point and node delay (illustrative values) */
+var TPROP=5; /* ns per metre of cable */
+function maxLen(bitrate,sp,tloopNs){var Tb=1e9/bitrate;return Math.max(0,(Tb*sp-2*tloopNs)/(2*TPROP))}
+/* seeded random numbers */
+function rng(seed){var a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+/* ---- sensor samples ----
+   spec = {min,max,scale,offset,bytes,signed}: physical value = raw*scale+offset, raw sent little-endian in `bytes` bytes.
+   sensorRaw clips to [min,max] and rounds to the nearest step, so every sample carries its own quantisation error. */
+function sensorRaw(v,s){var lo=Math.round((s.min-s.offset)/s.scale),hi=Math.round((s.max-s.offset)/s.scale),r=Math.round((v-s.offset)/s.scale);return Math.max(lo,Math.min(hi,r))}
+function packSample(v,s){var r=sensorRaw(v,s),u=r<0?r+Math.pow(2,8*s.bytes):r,d=[];for(var i=0;i<s.bytes;i++){d.push(u%256);u=Math.floor(u/256)}return d}
+function unpackSample(d,s){var u=0;for(var i=s.bytes-1;i>=0;i--)u=u*256+((d&&d[i])|0);if(s.signed&&u>=Math.pow(2,8*s.bytes-1))u-=Math.pow(2,8*s.bytes);return u*s.scale+s.offset}
+/* index of the last delivery in rx (sorted by .t) with .t <= t, or -1 */
+function lastRx(rx,t){var lo=0,hi=rx.length-1,r=-1;while(lo<=hi){var m=(lo+hi)>>1;if(rx[m].t<=t){r=m;lo=m+1}else hi=m-1}return r}
+/* worst-case response time of each message (Davis et al. 2007), jitter and deadlines in us.
+   msgs[i] = {id, ext, dlc, periodMs, jitterMs, deadlineMs} ; returns an array in the same order */
+function rta(msgs,bitUs){
+  var n=msgs.length,C=[],K=[],T=[],J=[],D=[],i,k;
+  for(i=0;i<n;i++){var m=msgs[i];C.push(wcBits(m.ext,Math.min(m.dlc,8))*bitUs);K.push(arbKey(m));T.push(m.periodMs*1000);J.push((m.jitterMs||0)*1000);D.push((m.deadlineMs||m.periodMs)*1000)}
+  var out=[];
+  for(i=0;i<n;i++){
+    var B=0;for(k=0;k<n;k++)if(k!==i&&K[k]>K[i]&&C[k]>B)B=C[k];
+    var w=B,ok=true,guard=0;
+    for(;;){var nw=B;for(k=0;k<n;k++)if(k!==i&&K[k]<K[i])nw+=Math.ceil((w+J[k]+bitUs)/T[k])*C[k];
+      if(nw===w)break;w=nw;if(w+C[i]>50*T[i]||++guard>5000){ok=false;break}}
+    var R=J[i]+w+C[i];
+    out.push({C:C[i],B:B,w:w,R:R,D:D[i],ok:ok&&R<=D[i],diverged:!ok})}
+  return out}
+/* discrete-event simulation of the bus.
+   cfg = {msgs:[{name,node,id,ext,dlc,periodMs,offsetMs,jitterMs,deadlineMs,data?, sensor?,signal?, startMs?,stopMs?}],
+          bitrate, stuff:'worst'|'random'|'none', errP, errFromMs?, errToMs?, busOffMs?, durMs, seed, sync, mailbox?}
+   Sensor messages: give `sensor` (a spec, see above) and `signal(tUs)` (the physical value). The value is sampled at the instant
+   the message is released and packed into the data bytes, so the frame carries the sample taken then, not the value at transmission.
+   startMs/stopMs limit when a message is released (extra traffic that starts later). errFromMs/errToMs limit when noise can hit.
+   busOffMs sets how long a bus-off node stays silent (default 128*11 bit times, the minimum recovery sequence).
+   mailbox:true gives each message one transmit buffer: a new sample replaces an unsent older one (counted in stats[i].over).
+   Result adds rx[i] = deliveries of message i: {t: end of frame, s: sample instant, d: data bytes}. */
+function simulate(cfg){
+  var msgs=cfg.msgs,bitUs=1e6/cfg.bitrate,rnd=rng(cfg.seed||1),dur=cfg.durMs*1000,i;
+  var offUs=cfg.busOffMs!=null?cfg.busOffMs*1000:128*11*bitUs,errFrom=(cfg.errFromMs||0)*1000,errTo=cfg.errToMs!=null?cfg.errToMs*1000:Infinity;
+  var nodes={},order=[];
+  msgs.forEach(function(m){if(!nodes[m.node]){nodes[m.node]={name:m.node,tec:0,maxTec:0,busOffs:0,off:0,block:0,errs:0,sent:0,state:'error-active'};order.push(m.node)}});
+  var keys=msgs.map(arbKey),rel=[];
+  msgs.forEach(function(m,mi){var T=Math.max(50,m.periodMs*1000),off=(cfg.sync?0:(m.offsetMs||0)*1000)+(m.startMs||0)*1000,J=(m.jitterMs||0)*1000,end=m.stopMs!=null?Math.min(dur,m.stopMs*1000):dur;
+    for(var t=off;t<end;t+=T){var r={t:t+(J?rnd()*J:0),mi:mi};
+      if(m.signal&&m.sensor){r.v=m.signal(r.t);r.data=packSample(r.v,m.sensor)}
+      rel.push(r)}});
+  rel.sort(function(a,b){return a.t-b.t});
+  var st=msgs.map(function(){return {sent:0,sum:0,max:0,min:Infinity,miss:0,retx:0,rel:0,over:0}});
+  var rx=msgs.map(function(){return []});
+  var log=[],pend=[],ri=0,t=0,busy=0,errFrames=0,guard=0;
+  while(guard++<4e6){
+    while(ri<rel.length&&rel[ri].t<=t){var r0=rel[ri++];
+      if(cfg.mailbox){for(var pi=0;pi<pend.length;pi++)if(pend[pi].mi===r0.mi){pend.splice(pi,1);st[r0.mi].over++;break}}
+      st[r0.mi].rel++;pend.push(r0)}
+    var best=null;
+    for(i=0;i<pend.length;i++){var p=pend[i],nd=nodes[msgs[p.mi].node];if(nd.off>t||nd.block>t)continue;
+      if(!best||keys[p.mi]<keys[best.mi])best=p}
+    if(!best){var nt=ri<rel.length?rel[ri].t:Infinity;
+      pend.forEach(function(p){var nd=nodes[msgs[p.mi].node],e=Math.max(nd.off,nd.block);if(e>t&&e<nt)nt=e});
+      if(nt===Infinity||nt>=dur)break;t=nt;continue}
+    if(t>=dur)break;
+    var m=msgs[best.mi],nd=nodes[m.node],len=Math.min(m.dlc,8),nb,tail,dat=best.data||m.data||null;
+    if(cfg.stuff==='worst'){nb=wcBits(m.ext,len)}
+    else if(cfg.stuff==='none'){nb=plainBits(m.ext,len)}
+    else{var d=[];for(var q=0;q<len;q++)d.push(dat&&dat[q]!=null?dat[q]:Math.floor(rnd()*256));if(!dat)dat=d;nb=frame({id:m.id,ext:m.ext,dlc:m.dlc,data:d}).bitsStuffed}
+    tail=nb-3;
+    if(cfg.errP>0&&t>=errFrom&&t<errTo&&rnd()<cfg.errP){
+      var pos=1+Math.floor(rnd()*tail),us=(pos+6+8+3)*bitUs;
+      log.push({t0:t,t1:t+us,mi:best.mi,kind:'err',rel:best.t});
+      busy+=Math.min(us,Math.max(0,dur-t));errFrames++;st[best.mi].retx++;
+      nd.errs++;nd.tec+=8;if(nd.tec>nd.maxTec)nd.maxTec=nd.tec;
+      if(nd.tec>255){nd.busOffs++;nd.state='bus-off';nd.off=t+us+offUs;nd.tec=0;nd.maxTec=Math.max(nd.maxTec,256)}
+      else if(nd.tec>=128){nd.state='error-passive';nd.block=t+us+8*bitUs}
+      t+=us;continue}
+    var us2=nb*bitUs;
+    log.push({t0:t,t1:t+us2,mi:best.mi,kind:'ok',rel:best.t,bits:nb,d:dat});
+    busy+=Math.min(us2,Math.max(0,dur-t));
+    var lat=t+tail*bitUs-best.t,s=st[best.mi];s.sent++;s.sum+=lat;if(lat>s.max)s.max=lat;if(lat<s.min)s.min=lat;
+    rx[best.mi].push({t:t+tail*bitUs,s:best.t,d:dat});
+    if(lat>(m.deadlineMs||m.periodMs)*1000)s.miss++;
+    pend.splice(pend.indexOf(best),1);nd.sent++;
+    if(nd.tec>0)nd.tec--;
+    if(nd.tec>=128){nd.state='error-passive';nd.block=t+us2+8*bitUs}else if(nd.off<=t+us2)nd.state='error-active';
+    t+=us2}
+  return {log:log,stats:st,rx:rx,nodes:order.map(function(n){return nodes[n]}),load:Math.min(1,busy/dur),bitUs:bitUs,left:pend.length,errFrames:errFrames,dur:dur}}
+return {bits:bits,crc15:crc15,crc15trace:crc15trace,stuff:stuff,destuff:destuff,frame:frame,wcBits:wcBits,plainBits:plainBits,arbKey:arbKey,maxLen:maxLen,TPROP:TPROP,rng:rng,sensorRaw:sensorRaw,packSample:packSample,unpackSample:unpackSample,lastRx:lastRx,rta:rta,simulate:simulate}
+})();
+
+(function(){
+'use strict';
+function $(id){return document.getElementById(id)}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function hex(v,n){var s=Math.floor(v).toString(16).toUpperCase();while(s.length<(n||1))s='0'+s;return s}
+function fv(v,d){return (v<-0.5*Math.pow(10,-d)?'\u2212':'')+Math.abs(v).toFixed(d)}
+function fT(us){var ms=us/1000;return ms<10?ms.toFixed(2)+' ms':ms<1000?ms.toFixed(1)+' ms':(ms/1000).toFixed(2)+' s'}
+var TAU=2*Math.PI,DUR=16;
+
+/* ---------- the six sensors: encoding, true signal (what the vehicle really does) ---------- */
+function thr(s){return clamp(30+28*Math.sin(TAU*s/6)+22*Math.sin(TAU*s/2.3+1),0,100)}
+function whl(s){return clamp(80+55*Math.sin(TAU*s/9-0.6)+8*Math.sin(TAU*s/3.1),0,250)}
+var SENS=[
+ {key:'wheel',short:'Wheel',name:'Wheel speed',node:'Wheel-speed node',id:0x0A0,unit:'km/h',min:0,max:250,scale:0.01,offset:0,bytes:2,signed:false,dec:1,per:10,offs:0,view:[0,160],sig:function(t){return whl(t/1e6)}},
+ {key:'steer',short:'Steering',name:'Steering angle',node:'Steering node',id:0x0B0,unit:'\u00B0',min:-540,max:540,scale:0.1,offset:0,bytes:2,signed:true,dec:1,per:10,offs:1,view:[-200,200],sig:function(t){var s=t/1e6;return 140*Math.sin(TAU*s/5.5)+25*Math.sin(TAU*s/1.3)}},
+ {key:'rpm',short:'Engine',name:'Engine speed',node:'Engine-speed node',id:0x120,unit:'rpm',min:0,max:8000,scale:0.25,offset:0,bytes:2,signed:false,dec:0,per:10,offs:2,view:[500,6000],sig:function(t){var s=t/1e6;return clamp(900+whl(s)*26+thr(s)*10,700,7000)}},
+ {key:'thr',short:'Throttle',name:'Throttle',node:'Throttle node',id:0x130,unit:'%',min:0,max:100,scale:0.4,offset:0,bytes:1,signed:false,dec:1,per:20,offs:3,view:[0,100],sig:function(t){return thr(t/1e6)}},
+ {key:'cool',short:'Coolant',name:'Coolant temperature',node:'Coolant node',id:0x340,unit:'\u00B0C',min:-40,max:215,scale:1,offset:-40,bytes:1,signed:false,dec:0,per:500,offs:4,view:[50,80],sig:function(t){var s=t/1e6;return 55+35*(1-Math.exp(-s/18))+0.8*Math.sin(TAU*s/4)}},
+ {key:'fuel',short:'Fuel',name:'Fuel level',node:'Fuel node',id:0x3F0,unit:'%',min:0,max:100,scale:0.4,offset:0,bytes:1,signed:false,dec:1,per:1000,offs:5,view:[55,66],sig:function(t){var s=t/1e6;return 64-0.35*s+0.4*Math.sin(TAU*s/1.7)}}
+];
+var NS=SENS.length;
+var XP={high:{id:0x010,label:'Highest priority (0x010): beats every sensor'},mid:{id:0x200,label:'Middle (0x200): beats coolant and fuel only'},low:{id:0x600,label:'Lowest priority (0x600): loses to every sensor'}};
+var PERIODS=[1,2,5,10,20,50,100,200,500,1000];
+var COL_L=['#1D63C9','#0E8F8A','#7B4FC9','#C2620A','#B03A7A','#5E7A1E','#587080'];
+var COL_D=['#6AA9FF','#4FD1C5','#B59AF5','#F3A552','#F27CB5','#A8CC5A','#92A2AF'];
+function isDark(){var t=document.documentElement.getAttribute('data-theme');return t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches}
+function col(i){return (isDark()?COL_D:COL_L)[i]}
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+
+/* ---------- state ---------- */
+var PER={};SENS.forEach(function(s){PER[s.key]=s.per});
+var P={rate:500000,stuff:'random',extra:0,prio:'mid',noise:0,rest:100,at:4,len:6,k:3,sync:0,seed:7,win:4000,busWin:10000,speed:1};
+var T=3e6,playing=false,raf=0,lastTs=0,R=null,lastLogIdx=-2,srAt=0,srTxt='';
+var PRESETS=[
+ {n:'Healthy bus',d:{rate:500000,extra:0,prio:'mid',noise:0,rest:100,sync:0}},
+ {n:'Overloaded, middle priority',d:{rate:125000,extra:150,prio:'mid',noise:0,rest:100,sync:0}},
+ {n:'Babbling node',d:{rate:500000,extra:150,prio:'high',noise:0,rest:100,sync:0}},
+ {n:'Low-priority flood',d:{rate:500000,extra:150,prio:'low',noise:0,rest:100,sync:0}},
+ {n:'Noisy bus',d:{rate:500000,extra:0,prio:'mid',noise:40,rest:500,sync:0}},
+ {n:'Slow, crowded and noisy',d:{rate:250000,extra:80,prio:'mid',noise:15,rest:100,sync:0}}];
+
+/* ---------- build one run ---------- */
+function build(){
+  var bitUs=1e6/P.rate,msgs=SENS.map(function(s){return {name:s.name,node:s.node,id:s.id,ext:false,dlc:s.bytes,periodMs:PER[s.key],offsetMs:s.offs,jitterMs:0,sensor:s,signal:s.sig}});
+  var hasX=P.extra>0;
+  if(hasX)msgs.push({name:'Extra traffic',node:'Other ECUs',id:XP[P.prio].id,ext:false,dlc:8,periodMs:120*bitUs/1000/(P.extra/100),offsetMs:0,startMs:P.at*1000,stopMs:(P.at+P.len)*1000,data:[0x55,0xAA,0x55,0xAA,0x55,0xAA,0x55,0xAA]});
+  var sim=CAN.simulate({msgs:msgs,bitrate:P.rate,stuff:P.stuff,errP:P.noise/100,errFromMs:P.at*1000,errToMs:(P.at+P.len)*1000,busOffMs:P.rest>0?P.rest:undefined,durMs:DUR*1000,seed:P.seed,sync:P.sync===1,mailbox:true});
+  var errT=[];sim.log.forEach(function(e){if(e.kind==='err')errT.push(e.t1)});
+  R={msgs:msgs,hasX:hasX,sim:sim,bitUs:bitUs,errT:errT,res:[],rta:null,errCount:function(tm){var lo=0,hi=errT.length-1,r=-1;while(lo<=hi){var m=(lo+hi)>>1;if(errT[m]<=tm){r=m;lo=m+1}else hi=m-1}return r+1}};
+  compute();
+}
+function val(s,e){if(e.v===undefined)e.v=CAN.unpackSample(e.d,s);return e.v}
+function compute(){
+  var sim=R.sim,kUs=P.k;
+  SENS.forEach(function(s,i){
+    var rx=sim.rx[i],st=sim.stats[i],Tus=PER[s.key]*1000,prev=0,stale=0,maxgap=0,g,j=-1,maxE=0,span=s.view[1]-s.view[0],n=0;
+    for(var q=0;q<rx.length;q++){g=rx[q].t-prev;if(g>maxgap)maxgap=g;if(g>kUs*Tus)stale+=g-kUs*Tus;prev=rx[q].t}
+    g=sim.dur-prev;if(g>maxgap)maxgap=g;if(g>kUs*Tus)stale+=g-kUs*Tus;
+    for(var tt=0;tt<sim.dur;tt+=1000){while(j+1<rx.length&&rx[j+1].t<=tt)j++;if(j<0)continue;var e=Math.abs(val(s,rx[j])-s.sig(tt))/span*100;n++;if(e>maxE)maxE=e}
+    R.res[i]={rel:st.rel,sent:st.sent,lost:st.over,retx:st.retx,mean:st.sent?st.sum/st.sent:NaN,max:st.max,gap:maxgap,stale:stale/sim.dur*100,err:n?maxE:NaN,got:rx.length}});
+  var bm=R.msgs.map(function(m){return {id:m.id,ext:false,dlc:m.dlc,periodMs:Math.max(0.05,m.periodMs),jitterMs:0,deadlineMs:m.periodMs}});
+  R.rta=CAN.rta(bm,R.bitUs);
+}
+
+/* ---------- static parts ---------- */
+function rangeTxt(s){return fv(s.min,0)+' to '+fv(s.max,0)+' '+s.unit}
+function encTxt(s){return 'raw = value'+(s.offset?' '+(s.offset<0?'+ '+Math.abs(s.offset):'\u2212 '+s.offset):'')+' / '+s.scale+(s.signed?' (signed)':'')}
+function initTable(){
+  $('sensTbody').innerHTML=SENS.map(function(s,i){
+    var o=PERIODS.map(function(p){return '<option value="'+p+'"'+(p===s.per?' selected':'')+'>'+p+' ms</option>'}).join('');
+    return '<tr><td><span class="sw" data-sw="'+i+'"></span>'+s.name+'</td><td class="mono">0x'+hex(s.id,3)+'</td><td>'+rangeTxt(s)+'</td><td class="mono">'+encTxt(s)+'</td><td>'+s.bytes+' byte'+(s.bytes>1?'s':'')+'</td><td><select data-per="'+s.key+'" aria-label="Period of '+s.name+'">'+o+'</select></td></tr>'}).join('');
+  document.querySelectorAll('[data-per]').forEach(function(el){el.addEventListener('change',function(){PER[el.getAttribute('data-per')]=+el.value;rebuild()})});
+  $('dash').innerHTML=SENS.map(function(s,i){return '<div class="stile nodata" id="st'+i+'"><div class="sh"><span class="sname">'+s.name+'</span><span class="badge">NO DATA</span></div><div class="sval"><span class="num">\u2014</span><small>'+s.unit+'</small></div><div class="sbar"><i></i></div><div class="sinfo"><span class="age"></span><span class="tru"></span></div><div class="sid">ID 0x'+hex(s.id,3)+' \u00B7 '+s.bytes+' B</div></div>'}).join('');
+  $('cPrio').innerHTML=Object.keys(XP).map(function(k){return '<option value="'+k+'"'+(k===P.prio?' selected':'')+'>'+XP[k].label+'</option>'}).join('');
+  $('presets').innerHTML=PRESETS.map(function(p,i){return '<button type="button" data-pre="'+i+'">'+p.n+'</button>'}).join('');
+  document.querySelectorAll('[data-pre]').forEach(function(b){b.addEventListener('click',function(){applyPreset(+b.getAttribute('data-pre'))})});
+  $('topTiles').innerHTML=['Bus load, last 100 ms','Stale sensors','Corrupted frames so far','Trouble'].map(function(t,i){return '<div class="tile"><div class="big" id="tt'+i+'">\u2014</div><div class="sub">'+t+'</div></div>'}).join('');
+}
+function paintColors(){
+  document.querySelectorAll('[data-sw]').forEach(function(el){el.style.background=col(+el.getAttribute('data-sw'))});
+  SENS.forEach(function(s,i){$('st'+i).style.borderLeftColor=col(i)});
+}
+
+/* ---------- controls ---------- */
+function readCtl(){
+  P.rate=+$('cRate').value;P.stuff=$('cStuff').value;P.sync=+$('cSync').value;P.extra=+$('cExtra').value;P.prio=$('cPrio').value;P.noise=+$('cNoise').value;P.rest=+$('cRest').value;P.at=+$('cAt').value;P.len=+$('cLen').value;P.k=+$('cK').value;P.win=+$('cWin').value;P.busWin=+$('cBusWin').value;P.speed=+$('cSpeed').value;
+  $('oExtra').textContent=P.extra+'%';$('oNoise').textContent=P.noise+'%';$('oAt').textContent=P.at.toFixed(1)+' s';$('oLen').textContent=P.len.toFixed(1)+' s';
+}
+function note(){
+  var bps=0;SENS.forEach(function(s){bps+=CAN.plainBits(false,s.bytes)*1.1*1000/PER[s.key]});
+  var base=bps/P.rate*100;
+  var t='The six sensors alone use roughly '+(base<10?base.toFixed(1):Math.round(base))+'% of a '+P.rate/1000+' kbit/s bus. ';
+  if(P.extra>0)t+='From '+P.at.toFixed(1)+' s to '+Math.min(DUR,P.at+P.len).toFixed(1)+' s the other ECUs try to add '+P.extra+'% of the bus at '+(P.prio==='high'?'a priority above every sensor.':P.prio==='mid'?'a priority between throttle and coolant.':'a priority below every sensor.')+' ';
+  if(P.noise>0)t+='In the same period '+P.noise+'% of frames are destroyed by noise and have to be sent again; a node that is hit often enough goes bus-off and stays silent '+(P.rest>0?'for '+P.rest+' ms':'for the minimum recovery time')+'. ';
+  if(P.extra===0&&P.noise===0)t+='With no extra traffic and no noise the trouble sliders change nothing. ';
+  $('busNote').textContent=t;
+}
+function setCtl(d){
+  if('rate' in d)$('cRate').value=d.rate;if('extra' in d)$('cExtra').value=d.extra;if('prio' in d)$('cPrio').value=d.prio;if('noise' in d)$('cNoise').value=d.noise;if('sync' in d)$('cSync').value=d.sync;if('rest' in d)$('cRest').value=d.rest;
+}
+var deb=0;
+function rebuild(now){
+  readCtl();note();
+  if(deb)clearTimeout(deb);
+  var go=function(){deb=0;build();renderResults();layout();update(true)};
+  if(now)go();else deb=setTimeout(go,120);
+}
+function applyPreset(i){
+  setCtl(PRESETS[i].d);readCtl();rebuild(true);
+  var still=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(still){T=(P.at+Math.min(P.len,3))*1e6;setPlaying(false);update(true)}else{T=0;setPlaying(true)}
+}
+
+/* ---------- results ---------- */
+function renderResults(){
+  var sim=R.sim,lost=0,worst=0,wi=0;
+  R.res.forEach(function(r,i){lost+=r.lost;if(r.stale>worst){worst=r.stale;wi=i}});
+  var tl=[[(sim.load*100).toFixed(0)+'%','bus load over the whole run'],[String(sim.errFrames),'frames destroyed by noise'],[String(lost),'samples lost (replaced before sending)'],[worst>0?worst.toFixed(0)+'%':'0%',worst>0?'longest stale share ('+SENS[wi].name+')':'no sensor went stale']];
+  $('resTiles').innerHTML=tl.map(function(x){return '<div class="tile"><div class="big">'+x[0]+'</div><div class="sub">'+x[1]+'</div></div>'}).join('');
+  $('resBody').innerHTML=R.res.map(function(r,i){var s=SENS[i];
+    return '<tr><td><span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px;background:'+col(i)+'"></span>'+s.name+'</td><td>'+r.rel+'</td><td class="'+(r.lost>0?'bad':'')+'">'+r.lost+'</td><td>'+r.retx+'</td><td>'+(isNaN(r.mean)?'\u2014':fT(r.mean))+'</td><td>'+(r.sent?fT(r.max):'\u2014')+'</td><td>'+fT(r.gap)+'</td><td class="'+(r.stale>=10?'bad':r.stale<0.05?'good':'')+'">'+r.stale.toFixed(1)+'%</td><td class="'+(r.err>=5?'bad':'')+'">'+(isNaN(r.err)?'no data':r.err.toFixed(1)+'%')+'</td></tr>'}).join('');
+  $('resNote').textContent='Stale limit: '+P.k+' periods of each sensor. A sensor with no delivered frame at all shows \u201Cno data\u201D for its error.';
+  $('rtaBody').innerHTML=R.rta.slice(0,NS).map(function(q,i){var s=SENS[i],per=PER[s.key]*1000,ok=q.ok,obs=R.res[i].sent?fT(R.res[i].max):'\u2014';
+    return '<tr><td>'+s.name+'</td><td>'+PER[s.key]+' ms</td><td>'+(q.diverged?'unbounded':fT(q.R))+'</td><td>'+obs+'</td><td class="'+(ok?'good':'bad')+'">'+(q.diverged?'overloaded: no bound exists':ok?'bound within the period':'bound exceeds the period')+'</td></tr>'}).join('');
+  $('nodeBody').innerHTML=sim.nodes.map(function(n){var maxT=Math.max(n.maxTec,0);return '<tr><td>'+n.name+'</td><td>'+n.sent+'</td><td>'+n.errs+'</td><td>'+maxT+(maxT>255?' (bus-off)':maxT>=128?' (error-passive)':'')+'</td><td class="'+(n.busOffs?'bad':'')+'">'+n.busOffs+'</td></tr>'}).join('');
+}
+
+/* ---------- canvases ---------- */
+var CV={trace:$('cvTrace'),bus:$('cvBus')},dpr=1,MONO='monospace';
+function fit(c,h){dpr=window.devicePixelRatio||1;c.style.height=h+'px';var w=Math.max(200,c.clientWidth);c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);var x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);return {x:x,w:w,h:h}}
+var TR_ROW=54;
+function layout(){
+  MONO=css('--f-mono')||'monospace';
+  CV.trace._g=fit(CV.trace,NS*TR_ROW+24);
+  var lanes=R&&R.hasX?NS+1:NS;
+  CV.bus._g=fit(CV.bus,lanes*20+26);
+}
+function lastIdx(arr,tm,key){var lo=0,hi=arr.length-1,r=-1;while(lo<=hi){var m=(lo+hi)>>1;if(arr[m][key]<=tm){r=m;lo=m+1}else hi=m-1}return r}
+function firstEndAfter(arr,tm){var lo=0,hi=arr.length-1,r=arr.length;while(lo<=hi){var m=(lo+hi)>>1;if(arr[m].t1>tm){r=m;hi=m-1}else lo=m+1}return r}
+
+function drawTrace(){
+  var g=CV.trace._g,x=g.x,W=g.w,nar=W<560,L=nar?72:138,Rg=8,pw=W-L-Rg,Wt=P.win*1000,t0=T-Wt,sim=R.sim,kU=P.k;
+  x.clearRect(0,0,W,g.h);
+  var ink=css('--ink'),mute=css('--mute'),line=css('--line'),err=css('--err'),curr=css('--curr');
+  function X(t){return L+(t-t0)/Wt*pw}
+  x.font='11px '+MONO;x.textBaseline='middle';
+  /* trouble band */
+  var a=Math.max(P.at*1e6,t0),b=Math.min((P.at+P.len)*1e6,T);
+  if((R.hasX||P.noise>0)&&b>a){x.fillStyle=curr;x.globalAlpha=0.07;x.fillRect(X(a),0,X(b)-X(a),NS*TR_ROW);x.globalAlpha=1}
+  SENS.forEach(function(s,i){
+    var top=i*TR_ROW,rowH=TR_ROW,lo=s.view[0],hi=s.view[1],Tus=PER[s.key]*1000,rx=sim.rx[i];
+    function Y(v){return top+rowH-8-clamp((v-lo)/(hi-lo),0,1)*(rowH-16)}
+    x.strokeStyle=line;x.lineWidth=1;x.beginPath();x.moveTo(L,top+rowH-0.5);x.lineTo(W-Rg,top+rowH-0.5);x.stroke();
+    x.fillStyle=ink;x.textAlign='left';x.fillText(nar?s.short:s.name,6,top+14);x.fillStyle=mute;x.fillText(nar?s.unit:fv(lo,0)+' to '+fv(hi,0)+' '+s.unit,6,top+29);
+    /* stale shading */
+    var j0=CAN.lastRx(rx,t0),jE=CAN.lastRx(rx,T),prev=j0>=0?rx[j0].t:0;
+    x.fillStyle=err;x.globalAlpha=0.16;
+    for(var q=Math.max(j0+1,0);q<=jE+1;q++){var nt=q<=jE?rx[q].t:T;if(nt-prev>kU*Tus){var sa=Math.max(prev+kU*Tus,t0),sb=Math.min(nt,T);if(sb>sa)x.fillRect(X(sa),top+1,X(sb)-X(sa),rowH-2)}prev=nt}
+    x.globalAlpha=1;
+    /* truth */
+    x.strokeStyle=mute;x.lineWidth=1;x.globalAlpha=0.8;x.beginPath();var first=true;
+    for(var px=0;px<=pw;px+=2){var tt=t0+px/pw*Wt;if(tt<0)continue;var yy=Y(s.sig(tt));if(first){x.moveTo(L+px,yy);first=false}else x.lineTo(L+px,yy)}
+    x.stroke();x.globalAlpha=1;
+    /* held value */
+    x.strokeStyle=col(i);x.lineWidth=2;x.beginPath();var py=null,started=false;
+    for(var q2=Math.max(j0,0);q2<=jE;q2++){var e=rx[q2],xx=Math.max(L,X(e.t)),yv=Y(val(s,e));
+      if(!started){x.moveTo(xx,yv);started=true}else{x.lineTo(xx,py);x.lineTo(xx,yv)}py=yv}
+    if(started){x.lineTo(X(T),py)}
+    x.stroke();
+    /* delivery ticks */
+    if(jE-Math.max(j0,0)<=400){x.strokeStyle=col(i);x.lineWidth=1;x.globalAlpha=0.55;x.beginPath();for(var q3=Math.max(j0+1,0);q3<=jE;q3++){var xt=X(rx[q3].t);x.moveTo(xt,top+rowH-1);x.lineTo(xt,top+rowH-5)}x.stroke();x.globalAlpha=1}
+  });
+  /* time axis */
+  var ay=NS*TR_ROW+12;x.fillStyle=mute;x.textAlign='center';
+  var stepS=Wt<=2.5e6?0.5:Wt<=5e6?1:2;
+  for(var ts=Math.ceil(Math.max(0,t0)/1e6/stepS)*stepS;ts*1e6<=T;ts+=stepS){var xs=X(ts*1e6);x.fillText(ts.toFixed(ts%1?1:0)+' s',xs,ay)}
+  x.strokeStyle=ink;x.lineWidth=1;x.beginPath();x.moveTo(X(T)-0.5,0);x.lineTo(X(T)-0.5,NS*TR_ROW);x.stroke();
+}
+
+function drawBus(){
+  var g=CV.bus._g,x=g.x,W=g.w,nar=W<560,L=nar?72:138,Rg=8,pw=W-L-Rg,Wt=P.busWin,t0=T-Wt,sim=R.sim,lanes=R.hasX?NS+1:NS;
+  x.clearRect(0,0,W,g.h);
+  var ink=css('--ink'),mute=css('--mute'),line=css('--line'),err=css('--err');
+  function X(t){return L+(t-t0)/Wt*pw}
+  x.font='11px '+MONO;x.textBaseline='middle';x.textAlign='left';
+  for(var i=0;i<lanes;i++){var y=i*20;x.strokeStyle=line;x.lineWidth=1;x.beginPath();x.moveTo(L,y+19.5);x.lineTo(W-Rg,y+19.5);x.stroke();
+    x.fillStyle=i<NS?col(i):col(6);x.fillText(i<NS?(nar?SENS[i].short:SENS[i].name):(nar?'Extra':'Extra traffic'),6,y+10)}
+  var i0=firstEndAfter(sim.log,t0),errCol=err;
+  for(var q=i0;q<sim.log.length;q++){var e=sim.log[q];if(e.t0>T)break;
+    var y0=e.mi*20,c=e.mi<NS?col(e.mi):col(6);
+    if(e.rel<e.t0){var wa=Math.max(e.rel,t0),wb=Math.min(e.t0,T);if(wb>wa){x.fillStyle=c;x.globalAlpha=0.3;x.fillRect(X(wa),y0+7,Math.max(1,X(wb)-X(wa)),6);x.globalAlpha=1}}
+    var xa=X(Math.max(e.t0,t0)),xb=X(Math.min(e.t1,T));x.fillStyle=e.kind==='err'?errCol:c;x.fillRect(xa,y0+4,Math.max(1,xb-xa),12);
+    if(e.kind==='err'&&xb-xa>8){x.strokeStyle=css('--panel');x.lineWidth=1.5;x.beginPath();x.moveTo(xa+3,y0+7);x.lineTo(xb-3,y0+13);x.moveTo(xb-3,y0+7);x.lineTo(xa+3,y0+13);x.stroke()}}
+  var ay=lanes*20+13;x.fillStyle=mute;x.textAlign='center';
+  var steps=[100,200,500,1000,2000,5000,10000,20000,50000,100000],st=steps[steps.length-1];for(var k=0;k<steps.length;k++)if(Wt/steps[k]<=(nar?3:7)){st=steps[k];break}
+  for(var kk=1;kk*st<=Wt;kk++){var xk=X(T-kk*st),ms=kk*st/1000;x.fillText('\u2212'+(ms%1?ms.toFixed(1):ms)+' ms',xk,ay);x.strokeStyle=line;x.beginPath();x.moveTo(xk,lanes*20);x.lineTo(xk,lanes*20+4);x.stroke()}
+  x.fillText('now',X(T)-10,ay);
+  x.strokeStyle=ink;x.lineWidth=1;x.beginPath();x.moveTo(X(T)-0.5,0);x.lineTo(X(T)-0.5,lanes*20);x.stroke();
+}
+
+/* ---------- live readouts ---------- */
+function updateTiles(){
+  var sim=R.sim,nStale=0,names=[];
+  SENS.forEach(function(s,i){
+    var el=$('st'+i),rx=sim.rx[i],j=CAN.lastRx(rx,T),Tus=PER[s.key]*1000,cls,badge,numEl=el.querySelector('.num'),ageEl=el.querySelector('.age'),truEl=el.querySelector('.tru'),bar=el.querySelector('.sbar i'),tr=s.sig(T);
+    if(j<0){cls='nodata';badge='NO DATA';numEl.textContent='\u2014';ageEl.textContent='no frame received yet';truEl.textContent='real now: '+fv(tr,s.dec)+' '+s.unit;bar.style.width='0%'}
+    else{var e=rx[j],v=val(s,e),age=T-e.t;
+      cls=age>P.k*Tus?'stale':age>1.5*Tus?'late':'fresh';badge=cls==='stale'?'STALE':cls==='late'?'LATE':'FRESH';
+      numEl.textContent=fv(v,s.dec);ageEl.textContent='last frame '+fT(age)+' ago';
+      truEl.textContent='real now: '+fv(tr,s.dec)+' '+s.unit+' (off by '+Math.abs(v-tr).toFixed(s.dec)+')';
+      bar.style.width=(clamp((v-s.view[0])/(s.view[1]-s.view[0]),0,1)*100)+'%'}
+    if(cls==='stale'||cls==='nodata'){nStale++;names.push(s.name)}
+    el.className='stile '+cls;el.querySelector('.badge').textContent=badge});
+  /* top tiles */
+  var W=1e5,a=T-W,i0=firstEndAfter(sim.log,a),busy=0;
+  for(var q=i0;q<sim.log.length;q++){var e2=sim.log[q];if(e2.t0>=T)break;busy+=Math.min(e2.t1,T)-Math.max(e2.t0,a)}
+  var span=Math.min(W,T);$('tt0').textContent=span>0?Math.round(busy/span*100)+'%':'\u2014';
+  $('tt1').textContent=nStale+' of '+NS;
+  $('tt2').textContent=String(R.errCount(T));
+  var act=(R.hasX||P.noise>0)?(T<P.at*1e6?'not yet':T<(P.at+P.len)*1e6?'ACTIVE':'over'):'none set';
+  $('tt3').textContent=act;
+  var txt=nStale?nStale+' of '+NS+' sensors stale: '+names.join(', ')+'.':'All sensors fresh.';
+  var now=performance.now();if(!playing||now-srAt>3000){if(txt!==srTxt){$('srSum').textContent='At '+(T/1e6).toFixed(1)+' seconds. '+txt;srTxt=txt}srAt=now}
+}
+function decodeRow(e){
+  if(e.kind==='err')return '<span class="e">ERROR</span>';
+  var m=R.msgs[e.mi];if(m.sensor){return fv(CAN.unpackSample(e.d,m.sensor),m.sensor.dec)+' '+m.sensor.unit}return 'extra traffic'}
+function updateLog(){
+  var sim=R.sim,idx=lastIdx(sim.log,T,'t1');
+  if(idx===lastLogIdx)return;lastLogIdx=idx;
+  var h='',from=Math.max(0,idx-11);
+  for(var q=from;q<=idx;q++){var e=sim.log[q],m=R.msgs[e.mi],ok=e.kind==='ok',d=ok&&e.d?e.d.slice(0,Math.min(m.dlc,8)).map(function(b){return hex(b,2)}).join(' '):'';
+    h+='<div><span class="k">'+(e.t0/1e6).toFixed(4)+'</span><span>'+hex(m.id,3)+'</span><span class="k">'+(ok?m.dlc:'\u2014')+'</span><span class="k k2">'+(ok?d:'')+'</span><span class="v">'+(ok?(m.sensor?'<b>'+m.name+'</b> = '+decodeRow(e):'<span class="k">extra traffic</span>'):'<span class="e">ERROR frame: destroyed by noise, will be sent again ('+m.name+')</span>')+'</span></div>'}
+  $('flog').innerHTML=h||'<div><span class="k">\u2014</span><span></span><span></span><span></span><span class="k">no frames yet</span></div>';
+  $('flog').scrollTop=$('flog').scrollHeight;
+}
+function update(force){
+  if(!R)return;
+  $('cTime').value=Math.round(T/1000);$('oTime').textContent=(T/1e6).toFixed(2)+' / '+DUR+' s';
+  updateTiles();drawTrace();drawBus();if(force)lastLogIdx=-2;updateLog();
+}
+function setPlaying(on){
+  playing=on;$('bPlay').textContent=on?'Pause':(T>=DUR*1e6?'Replay':'Play');
+  if(raf){cancelAnimationFrame(raf);raf=0}
+  if(on){if(T>=DUR*1e6)T=0;lastTs=0;raf=requestAnimationFrame(tick)}
+}
+function tick(ts){
+  if(!playing)return;
+  var dt=lastTs?Math.min(0.1,(ts-lastTs)/1000):0;lastTs=ts;
+  T+=dt*1e6*P.speed;
+  if(T>=DUR*1e6){T=DUR*1e6;update();setPlaying(false);return}
+  update();raf=requestAnimationFrame(tick);
+}
+
+/* ---------- wiring ---------- */
+['cRate','cStuff','cSync','cPrio','cK','cRest'].forEach(function(id){$(id).addEventListener('change',function(){rebuild(true)})});
+['cExtra','cNoise','cAt','cLen'].forEach(function(id){$(id).addEventListener('input',function(){rebuild(false)})});
+$('cWin').addEventListener('change',function(){readCtl();update()});
+$('cBusWin').addEventListener('change',function(){readCtl();update()});
+$('cSpeed').addEventListener('change',readCtl);
+$('bSeed').addEventListener('click',function(){P.seed=(P.seed*7+13)%9973;rebuild(true)});
+$('bPlay').addEventListener('click',function(){setPlaying(!playing)});
+$('bRestart').addEventListener('click',function(){T=0;setPlaying(true)});
+$('cTime').addEventListener('input',function(){T=+$('cTime').value*1000;update();$('bPlay').textContent=playing?'Pause':(T>=DUR*1e6?'Replay':'Play')});
+window.addEventListener('resize',function(){if(R){layout();update()}});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){paintColors();if(R){renderResults();update()}});
+document.addEventListener('visibilitychange',function(){lastTs=0});
+
+initTable();
+readCtl();note();build();
+layout();renderResults();paintColors();
+setPlaying(false);update(true);
+})();
+</script>
+</body></html>
