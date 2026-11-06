@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>How does a message win the bus? (CAN bus, step 2)</title>
+<meta name="description" content="Step 2 of the CAN bus lesson: follow one message from identifier and data to a CRC, stuffed bits, arbitration against other nodes, acknowledgement and error handling.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#EBEFF2; --panel:#F8FAFB; --ink:#15212B; --mute:#587080; --line:#C7D1D8;
+  --volt:#1D63C9; --curr:#C2620A; --cell:#22313D; --err:#B3261E; --ok:#1E7B4A; --hl:#FBE9D2;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+    --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1318; --panel:#161D24; --ink:#E6ECF1; --mute:#92A2AF; --line:#2A3540;
+  --volt:#6AA9FF; --curr:#F3A552; --cell:#A9BFD0; --err:#FF8A80; --ok:#6FD6A0; --hl:#3A2A14;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+:root{color-scheme:light}
+html{padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+a{color:var(--volt)}
+header h1{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,4vw,34px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;max-width:72ch;color:var(--mute)}
+.crumb{font-size:13px;margin:0 0 8px}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.toc a{border:1px solid var(--line);border-radius:999px;padding:3px 12px;text-decoration:none;color:var(--ink);background:var(--panel);font-size:13px}
+.toc a:hover{border-color:var(--volt)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+h2{font-family:var(--f-display);font-size:18px;font-weight:600;margin:0 0 8px;letter-spacing:.01em}
+.cap{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--mute);font-weight:600}
+.lead{margin:0 0 12px;max-width:78ch;font-size:14px}
+.note{font-size:12px;color:var(--mute);margin:8px 0 0}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{border:1px solid var(--line);border-radius:6px;padding:12px;background:var(--bg);min-width:0}
+.card h3{font-family:var(--f-display);font-size:15px;margin:0 0 4px}
+.row{display:flex;align-items:center;gap:10px;margin:7px 0}
+.row label{flex:0 0 130px;font-size:13px}
+.row input[type=range]{flex:1;min-width:0;accent-color:var(--volt)}
+.row output{flex:0 0 96px;text-align:right;font-family:var(--f-mono);font-size:12px}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 10px}
+button{cursor:pointer}
+button:hover:not(:disabled){border-color:var(--volt)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.set{border-color:var(--curr);color:var(--curr);font-weight:600}
+button.reset{border-color:var(--err);color:var(--err);font-weight:600}
+button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-mono)}
+.read{font-family:var(--f-mono);font-size:13px;margin:6px 0}
+.read b{font-weight:500}
+.big{font-family:var(--f-display);font-weight:700;font-size:26px;line-height:1.15}
+.status{min-height:2.9em;font-size:13px;margin:6px 0}
+.good{color:var(--ok)} .bad{color:var(--err)}
+.analogy{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:10px 0 0}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute)}
+td:first-child{font-weight:600;white-space:nowrap}
+#cellSvg{max-width:340px;margin-left:auto;margin-right:auto}
+#rrSvg{max-width:340px;margin-left:auto;margin-right:auto}
+#gauge,#gauge2{max-width:340px;margin-left:auto;margin-right:auto}
+.cmp td:first-child{white-space:normal}
+@media (max-width:600px){.cmp th,.cmp td{padding:6px 6px;font-size:12px}}
+.tw{overflow-x:auto}
+.actbar{position:sticky;bottom:0;z-index:5;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:10px 0;box-shadow:0 -4px 10px rgba(0,0,0,.08)}
+.mapgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.mapgrid .card p{margin:4px 0 0;font-size:13px}
+details.q{border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0;background:var(--bg)}
+details.q summary{cursor:pointer;font-weight:600}
+details.q p{margin:8px 0 2px}
+.verdict{font-family:var(--f-display);font-size:18px;font-weight:600;margin:8px 0 2px}
+.credit{font-size:12px;color:var(--mute);text-align:center;padding-top:6px;border-top:1px solid var(--line)}
+.flow{stroke-dasharray:6 5;animation:dash .7s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-11}}
+@media (prefers-reduced-motion:reduce){.flow{animation:none}}
+.refs{margin:6px 0 4px;padding-left:24px;font-size:13px;line-height:1.5;max-width:92ch}
+.refs li{margin:8px 0}
+.refs .why{display:block;color:var(--mute);font-size:12px;margin-top:2px}
+.sub{font-family:var(--f-display);font-size:15px;margin:6px 0 4px}
+.cn{margin:0 0 8px;font-size:13px;color:var(--ink)}
+/* lesson layout: step list on the left, one active step on the right */
+.lesson{display:grid;grid-template-columns:minmax(0,250px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.lesson{grid-template-columns:minmax(0,1fr)}}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+@media (max-width:860px){.steps{flex-direction:row;flex-wrap:wrap}.steps li{flex:1 1 150px}.steps .d{display:none}}
+.steps button{width:100%;text-align:left;display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;padding:8px 10px;border-radius:6px;align-items:start}
+.steps .n{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--mute);font-family:var(--f-mono);font-size:12px;color:var(--mute)}
+.steps .t{font-weight:600;font-size:13px;line-height:1.3}
+.steps .d{font-size:12px;color:var(--mute);margin-top:2px;line-height:1.35}
+.steps button[aria-current=step]{border-color:var(--curr);background:var(--hl)}
+.steps button[aria-current=step] .n{border-color:var(--curr);background:var(--curr);color:var(--bg)}
+.steps button.done .n{border-color:var(--ok);color:var(--ok)}
+.stage{min-width:0;display:flex;flex-direction:column;gap:10px}
+.stagehead{display:flex;flex-direction:column;gap:2px}
+.nav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px}
+.calc{font-family:var(--f-mono);font-size:13px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;overflow-x:auto;font-variant-numeric:tabular-nums}
+.calc b{font-weight:500;color:var(--curr)}
+.calc .m{color:var(--mute)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.chip{border:1.5px solid var(--line);border-radius:999px;padding:2px 12px;font-size:12px;color:var(--mute)}
+.chip.on{border-color:var(--curr);background:var(--hl);color:var(--ink);font-weight:600}
+.log{max-height:190px;overflow:auto;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums}
+.log div{display:grid;grid-template-columns:30px 66px minmax(0,1fr);gap:6px;padding:3px 8px;border-bottom:1px solid var(--line)}
+.log div:last-child{border-bottom:0;background:var(--hl)}
+.log .k{color:var(--mute)}
+.log .a{font-weight:500}
+.log .a.s{color:var(--curr)} .log .a.r{color:var(--volt)}
+
+.calc{font-family:var(--f-mono);font-size:13px;line-height:1.7;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;overflow-x:auto;font-variant-numeric:tabular-nums}
+.calc b{font-weight:600;color:var(--ink)}
+.calc .m{color:var(--mute)}
+.row input[type=text]{flex:1;min-width:0;padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);font-family:var(--f-mono);font-size:13px}
+.row label{flex:0 0 150px}
+.row select{flex:1;min-width:0}
+.log .a.s{color:var(--ok)}
+.log .a.r{color:var(--err)}
+.log div{grid-template-columns:34px 56px minmax(0,1fr)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:8px 0}
+.tile{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--bg)}
+.tile .big{font-family:var(--f-display);font-weight:700;font-size:22px;line-height:1.15}
+.tile .sub{font-size:12px;color:var(--mute);margin-top:3px}
+button:disabled{opacity:.45;cursor:not-allowed}
+@media (max-width:600px){.row label{flex-basis:110px}.row output{flex-basis:70px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="crumb"><span class="cap">Step 2 of 3</span> &nbsp;·&nbsp; <a href="../basics/">&larr; Step 1: CAN bus vs separate wires</a> &nbsp;·&nbsp; <a href="../">CAN home</a> &nbsp;·&nbsp; <a href="../bus/">Step 3: CAN bus simulator</a></p>
+    <h1>How does a message win the bus?</h1>
+    <p>In Step 1 the bus was a shared wired AND: if anyone is dominant, the bus is dominant. Now follow <b>one message</b> from a few numbers to bits on the wire. You choose its identifier and data, lay out the frame, compute its CRC, stuff its bits, make it compete against two other nodes for the bus, and finally see what the bus does when something goes wrong. Everything on this page is computed live from the model, so change the message in step 1 and every later step follows.</p>
+  </header>
+
+  <section class="panel" id="lesson">
+    <div class="lesson">
+      <ol class="steps" id="stepList" aria-label="Steps"></ol>
+      <div class="stage">
+        <div class="stagehead"><span class="cap" id="stepNo"></span><h2 id="stepTitle" style="margin:0"></h2></div>
+        <p class="lead" id="stepLead" style="margin:0"></p>
+        <div class="chips" id="chips" aria-label="Your message"></div>
+        <svg id="fig" viewBox="0 0 700 200" role="img" aria-label="" style="max-width:760px;width:100%;margin:0 auto"></svg>
+        <div id="body"></div>
+        <div class="nav">
+          <button id="bBack" type="button">&larr; Back</button>
+          <button id="bNext" class="set" type="button">Next step &rarr;</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="check">
+    <h2>Check yourself</h2>
+    <details class="q"><summary>Why does the lower identifier win arbitration?</summary><p>Identifiers are sent most significant bit first and every node reads the bus while it sends. At the first bit where two identifiers differ, the smaller number has a 0 (dominant) and the larger has a 1 (recessive). The bus becomes 0, so the node that sent 1 sees a mismatch, stops, and becomes a receiver. The node that sent 0 saw exactly what it sent and carries on.</p></details>
+    <details class="q"><summary>The loser of arbitration was sending its frame too. Is anything corrupted or lost?</summary><p>No. The winner&rsquo;s bits are unchanged, because the loser sent a recessive bit that the dominant bit simply overrode, and the loser then went quiet. The loser still has its message queued and tries again as soon as the bus is free, so the only cost is waiting. That is why CAN calls arbitration non-destructive.</p></details>
+    <details class="q"><summary>Two nodes send the same identifier at the same time. What happens?</summary><p>Neither ever sees a mismatch during arbitration, so both carry on into the control and data fields. If their data differs, one sends a 1 where the other sends a 0, and the node that sent the 1 reads a 0 outside arbitration: a bit error. The frames collide and both nodes raise error frames. This is why every identifier must be sent by <b>one node only</b>. Try it in step 5 by giving two nodes the same ID.</p></details>
+    <details class="q"><summary>Is the CRC calculated before or after bit stuffing, and does it cover the stuff bits?</summary><p>Before. The CRC is computed over the original bits from the start of frame to the end of the data field. Stuff bits are added afterwards, to everything from the start of frame through the CRC sequence, and removed by the receiver before it checks the CRC. Stuff bits are not part of the CRC. Step 4 shows the receiver recovering the original bits.</p></details>
+    <details class="q"><summary>The transmitter reads a dominant ACK slot. What exactly does that tell it?</summary><p>Only that <b>at least one</b> node received the frame without detecting an error. It does not say which node, or that the intended consumer got it, or that every node did. In step 6 receiver B hears corrupted data and refuses to acknowledge, but the transmitter still sees a dominant ACK slot because receiver C acknowledged. The error flag that B sends afterwards is what makes everyone discard the frame.</p></details>
+    <details class="q"><summary>A node&rsquo;s transmit error counter goes up by 8 on a failed send and down by 1 on a good one. What does that mean for a node that fails one frame in ten?</summary><p>Ten sends give +8 for the failure and &minus;9 for the nine successes, so the counter stays near zero: occasional errors are tolerated. A node that fails more than about one frame in nine climbs steadily, goes error-passive at 128 and bus-off above 255. The rule separates a noisy moment from a broken node and takes a node that keeps disturbing the bus off it. Step 6 lets you watch it happen.</p></details>
+    <details class="q"><summary>A standard frame and an extended frame have the same 11 leading identifier bits. Which one wins?</summary><p>The standard frame. After the 11 base ID bits, the standard frame sends RTR (dominant for a data frame) while the extended frame sends SRR, which is always recessive. The standard frame&rsquo;s dominant bit wins. In general arbitration covers the whole arbitration field, which includes those control bits.</p></details>
+  </section>
+
+  <section class="panel" id="next" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
+    <div><span class="cap">Step 3 of 3</span><h2 style="margin:2px 0 0">Ready for a whole network?</h2><p class="note" style="margin:4px 0 0;font-size:13px;max-width:60ch">So far one message met two others. In Step 3 a table of periodic messages shares one bus: you set bit rate, stuffing, and error rate, then see bus load, who waits how long, whether anyone misses a deadline, and how the calculated worst-case bound compares with what the simulation observed.</p></div>
+    <a href="../bus/" style="text-decoration:none"><button class="set" type="button" style="padding:10px 18px;font-size:15px">Step 3: bus simulator &rarr;</button></a>
+  </section>
+
+  <section class="panel" id="reading">
+    <h2>Further reading</h2>
+    <p class="note" style="margin:0 0 6px;font-size:13px;max-width:80ch">This page is a teaching model. For the authoritative frame formats and error rules, use the specification; for the timing consequences of arbitration, start with the Davis et al. paper.</p>
+    <ol class="refs">
+      <li>Bosch. CAN Specification, Version 2.0 (1991), and ISO 11898-1.
+        <span class="why">The frame formats, the CRC polynomial, bit stuffing, arbitration and the error-confinement rules used here. Search the titles to find a copy.</span></li>
+      <li>Corrigan, S. Introduction to the Controller Area Network (CAN). Texas Instruments application report SLOA101. <a href="https://www.ti.com/lit/SLOA101">ti.com/lit/SLOA101</a>
+        <span class="why">A short walk through the frame, arbitration and error handling with the same dominant and recessive picture.</span></li>
+      <li>Di Natale, M., Zeng, H., Giusto, P. &amp; Ghosal, A. Understanding and Using the Controller Area Network Communication Protocol: Theory and Practice. Springer (2012). <a href="https://www.springer.com/gp/book/9781461403135">springer.com</a>
+        <span class="why">Covers the frame fields, error detection and error confinement in more depth than this page, including the exceptions to the counter rules that step 6 skips.</span></li>
+      <li>Davis, R. I., Burns, A., Bril, R. J. &amp; Lukkien, J. J. Controller Area Network (CAN) schedulability analysis: Refuted, revisited and revised. Real-Time Systems 35, 239&ndash;272 (2007). <a href="https://doi.org/10.1007/s11241-007-9012-7">doi:10.1007/s11241-007-9012-7</a>
+        <span class="why">Shows how arbitration and the worst-case frame length (including stuff bits) set how long a message can wait. Step 3 uses this analysis.</span></li>
+    </ol>
+    <p class="note" style="max-width:80ch">Links can change, so searching the title always works. The citations were looked up on 6 November 2026 by checking search records, not by reading each document in full. The identifiers, counter rules and bit counts are the commonly published ones for classical CAN, and the 0A0, 120 and 3A0 identifiers are illustrative.</p>
+  </section>
+
+  <footer class="credit">Developed by Alexander Co Abad with the help of Claude AI (Sonnet 5.5). A teaching model, not a model of a specific device.</footer>
+</div>
+
+<script>
+/* ===== CAN teaching model: shared core (classical CAN 2.0A/B). Pasted verbatim into each page. =====
+   Bits: dominant = 0, recessive = 1.  Time in microseconds unless a name says otherwise. */
+var CAN=(function(){
+'use strict';
+var POLY=0x4599; /* x^15+x^14+x^10+x^8+x^7+x^4+x^3+1 */
+function bits(v,n){var a=[];for(var i=n-1;i>=0;i--)a.push(Math.floor(v/Math.pow(2,i))%2);return a}
+function crc15(b){var c=0;for(var i=0;i<b.length;i++){var nx=b[i]^((c>>14)&1);c=(c<<1)&0x7FFF;if(nx)c^=POLY}return c}
+/* crc15 with a trace, one row per message bit: {bit, top, crc} */
+function crc15trace(b){var c=0,t=[];for(var i=0;i<b.length;i++){var top=(c>>14)&1,nx=b[i]^top;c=(c<<1)&0x7FFF;if(nx)c^=POLY;t.push({bit:b[i],top:top,fb:nx,crc:c})}return t}
+/* bit stuffing: after 5 equal bits insert the opposite bit; the stuff bit starts a new run */
+function stuff(b){var out=[],isS=[],run=0,last=-1,n=0;
+  for(var i=0;i<b.length;i++){out.push(b[i]);isS.push(false);
+    if(b[i]===last)run++;else{last=b[i];run=1}
+    if(run===5){var s=1-b[i];out.push(s);isS.push(true);last=s;run=1;n++}}
+  return {bits:out,isStuff:isS,count:n}}
+/* receiver side: returns {bits, err:index of the 6th equal bit or -1} */
+function destuff(b){var out=[],run=0,last=-1;
+  for(var i=0;i<b.length;i++){
+    if(run===5){ if(b[i]===last)return {bits:out,err:i}; last=b[i];run=1;continue }
+    out.push(b[i]);
+    if(b[i]===last)run++;else{last=b[i];run=1}}
+  return {bits:out,err:-1}}
+/* one data frame (or remote frame) as fields. o = {id, ext, rtr, dlc, data[]} */
+function frame(o){
+  var f=[];function F(n,b,k){f.push({n:n,b:b,k:k})}
+  var dlc=Math.max(0,Math.min(15,o.dlc|0)),len=o.rtr?0:Math.min(dlc,8);
+  F('SOF',[0],'ctl');
+  if(!o.ext){F('Identifier',bits(o.id,11),'id');F('RTR',[o.rtr?1:0],'ctl');F('IDE',[0],'ctl');F('r0',[0],'ctl')}
+  else{F('Base ID',bits(Math.floor(o.id/262144),11),'id');F('SRR',[1],'ctl');F('IDE',[1],'ctl');F('Ext ID',bits(o.id%262144,18),'id');F('RTR',[o.rtr?1:0],'ctl');F('r1',[0],'ctl');F('r0',[0],'ctl')}
+  F('DLC',bits(dlc,4),'ctl');
+  for(var i=0;i<len;i++)F('Data '+i,bits((o.data&&o.data[i])|0,8),'data');
+  var pre=[];f.forEach(function(x){pre=pre.concat(x.b)});
+  var crc=crc15(pre);F('CRC',bits(crc,15),'crc');
+  var region=pre.concat(bits(crc,15));
+  F('CRC delim',[1],'del');F('ACK slot',[1],'ack');F('ACK delim',[1],'del');F('EOF',[1,1,1,1,1,1,1],'eof');F('IFS',[1,1,1],'ifs');
+  var st=stuff(region);
+  return {fields:f,pre:pre,crc:crc,region:region,stuffed:st,tailBits:13,
+          bitsNoStuff:region.length+13,bitsStuffed:st.bits.length+13,bitsToEOF:st.bits.length+10}}
+/* worst-case frame length in bits including the 3-bit gap (Davis et al. 2007) */
+function wcBits(ext,n){var g=ext?54:34;return 8*n+g+13+Math.floor((g+8*n-1)/4)}
+function plainBits(ext,n){return 8*n+(ext?54:34)+13}
+/* arbitration key: lexicographically smaller wins (dominant 0 beats recessive 1) */
+function arbKey(m){var id=m.ext?bits(Math.floor(m.id/262144),11).concat([1,1],bits(m.id%262144,18),[0]):bits(m.id,11).concat([m.rtr?1:0,0]);return id.join('')}
+/* bit timing: longest bus for a bit rate, sample point and node delay (illustrative values) */
+var TPROP=5; /* ns per metre of cable */
+function maxLen(bitrate,sp,tloopNs){var Tb=1e9/bitrate;return Math.max(0,(Tb*sp-2*tloopNs)/(2*TPROP))}
+/* seeded random numbers */
+function rng(seed){var a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+/* worst-case response time of each message (Davis et al. 2007), jitter and deadlines in us.
+   msgs[i] = {id, ext, dlc, periodMs, jitterMs, deadlineMs} ; returns an array in the same order */
+function rta(msgs,bitUs){
+  var n=msgs.length,C=[],K=[],T=[],J=[],D=[],i,k;
+  for(i=0;i<n;i++){var m=msgs[i];C.push(wcBits(m.ext,Math.min(m.dlc,8))*bitUs);K.push(arbKey(m));T.push(m.periodMs*1000);J.push((m.jitterMs||0)*1000);D.push((m.deadlineMs||m.periodMs)*1000)}
+  var out=[];
+  for(i=0;i<n;i++){
+    var B=0;for(k=0;k<n;k++)if(k!==i&&K[k]>K[i]&&C[k]>B)B=C[k];
+    var w=B,ok=true,guard=0;
+    for(;;){var nw=B;for(k=0;k<n;k++)if(k!==i&&K[k]<K[i])nw+=Math.ceil((w+J[k]+bitUs)/T[k])*C[k];
+      if(nw===w)break;w=nw;if(w+C[i]>50*T[i]||++guard>5000){ok=false;break}}
+    var R=J[i]+w+C[i];
+    out.push({C:C[i],B:B,w:w,R:R,D:D[i],ok:ok&&R<=D[i],diverged:!ok})}
+  return out}
+/* discrete-event simulation of the bus.
+   cfg = {msgs:[{name,node,id,ext,dlc,periodMs,offsetMs,jitterMs,deadlineMs,data?}], bitrate, stuff:'worst'|'random'|'none', errP, durMs, seed, sync} */
+function simulate(cfg){
+  var msgs=cfg.msgs,bitUs=1e6/cfg.bitrate,rnd=rng(cfg.seed||1),dur=cfg.durMs*1000,i;
+  var nodes={},order=[];
+  msgs.forEach(function(m){if(!nodes[m.node]){nodes[m.node]={name:m.node,tec:0,maxTec:0,busOffs:0,off:0,block:0,errs:0,sent:0,state:'error-active'};order.push(m.node)}});
+  var keys=msgs.map(arbKey),rel=[];
+  msgs.forEach(function(m,mi){var T=Math.max(50,m.periodMs*1000),off=cfg.sync?0:(m.offsetMs||0)*1000,J=(m.jitterMs||0)*1000;
+    for(var t=off;t<dur;t+=T)rel.push({t:t+(J?rnd()*J:0),mi:mi})});
+  rel.sort(function(a,b){return a.t-b.t});
+  var st=msgs.map(function(){return {sent:0,sum:0,max:0,min:Infinity,miss:0,retx:0}});
+  var log=[],pend=[],ri=0,t=0,busy=0,errFrames=0,guard=0;
+  while(guard++<2e6){
+    while(ri<rel.length&&rel[ri].t<=t){pend.push(rel[ri]);ri++}
+    var best=null;
+    for(i=0;i<pend.length;i++){var p=pend[i],nd=nodes[msgs[p.mi].node];if(nd.off>t||nd.block>t)continue;
+      if(!best||keys[p.mi]<keys[best.mi])best=p}
+    if(!best){var nt=ri<rel.length?rel[ri].t:Infinity;
+      pend.forEach(function(p){var nd=nodes[msgs[p.mi].node],e=Math.max(nd.off,nd.block);if(e>t&&e<nt)nt=e});
+      if(nt===Infinity||nt>=dur)break;t=nt;continue}
+    if(t>=dur)break;
+    var m=msgs[best.mi],nd=nodes[m.node],len=Math.min(m.dlc,8),nb,tail;
+    if(cfg.stuff==='worst'){nb=wcBits(m.ext,len)}
+    else if(cfg.stuff==='none'){nb=plainBits(m.ext,len)}
+    else{var d=[];for(var q=0;q<len;q++)d.push(m.data&&m.data[q]!=null?m.data[q]:Math.floor(rnd()*256));nb=frame({id:m.id,ext:m.ext,dlc:m.dlc,data:d}).bitsStuffed}
+    tail=nb-3;
+    if(cfg.errP>0&&rnd()<cfg.errP){
+      var pos=1+Math.floor(rnd()*tail),us=(pos+6+8+3)*bitUs;
+      log.push({t0:t,t1:t+us,mi:best.mi,kind:'err',rel:best.t});
+      busy+=Math.min(us,Math.max(0,dur-t));errFrames++;st[best.mi].retx++;
+      nd.errs++;nd.tec+=8;if(nd.tec>nd.maxTec)nd.maxTec=nd.tec;
+      if(nd.tec>255){nd.busOffs++;nd.state='bus-off';nd.off=t+us+128*11*bitUs;nd.tec=0;nd.maxTec=Math.max(nd.maxTec,256)}
+      else if(nd.tec>=128){nd.state='error-passive';nd.block=t+us+8*bitUs}
+      t+=us;continue}
+    var us2=nb*bitUs;
+    log.push({t0:t,t1:t+us2,mi:best.mi,kind:'ok',rel:best.t,bits:nb});
+    busy+=Math.min(us2,Math.max(0,dur-t));
+    var lat=t+tail*bitUs-best.t,s=st[best.mi];s.sent++;s.sum+=lat;if(lat>s.max)s.max=lat;if(lat<s.min)s.min=lat;
+    if(lat>(m.deadlineMs||m.periodMs)*1000)s.miss++;
+    pend.splice(pend.indexOf(best),1);nd.sent++;
+    if(nd.tec>0)nd.tec--;
+    if(nd.tec>=128){nd.state='error-passive';nd.block=t+us2+8*bitUs}else if(nd.off<=t+us2)nd.state='error-active';
+    t+=us2}
+  return {log:log,stats:st,nodes:order.map(function(n){return nodes[n]}),load:Math.min(1,busy/dur),bitUs:bitUs,left:pend.length,errFrames:errFrames,dur:dur}}
+return {bits:bits,crc15:crc15,crc15trace:crc15trace,stuff:stuff,destuff:destuff,frame:frame,wcBits:wcBits,plainBits:plainBits,arbKey:arbKey,maxLen:maxLen,TPROP:TPROP,rng:rng,rta:rta,simulate:simulate}
+})();
+
+(function(){
+function $(id){return document.getElementById(id)}
+function hex(v,n){var s=Math.floor(v).toString(16).toUpperCase();while(s.length<(n||1))s='0'+s;return s}
+function grp(s,n){var o=[];for(var i=0;i<s.length;i+=n)o.push(s.substr(i,n));return o.join(' ')}
+function fmtT(us){return us>=1000?parseFloat((us/1000).toFixed(2))+' ms':parseFloat(us.toFixed(1))+' µs'}
+function pts(a){return a.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1)}).join(' ')}
+function tile(big,sub){return '<div class="tile"><div class="big">'+big+'</div><div class="sub">'+sub+'</div></div>'}
+var NM=['A','B','C'];
+var S={id:0x0A0,ext:false,dlc:8,data:[0x12,0x34,0x56,0x78,0x9A,0xBC,0xDE,0xF0],rate:500000,step:0,seen:{},k:-1,flip:0,
+  ids:[0x65A,0x652,0x7A1],ap:0,timer:null,fault:'none',tec:0,rec:0,log:[],n:0,last:null};
+function F(){return CAN.frame({id:S.id,ext:S.ext,dlc:S.dlc,data:S.data})}
+function bitUs(){return 1e6/S.rate}
+function nameAt(f,idx){var c=0;for(var j=0;j<f.fields.length;j++){var fl=f.fields[j],len=fl.b.length;if(idx<c+len)return fl.n+(len>1?' bit '+(len-1-(idx-c)):'');c+=len}return '?'}
+function fig(svg,label){var e=$('fig');e.innerHTML=svg;e.setAttribute('aria-label',label||'')}
+function lead(h){$('stepLead').innerHTML=h}
+function body(h){$('body').innerHTML=h}
+function setVB(h){$('fig').setAttribute('viewBox','0 0 700 '+h)}
+function opts(a,sel){return a.map(function(o){return '<option value="'+o[0]+'"'+(String(o[0])===String(sel)?' selected':'')+'>'+o[1]+'</option>'}).join('')}
+var RATES=[[125000,'125 kbit/s'],[250000,'250 kbit/s'],[500000,'500 kbit/s'],[1000000,'1 Mbit/s']];
+function chips(){
+  var f=F(),n=Math.min(S.dlc,8),d=[];for(var i=0;i<n;i++)d.push(hex(S.data[i],2));
+  $('chips').innerHTML='<span class="chip on">ID 0x'+hex(S.id,S.ext?8:3)+' ('+(S.ext?'29':'11')+'-bit)</span><span class="chip">'+n+' data byte'+(n===1?'':'s')+(n?': '+d.join(' '):'')+'</span><span class="chip">'+S.rate/1000+' kbit/s</span>'}
+
+/* ---------------- step 1 ---------------- */
+var EX=[[0x0A0,'Brake pressure'],[0x120,'Engine speed'],[0x3A0,'Door status'],[0x7DF,'Diagnostic request (the standard OBD-II functional request ID)']];
+function s1(){
+  lead('A node has something to share, for example a brake pressure. It wraps the value in a <b>frame</b>. The <b>identifier</b> says <i>what</i> the message is, not who it is for, and it also sets its <b>priority</b>: the <b>lower the number, the higher the priority</b>. Set the message below; every later step follows it.');
+  var dl=[];for(var i=0;i<=8;i++)dl.push([i,i+(i===1?' byte':' bytes')]);
+  var ex='<div class="tw"><table class="cmp"><thead><tr><th>ID</th><th>Message (illustrative)</th><th></th></tr></thead><tbody>';
+  EX.forEach(function(e,i){ex+='<tr><td>0x'+hex(e[0],3)+'</td><td>'+e[1]+'</td><td><button type="button" data-ex="'+i+'">Use</button></td></tr>'});
+  ex+='</tbody></table></div>';
+  body('<div class="two"><div>'+
+   '<div class="row"><label for="iId">Identifier (hex)</label><input type="text" id="iId" value="'+hex(S.id,S.ext?8:3)+'" maxlength="10" autocomplete="off" spellcheck="false"></div>'+
+   '<div class="row"><label for="iFmt">Identifier length</label><select id="iFmt">'+opts([[0,'Standard, 11 bits (0 to 7FF)'],[1,'Extended, 29 bits (0 to 1FFFFFFF)']],S.ext?1:0)+'</select></div>'+
+   '<div class="row"><label for="iDlc">Data length (DLC)</label><select id="iDlc">'+opts(dl,S.dlc)+'</select></div>'+
+   '<div class="row"><label for="iData">Data (hex bytes)</label><input type="text" id="iData" value="'+S.data.map(function(v){return hex(v,2)}).join(' ')+'" autocomplete="off" spellcheck="false"></div>'+
+   '<div class="row"><label for="iRate">Bit rate</label><select id="iRate">'+opts(RATES,S.rate)+'</select></div>'+
+   '<p class="status" id="s1msg" aria-live="polite"></p></div>'+
+   '<div><h3 class="sub">Example identifiers</h3>'+ex+'<p class="note">The numbers are illustrative: each carmaker decides what its identifiers mean. The one fixed convention is 0x7DF for OBD-II requests.</p></div></div>'+
+   '<div class="calc" id="s1out"></div>');
+  $('iId').addEventListener('input',r1);$('iFmt').addEventListener('change',r1);$('iDlc').addEventListener('change',r1);$('iData').addEventListener('input',r1);$('iRate').addEventListener('change',r1);
+  document.querySelectorAll('[data-ex]').forEach(function(b){b.addEventListener('click',function(){S.id=EX[+b.getAttribute('data-ex')][0];S.ext=false;$('iFmt').value=0;$('iId').value=hex(S.id,3);r1()})});
+  r1();
+}
+function r1(){
+  var msgs=[],max=$('iFmt').value==='1'?0x1FFFFFFF:0x7FF,txt=$('iId').value.trim().replace(/^0x/i,'');
+  S.ext=$('iFmt').value==='1';
+  if(/^[0-9a-f]{1,8}$/i.test(txt)&&parseInt(txt,16)<=max)S.id=parseInt(txt,16);
+  else{msgs.push('The identifier must be hex digits from 0 to '+hex(max)+' for this length; using 0x'+hex(Math.min(S.id,max))+' for now.');if(S.id>max)S.id=max}
+  S.dlc=parseInt($('iDlc').value,10);S.rate=parseInt($('iRate').value,10);
+  var raw=$('iData').value.trim(),toks=raw.split(/[^0-9a-f]+/i).filter(function(t){return t.length}),bytes=[],i;
+  if(!(toks.length>1||(toks.length===1&&toks[0].length<=2))){var cl=raw.replace(/[^0-9a-f]/gi,'');toks=[];for(i=0;i<cl.length;i+=2)toks.push(cl.substr(i,2))}
+  for(i=0;i<8;i++)bytes.push(i<toks.length?parseInt(toks[i].substr(0,2),16)&0xFF:0);
+  var given=Math.min(toks.length,8);
+  S.data=bytes;
+  if(S.dlc>given)msgs.push('Bytes you did not type are sent as 00.');
+  if(given>S.dlc)msgs.push('Bytes beyond the data length are not sent.');
+  $('s1msg').textContent=msgs.join(' ');
+  chips();draw1();
+}
+function draw1(){
+  var n=S.ext?29:11,b=CAN.bits(S.id,n),bw=Math.min(34,640/n),x0=(700-bw*n)/2,o='',i,len=Math.min(S.dlc,8);
+  o+='<text x="350" y="18" text-anchor="middle" font-size="12" fill="var(--mute)">identifier: '+n+' bits, sent most significant bit first</text>';
+  for(i=0;i<n;i++){o+='<rect x="'+(x0+i*bw)+'" y="28" width="'+(bw-2)+'" height="34" rx="3" fill="'+(b[i]?'var(--bg)':'var(--hl)')+'" stroke="'+(b[i]?'var(--volt)':'var(--curr)')+'" stroke-width="1.5"/><text x="'+(x0+i*bw+(bw-2)/2)+'" y="50" text-anchor="middle" font-size="14" font-family="var(--f-mono)" fill="var(--ink)">'+b[i]+'</text>';
+    if(bw>=20||i%4===0)o+='<text x="'+(x0+i*bw+(bw-2)/2)+'" y="76" text-anchor="middle" font-size="9" fill="var(--mute)">'+(n-1-i)+'</text>'}
+  o+='<rect x="'+x0+'" y="88" width="12" height="12" fill="var(--hl)" stroke="var(--curr)"/><text x="'+(x0+17)+'" y="98" font-size="11" fill="var(--ink)">0 = dominant (wins)</text><rect x="'+(x0+150)+'" y="88" width="12" height="12" fill="var(--bg)" stroke="var(--volt)"/><text x="'+(x0+167)+'" y="98" font-size="11" fill="var(--ink)">1 = recessive (loses)</text>';
+  o+='<text x="350" y="130" text-anchor="middle" font-size="12" fill="var(--mute)">'+(len?'data: '+len+' byte'+(len===1?'':'s'):'no data bytes (DLC = '+S.dlc+')')+'</text>';
+  var dw=Math.min(66,640/Math.max(len,1)),dx=(700-dw*len)/2;
+  for(i=0;i<len;i++)o+='<rect x="'+(dx+i*dw)+'" y="140" width="'+(dw-4)+'" height="34" rx="3" fill="var(--bg)" stroke="var(--volt)" stroke-width="1.5"/><text x="'+(dx+i*dw+(dw-4)/2)+'" y="162" text-anchor="middle" font-size="14" font-family="var(--f-mono)" fill="var(--ink)">'+hex(S.data[i],2)+'</text>';
+  setVB(190);fig(o,'The identifier bits, orange for dominant zeros and blue for recessive ones, and the data bytes of the message');
+  /* priority among examples */
+  var list=EX.map(function(e){return {n:'0x'+hex(e[0],3)+' '+e[1].split(' (')[0],k:CAN.arbKey({id:e[0],ext:false})}});
+  list.push({n:'<b>yours</b> 0x'+hex(S.id,S.ext?8:3),k:CAN.arbKey({id:S.id,ext:S.ext}),me:1});
+  list.sort(function(a,c){return a.k<c.k?-1:a.k>c.k?1:0});
+  var out='<span class="m">identifier in binary</span>  '+(S.ext?grp(b.join(''),4):b.join('').replace(/^(\d{3})(\d{4})(\d{4})$/,'$1 $2 $3'))+'\n<span class="m">value</span>                 0x'+hex(S.id,S.ext?8:3)+' = '+S.id+'\n\n<span class="m">Who would win the bus if all of these started together?</span>\n';
+  list.forEach(function(e,i){out+=(i+1)+'. '+(e.me?'<b>':'')+e.n+(e.me?'</b>':'')+'\n'});
+  $('s1out').style.whiteSpace='pre-wrap';$('s1out').innerHTML=out;
+}
+
+/* ---------------- step 2 ---------------- */
+var KC={ctl:['var(--ink)',.35],id:['var(--curr)',.75],data:['var(--volt)',.75],crc:['var(--ok)',.75],del:['var(--mute)',.35],ack:['var(--err)',.6],eof:['var(--mute)',.6],ifs:['var(--mute)',.2]};
+var ROLE={'SOF':'One dominant bit. Wakes the receivers and lets them synchronise their clocks.','Identifier':'Names the message and sets its priority.','Base ID':'The first 11 bits of the 29-bit identifier.','Ext ID':'The remaining 18 bits of the identifier.','RTR':'Dominant in a data frame. Recessive would mean a remote frame, which asks for data instead of sending it.','IDE':'Dominant: standard 11-bit identifier. Recessive: extended 29-bit identifier.','SRR':'A placeholder in extended frames, always recessive. It takes the place of the RTR bit.','r0':'Reserved, sent dominant.','r1':'Reserved, sent dominant.','DLC':'Data length code: how many data bytes follow (0 to 8).','CRC':'15-bit check over everything from SOF to the end of the data (step 3).','CRC delim':'Recessive. Ends the CRC field.','ACK slot':'The transmitter sends recessive. Any receiver that got the frame without error drives it dominant.','ACK delim':'Recessive.','EOF':'Seven recessive bits that mark the end of the frame.','IFS':'Intermission: three recessive bits before the bus counts as free again.'};
+function valStr(fl,f){var s=fl.b.join('');
+  if(fl.k==='id')return '0x'+hex(parseInt(s,2),Math.ceil(fl.b.length/4))+' ('+s+')';
+  if(fl.n==='CRC')return '0x'+hex(f.crc,4);
+  if(fl.k==='data')return '0x'+hex(parseInt(s,2),2);
+  if(fl.n==='DLC')return String(parseInt(s,2))+' ('+s+')';
+  return s}
+function s2(){
+  var f=F(),T=f.bitsNoStuff;
+  lead('The frame is a fixed sequence of fields, sent in this order. Receivers know what each bit means purely from its position. Colours below match the table. The stuffed region (step 4) and the arbitration field (step 5) are marked underneath.');
+  var o='',x=30,W=640,bw=W/T,i,pos=[],c=0;
+  f.fields.forEach(function(fl,j){var w=fl.b.length*bw,col=KC[fl.k];pos.push([x,w,c,fl]);
+    o+='<rect x="'+x.toFixed(1)+'" y="40" width="'+w.toFixed(1)+'" height="44" fill="'+col[0]+'" opacity="'+col[1]+'" stroke="var(--panel)" stroke-width="1"/>';
+    if(w>=34)o+='<text x="'+(x+w/2).toFixed(1)+'" y="67" text-anchor="middle" font-size="'+(w>=80?11:9)+'" font-weight="600" fill="var(--ink)">'+(w<80?fl.n.replace('Identifier','ID').replace('CRC delim','CRC d.').replace('ACK delim','ACK d.').replace('Data ','D'):fl.n)+'</text>';
+    x+=w;c+=fl.b.length});
+  o+='<rect x="30" y="40" width="'+W+'" height="44" fill="none" stroke="var(--ink)" stroke-width="1.2"/>';
+  o+='<text x="30" y="30" font-size="11" fill="var(--mute)">time &rarr;   '+T+' bits without stuffing, including the 3-bit gap</text>';
+  var si=0,sEnd=0;f.fields.forEach(function(fl){if(fl.n==='CRC'){sEnd=pos[f.fields.indexOf(fl)][0]+pos[f.fields.indexOf(fl)][1]}});
+  var aS=pos[1][0],aE=0;for(i=1;i<f.fields.length;i++)if(f.fields[i].n==='RTR'){aE=pos[i][0]+pos[i][1];break}
+  function br(x1,x2,y,t,col){return '<path d="M'+x1+' '+(y-5)+'V'+y+'H'+x2+'V'+(y-5)+'" fill="none" stroke="'+col+'" stroke-width="1.6"/><text x="'+((x1+x2)/2)+'" y="'+(y+14)+'" text-anchor="middle" font-size="11" fill="'+col+'">'+t+'</text>'}
+  o+=br(aS,aE,102,'arbitration field','var(--curr)');
+  o+=br(30,sEnd,134,'bit stuffing applies from SOF to the end of the CRC','var(--ok)');
+  o+='<text x="670" y="'+(98)+'" text-anchor="end" font-size="10" fill="var(--mute)">13-bit fixed tail: not stuffed</text>';
+  setVB(170);fig(o,'The frame drawn as a coloured bar, with its fields in order and brackets for the arbitration field and the stuffed region');
+  var t='<div class="tw"><table class="cmp"><thead><tr><th>Field</th><th>Bits</th><th>Value in your message</th><th>What it does</th></tr></thead><tbody>';
+  f.fields.forEach(function(fl){var nm=fl.n.replace(/ \d+$/,'');t+='<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;background:'+KC[fl.k][0]+';opacity:'+Math.max(KC[fl.k][1],.5)+'"></span>'+fl.n+'</td><td>'+fl.b.length+'</td><td style="font-family:var(--f-mono);font-size:12px;overflow-wrap:anywhere">'+valStr(fl,f)+'</td><td>'+(fl.k==='data'?'Payload byte '+fl.n.split(' ')[1]+'.':ROLE[nm]||'')+'</td></tr>'});
+  t+='<tr><td><b>Total</b></td><td><b>'+T+'</b></td><td colspan="2">'+(S.ext?'64':'44')+' + 8 &times; '+Math.min(S.dlc,8)+' data bits, plus 3 bits of gap. Stuff bits come on top (step 4).</td></tr></tbody></table></div>';
+  t+='<p class="note" style="max-width:90ch"><b>What a receiver sees.</b> It waits for a dominant bit (SOF), then reads the '+(S.ext?'base ID, SRR, IDE and extended ID':'identifier')+', RTR and the control bits, learns from DLC how many data bytes to expect, and so knows exactly where the CRC begins. An extended frame has the same layout with 18 more identifier bits and two more control bits, which is why it is 20 bits longer.</p>';
+  body(t);
+}
+
+/* ---------------- step 3 ---------------- */
+function s3(){
+  var f=F(),pre=f.pre,N=pre.length;
+  if(S.k<0||S.k>N)S.k=N;if(S.flip>N)S.flip=0;
+  lead('A <b>CRC</b> (cyclic redundancy check) is a 15-bit fingerprint of the frame so far: the start of frame, identifier, control bits and data. The transmitter feeds the bits one at a time through a 15-bit shift register. Each bit is XORed with the register&rsquo;s top bit, the register shifts left, and if that XOR was 1 the polynomial 0x4599 is XORed in. Slide through the calculation, then try damaging a bit and let the receiver repeat it.');
+  body('<div class="row"><label for="kSl">Bits fed in</label><input type="range" id="kSl" min="0" max="'+N+'" value="'+S.k+'"><output id="kO"></output></div>'+
+   '<div class="calc" id="crcCalc" style="min-height:5.2em"></div>'+
+   '<details class="q"><summary>Show the whole calculation, one row per bit</summary><div class="log" id="crcLog" style="max-height:260px;margin-top:8px"></div></details>'+
+   '<h3 class="sub" style="margin-top:12px">The receiver repeats it</h3>'+
+   '<div class="row"><label for="fSl">Flip a bit in transit</label><input type="range" id="fSl" min="0" max="'+N+'" value="'+S.flip+'"><output id="fO"></output></div>'+
+   '<div class="calc" id="rxCalc" style="min-height:8em"></div>'+
+   '<p class="note" style="max-width:90ch">The CAN specification states that this CRC detects up to 5 randomly placed bit errors in a frame and any burst of up to 15 bits. It is not a security feature: anyone can compute it. It also covers the bits <i>before</i> stuffing; step 4 adds the stuff bits afterwards.</p>');
+  var tr=CAN.crc15trace(pre),lg=$('crcLog'),h='';
+  tr.forEach(function(r,i){h+='<div><span class="k">'+(i+1)+'</span><span class="a">in '+r.bit+'</span><span>top '+r.top+' &rarr; xor '+r.fb+' &rarr; '+CAN.bits(r.crc,15).join('')+'</span></div>'});
+  lg.innerHTML=h;
+  $('kSl').addEventListener('input',function(){S.k=+this.value;d3()});$('fSl').addEventListener('input',function(){S.flip=+this.value;d3()});
+  d3();
+}
+function d3(){
+  var f=F(),pre=f.pre,N=pre.length,tr=CAN.crc15trace(pre),k=S.k,reg=k?tr[k-1].crc:0,rb=CAN.bits(reg,15),o='',i;
+  $('kO').textContent=k+' of '+N;$('fO').textContent=S.flip?'bit '+S.flip:'none';
+  var taps=[14,10,8,7,4,3,0],x0=120,bw=34;
+  o+='<text x="350" y="22" text-anchor="middle" font-size="12" fill="var(--mute)">the 15-bit CRC register after '+k+' bit'+(k===1?'':'s')+' (bit 14 on the left)</text>';
+  for(i=0;i<15;i++){var bitI=14-i,tap=taps.indexOf(bitI)>=0;
+    o+='<rect x="'+(x0+i*bw)+'" y="64" width="'+(bw-3)+'" height="34" rx="3" fill="'+(rb[i]?'var(--hl)':'var(--bg)')+'" stroke="'+(i===0?'var(--curr)':'var(--line)')+'" stroke-width="'+(i===0?2:1.2)+'"/><text x="'+(x0+i*bw+(bw-3)/2)+'" y="87" text-anchor="middle" font-size="14" font-family="var(--f-mono)" fill="var(--ink)">'+rb[i]+'</text>';
+    o+='<text x="'+(x0+i*bw+(bw-3)/2)+'" y="112" text-anchor="middle" font-size="9" fill="var(--mute)">'+bitI+'</text>';
+    if(tap)o+='<circle cx="'+(x0+i*bw-1.5)+'" cy="52" r="7" fill="var(--bg)" stroke="var(--ok)" stroke-width="1.6"/><text x="'+(x0+i*bw-1.5)+'" y="56" text-anchor="middle" font-size="11" fill="var(--ok)">&oplus;</text>'}
+  o+='<text x="'+(x0)+'" y="44" text-anchor="end" font-size="10" fill="var(--ok)" dx="-12">XOR points</text>';
+  o+='<text x="'+x0+'" y="132" font-size="11" fill="var(--curr)">top bit (bit 14)</text>';
+  o+='<text x="'+(x0+15*bw)+'" y="132" text-anchor="end" font-size="12" fill="var(--ink)" font-family="var(--f-mono)">0x'+hex(reg,4)+'</text>';
+  o+='<text x="20" y="84" font-size="11" fill="var(--ink)">'+(k?'in: '+tr[k-1].bit:'start: all 0')+'</text>';
+  if(k)o+='<text x="20" y="100" font-size="11" fill="var(--mute)">'+nameAt(f,k-1)+'</text>';
+  setVB(146);fig(o,'The 15-bit CRC register with the polynomial XOR points marked and its current value');
+  var c='';
+  if(k===0)c='Register starts at all zeros. Feed in the first bit, the start of frame (0).';
+  else{var r=tr[k-1];c='bit '+k+' of '+N+': <b>'+nameAt(f,k-1)+'</b> = '+r.bit+'\ntop bit of the register = '+r.top+'\nxor = '+r.bit+' &oplus; '+r.top+' = <b>'+r.fb+'</b>\nshift left'+(r.fb?', then XOR with 0x4599 (the polynomial)':', and since the xor is 0, nothing more')+'\nregister is now <b>0x'+hex(r.crc,4)+'</b> = '+CAN.bits(r.crc,15).join('')}
+  if(k===N)c+='\n\nAll '+N+' bits fed in: <b>CRC = 0x'+hex(f.crc,4)+'</b>. These 15 bits become the CRC field.';
+  $('crcCalc').style.whiteSpace='pre-wrap';$('crcCalc').innerHTML=c;
+  var rx=pre.slice(),m;
+  if(S.flip){rx[S.flip-1]^=1}
+  var crcRx=CAN.crc15(rx),rem=CAN.crc15(rx.concat(CAN.bits(f.crc,15))),ok=crcRx===f.crc;
+  m='<span class="m">sent:</span> CRC field = 0x'+hex(f.crc,4)+'\n';
+  if(S.flip)m+='<span class="m">damaged:</span> <b>'+nameAt(f,S.flip-1)+'</b> (bit '+S.flip+' of the frame) arrives flipped\n';
+  else m+='<span class="m">damaged:</span> nothing, the frame arrives intact\n';
+  m+='<span class="m">receiver recomputes</span> over the bits it received: 0x'+hex(crcRx,4)+'\n';
+  m+='<span class="m">compare:</span> 0x'+hex(crcRx,4)+(ok?' = ':' &ne; ')+'0x'+hex(f.crc,4)+'  &rarr; '+(ok?'<b>match, frame accepted</b>':'<b style="color:var(--err)">CRC error</b>')+'\n';
+  m+='<span class="m">same check, other way round:</span> feed the received bits and the CRC field through the register; a good frame leaves <b>0x0000</b>, this one leaves <b'+(rem?' style="color:var(--err)"':'')+'>0x'+hex(rem,4)+'</b>';
+  $('rxCalc').style.whiteSpace='pre-wrap';$('rxCalc').innerHTML=m;
+}
+
+/* ---------------- step 4 ---------------- */
+function s4(){
+  lead('There is no clock wire, so receivers need edges to stay in step. After <b>five equal bits in a row</b> the transmitter inserts one bit of the opposite value, and the receiver deletes it. Stuffing covers the frame from SOF to the end of the CRC. The 13 fixed bits that follow are never stuffed. The stuff bits are orange.');
+  body('<div class="btns" role="group" aria-label="Data patterns"><button type="button" data-p="0">All data 00</button><button type="button" data-p="1">All data FF</button><button type="button" data-p="2">Data AA</button><button type="button" data-p="3">Random data</button></div>'+
+   '<div class="tiles" id="s4t"></div><div class="calc" id="s4c"></div><p class="status" id="s4m" aria-live="polite" style="margin-top:8px"></p>'+
+   '<p class="note" style="max-width:90ch">The frame length now depends on its content: the same message with different data takes a different time on the bus. That is why the timing analysis in Step 3 uses the <b>worst case</b>: 8n + 47 + &lfloor;(34 + 8n &minus; 1)/4&rfloor; bits for a standard frame, and 8n + 67 + &lfloor;(54 + 8n &minus; 1)/4&rfloor; for an extended one.</p>');
+  var rr=CAN.rng(Date.now()%100000);
+  document.querySelectorAll('[data-p]').forEach(function(b){b.addEventListener('click',function(){var p=+b.getAttribute('data-p');if(S.dlc===0)S.dlc=8;
+    for(var i=0;i<8;i++)S.data[i]=p===0?0:p===1?255:p===2?0xAA:Math.floor(rr()*256);chips();d4()})});
+  d4();
+}
+function d4(){
+  var f=F(),st=f.stuffed,len=Math.min(S.dlc,8),o='',n=st.bits.length,per=40,bw=16,x0=(700-per*bw)/2,rows=Math.ceil(n/per),i;
+  o+='<text x="'+x0+'" y="16" font-size="12" fill="var(--mute)">SOF to the end of the CRC, as sent ('+n+' bits, '+st.count+' of them stuff bits)</text>';
+  for(i=0;i<n;i++){var r=Math.floor(i/per),c=i%per,s=st.isStuff[i];
+    o+='<rect x="'+(x0+c*bw)+'" y="'+(26+r*26)+'" width="'+(bw-2)+'" height="22" rx="2" fill="'+(s?'var(--curr)':'var(--bg)')+'" stroke="'+(s?'var(--curr)':'var(--line)')+'"/><text x="'+(x0+c*bw+(bw-2)/2)+'" y="'+(26+r*26+15)+'" text-anchor="middle" font-size="11" font-family="var(--f-mono)" fill="'+(s?'var(--bg)':'var(--ink)')+'" font-weight="'+(s?700:400)+'">'+st.bits[i]+'</text>'}
+  var h=36+rows*26+8;setVB(h);fig(o,'The stuffed bit sequence of the frame with the inserted stuff bits highlighted');
+  var worst=CAN.wcBits(S.ext,len),tot=f.bitsStuffed,us=tot*bitUs();
+  $('s4t').innerHTML=tile(f.region.length,'bits from SOF to CRC before stuffing')+tile(st.count,'stuff bits inserted')+tile(tot,'bits for the whole frame, with the 13 fixed bits')+tile(worst,'worst case for '+len+' data byte'+(len===1?'':'s'))+tile(fmtT(us),'time on the bus at '+S.rate/1000+' kbit/s');
+  var ds=CAN.destuff(st.bits),same=ds.err<0&&ds.bits.join('')===f.region.join('');
+  var before=f.region.join(''),after='';st.bits.forEach(function(v,i){after+=st.isStuff[i]?'<b>'+v+'</b>':v});
+  $('s4c').style.whiteSpace='pre-wrap';$('s4c').style.wordBreak='break-all';
+  $('s4c').innerHTML='<span class="m">before</span> '+before+'\n<span class="m">after </span> '+after+'\n\n<span class="m">The receiver deletes the bit after every run of five and gets back</span> '+(same?'<b style="color:var(--ok)">exactly the original bits</b>':'<b style="color:var(--err)">something different (this should not happen)</b>');
+  $('s4m').textContent=st.count===0?'No run of five equal bits occurs, so nothing was stuffed. This frame needs '+tot+' bits.':st.count+' stuff bit'+(st.count===1?'':'s')+' added: this frame needs '+tot+' bits. The worst case for this size would be '+worst+' bits, which needs very particular data. Try the buttons: all-00 data creates many runs; AA creates almost none.';
+}
+
+/* ---------------- step 5 ---------------- */
+function txBit(id,k){return k===0?0:(id>>(11-k))&1}
+function simArb(){
+  var act=[true,true,true],lost=[-1,-1,-1],bus=[],tx=[[],[],[]],k,i;
+  for(k=0;k<12;k++){var b=1;
+    for(i=0;i<3;i++){tx[i][k]=act[i]?txBit(S.ids[i],k):null;if(act[i]&&tx[i][k]===0)b=0}
+    bus.push(b);
+    for(i=0;i<3;i++)if(act[i]&&k>0&&tx[i][k]===1&&b===0){act[i]=false;lost[i]=k}}
+  return {tx:tx,bus:bus,lost:lost,act:act}}
+function bitName(k){return k===0?'SOF':'ID'+(11-k)}
+function s5(){
+  lead('Three nodes want to send at the same moment. They all see the bus idle, and all start a frame together. Every node sends its identifier bit by bit while reading the bus. If a node sends a <b>1</b> but reads a <b>0</b>, somebody more important is dominant at that bit, so it stops and listens. Step through the first 12 bits (SOF and the 11 identifier bits). On a real bus this happens at the very start of the frame, before the data and the CRC you built in steps 1 to 4 are sent.');
+  body('<div class="two"><div>'+
+   NM.map(function(n,i){return '<div class="row"><label for="aId'+i+'">Node '+n+' identifier (hex)</label><input type="text" id="aId'+i+'" value="'+hex(S.ids[i],3)+'" maxlength="4" autocomplete="off" spellcheck="false"></div>'}).join('')+
+   '<div class="btns"><button type="button" id="aMine">Node A uses my ID from step 1</button></div></div>'+
+   '<div><div class="btns" style="margin-top:0"><button type="button" id="aPrev">&larr; Previous bit</button><button type="button" class="set" id="aNext">Next bit &rarr;</button><button type="button" id="aPlay">Play</button><button type="button" id="aReset">Reset</button></div>'+
+   '<p class="status" id="aMsg" aria-live="polite" style="min-height:6em"></p></div></div>'+
+   '<div id="aRes"></div>'+
+   '<p class="note" style="max-width:90ch"><b>Non-destructive.</b> The winner&rsquo;s frame is never disturbed, and the losers have lost nothing but time: they retry as soon as the bus is free. <b>Never share an identifier.</b> If two nodes send the same one, neither loses arbitration, and they collide later in the frame (set two IDs equal to see it). In a real frame, arbitration also covers the RTR and IDE bits, so a standard frame beats an extended frame with the same first 11 bits.</p>');
+  [0,1,2].forEach(function(i){$('aId'+i).addEventListener('change',function(){var t=this.value.trim().replace(/^0x/i,'');if(/^[0-9a-f]{1,3}$/i.test(t)&&parseInt(t,16)<=0x7FF){S.ids[i]=parseInt(t,16);S.ap=0}else this.value=hex(S.ids[i],3);stopT();d5()})});
+  $('aMine').addEventListener('click',function(){if(S.ext){$('aMsg').textContent='Your message uses a 29-bit identifier. This demo compares 11-bit identifiers, so pick a standard one in step 1 to use it here.';return}S.ids[0]=S.id;$('aId0').value=hex(S.id,3);S.ap=0;stopT();d5()});
+  $('aPrev').addEventListener('click',function(){stopT();if(S.ap>0)S.ap--;d5()});
+  $('aNext').addEventListener('click',function(){stopT();if(S.ap<12)S.ap++;d5()});
+  $('aReset').addEventListener('click',function(){stopT();S.ap=0;d5()});
+  $('aPlay').addEventListener('click',function(){if(S.timer){stopT();d5();return}if(S.ap>=12)S.ap=0;$('aPlay').textContent='Pause';S.timer=setInterval(function(){if(S.ap<12){S.ap++;d5()}else stopT()},750);d5()});
+  d5();
+}
+function stopT(){if(S.timer){clearInterval(S.timer);S.timer=null}var b=$('aPlay');if(b)b.textContent='Play'}
+function d5(){
+  var sm=simArb(),ap=S.ap,o='',x0=96,bw=48,k,i,rowTop=function(r){return 44+r*54};
+  o+='<rect x="'+(x0+(ap-1)*bw)+'" y="30" width="'+bw+'" height="234" fill="var(--hl)" opacity="'+(ap>0?1:0)+'"/>';
+  for(k=0;k<12;k++)o+='<text x="'+(x0+k*bw+bw/2)+'" y="24" text-anchor="middle" font-size="11" fill="var(--mute)">'+bitName(k)+'</text><line x1="'+(x0+k*bw)+'" x2="'+(x0+k*bw)+'" y1="30" y2="264" stroke="var(--line)" stroke-dasharray="2 4"/>';
+  o+='<line x1="'+(x0+12*bw)+'" x2="'+(x0+12*bw)+'" y1="30" y2="264" stroke="var(--line)" stroke-dasharray="2 4"/>';
+  var cols=['var(--ink)','var(--volt)','var(--ok)'];
+  for(i=0;i<4;i++){var top=rowTop(i),bus=i===3,vals=[];
+    o+='<text x="12" y="'+(top+27)+'" font-size="12" font-weight="'+(bus?700:500)+'" fill="var(--ink)">'+(bus?'Bus (AND)':'Node '+NM[i]+'  0x'+hex(S.ids[i],3))+'</text>';
+    if(bus){for(k=0;k<ap;k++)vals.push(sm.bus[k])}
+    else for(k=0;k<ap;k++)vals.push(sm.tx[i][k]);
+    var p=[],hi=top+10,lo=top+34;
+    vals.forEach(function(v,kk){if(v==null)return;var y=v?hi:lo;p.push([x0+kk*bw,y]);p.push([x0+(kk+1)*bw,y])});
+    if(p.length)o+='<polyline points="'+pts(p)+'" fill="none" stroke="'+(bus?'var(--curr)':cols[i])+'" stroke-width="'+(bus?3:2)+'" stroke-linejoin="round"/>';
+    for(k=0;k<ap;k++){var v=vals[k];if(v==null){o+='<line x1="'+(x0+k*bw)+'" x2="'+(x0+(k+1)*bw)+'" y1="'+hi+'" y2="'+hi+'" stroke="var(--mute)" stroke-dasharray="3 3"/>';continue}
+      o+='<text x="'+(x0+k*bw+bw/2)+'" y="'+(v?top+27:top+27)+'" text-anchor="middle" font-size="12" font-family="var(--f-mono)" fill="var(--ink)" opacity=".85">'+v+'</text>'}
+    if(!bus&&sm.lost[i]>=0&&sm.lost[i]<ap){var lx=x0+sm.lost[i]*bw+bw/2;o+='<circle cx="'+lx+'" cy="'+(top+20)+'" r="15" fill="none" stroke="var(--err)" stroke-width="2"/><text x="'+lx+'" y="'+(top+49)+'" text-anchor="middle" font-size="10" fill="var(--err)">lost</text>'}
+  }
+  setVB(280);fig(o,'Waveforms of three nodes sending identifiers and the bus level as their AND, with the node that loses arbitration marked');
+  var m;
+  if(ap===0)m='All three nodes start together. Nobody has sent a bit yet. Press <b>Next bit</b>.';
+  else{var kk=ap-1,parts=[];for(i=0;i<3;i++)parts.push(sm.tx[i][kk]==null?'<span style="color:var(--mute)">'+NM[i]+' is out</span>':NM[i]+' sends <b>'+sm.tx[i][kk]+'</b>');
+    m='<b>'+bitName(kk)+'.</b> '+parts.join(', ')+'. The bus is the AND: <b>'+sm.bus[kk]+'</b>.';
+    var newlost=[];for(i=0;i<3;i++)if(sm.lost[i]===kk)newlost.push(NM[i]);
+    if(newlost.length)m+=' <span style="color:var(--err)"><b>Node'+(newlost.length>1?'s ':' ')+newlost.join(' and ')+'</b> sent 1 but read 0.</span> Somebody with a smaller identifier is dominant here, so '+(newlost.length>1?'they stop':'it stops')+' sending and listens.';
+    else if(kk>0)m+=' Everyone still in sent what the bus shows, so nobody drops out.'}
+  $('aMsg').innerHTML=m;
+  var res='';
+  if(ap===12){var w=[];for(i=0;i<3;i++)if(sm.act[i])w.push(i);
+    res='<div class="tw"><table class="cmp"><thead><tr><th>Node</th><th>Identifier</th><th>Result</th></tr></thead><tbody>';
+    for(i=0;i<3;i++)res+='<tr'+(sm.act[i]?' style="background:var(--hl)"':'')+'><td>'+NM[i]+'</td><td>0x'+hex(S.ids[i],3)+' ('+CAN.bits(S.ids[i],11).join('')+')</td><td>'+(sm.act[i]?(w.length>1?'<b>still in: same identifier as another node</b>':'<b>wins the bus</b>, keeps sending'):'lost at '+bitName(sm.lost[i])+', retries after this frame')+'</td></tr>';
+    res+='</tbody></table></div>';
+    if(w.length>1)res+='<p class="status" style="color:var(--err)"><b>Tie.</b> '+w.map(function(i){return NM[i]}).join(' and ')+' have the same identifier, so neither lost. They will both go on to send control and data bits, and collide wherever their data differs. A well-designed network never lets this happen.</p>';
+    else res+='<p class="status">Node '+NM[w[0]]+' (0x'+hex(S.ids[w[0]],3)+') has the smallest identifier of the three, so it wins and sends the rest of its frame uninterrupted. The others wait for the bus to go idle.</p>'}
+  $('aRes').innerHTML=res;
+  $('aPrev').disabled=ap===0;$('aNext').disabled=ap===12;
+}
+
+/* ---------------- step 6 ---------------- */
+function mkL(n){var a=[];for(var i=0;i<n;i++)a.push(1);return a}
+function dm(a,f,t){for(var i=f;i<=t&&i<a.length;i++)a[i]=0}
+function labs(p){var r=[];p.forEach(function(q){for(var i=0;i<q[1];i++)r.push(q[0])});return r}
+function scen(id){
+  var n,lab,T,B,C,N=null,tec=8,rec=1,head,txt;
+  if(id==='none'){n=13;lab=labs([['CD',1],['ACK',1],['AD',1],['E',7],['I',3]]);T=mkL(n);B=mkL(n);C=mkL(n);dm(B,1,1);dm(C,1,1);tec=0;rec=0;head='No fault';
+    txt='The transmitter sends the ACK slot recessive. Receivers B and C both got the frame with a good CRC, so both drive the slot dominant. The transmitter reads a dominant bit where it sent a recessive one, which here means <b>acknowledged</b>. The fixed-form bits that follow are all recessive, and the frame ends. Both counters go down by one.'}
+  else if(id==='noise'){n=21;lab=labs([['CD',1],['ACK',1],['AD',1],['E',7],['D',8],['I',3]]);T=mkL(n);B=mkL(n);C=mkL(n);dm(C,1,1);dm(B,3,8);dm(T,4,9);dm(C,4,9);head='Noise corrupts a bit at one receiver';
+    txt='Noise flips one data bit, but only as heard by receiver B. B recomputes the CRC and finds a mismatch (step 3), so it does <b>not</b> acknowledge. Receiver C heard the frame correctly and acknowledges, so the transmitter sees a dominant ACK slot and thinks all is well. After the ACK delimiter, B sends an <b>error flag</b> of six dominant bits. That breaks the fixed form of the end-of-frame field for everyone, so the transmitter and C also send flags and all discard the frame. The transmitter registers a <b>bit error</b> (it sent recessive and read dominant) and sends the frame again. B counts a receive error.'}
+  else if(id==='ack'){n=21;lab=labs([['CD',1],['ACK',1],['AD',1],['E',7],['D',8],['I',3]]);T=mkL(n);B=mkL(n);C=mkL(n);dm(T,3,8);dm(B,4,9);dm(C,4,9);rec=0;head='Nobody acknowledges';
+    txt='Nobody is listening, or every receiver found an error, or the bit rates differ. Nobody drives the ACK slot, so the transmitter reads <b>recessive</b> where it hoped for dominant: an <b>ACK error</b>. It sends an error flag after the ACK delimiter, the others react to the flag, and it tries again. A node alone on a bus fails like this every time, and the standard has exceptions that stop such a node going bus-off, which this model leaves out.'}
+  else if(id==='bit'){n=26;lab=labs([['d',3],['hit',1],['F',11],['D',8],['I',3]]);T=mkL(n);B=mkL(n);C=mkL(n);N=mkL(n);T[0]=1;T[1]=0;T[2]=1;T[3]=1;dm(T,4,9);dm(B,9,14);dm(C,9,14);N[3]=0;head='A transmitted bit is corrupted on the bus';
+    txt='The transmitter sends a recessive bit in the middle of the data field, but noise drives the bus dominant. Outside arbitration and the ACK slot, a transmitter must read back what it sent, so it detects a <b>bit error</b> immediately and starts an error flag. The receivers see the resulting six equal dominant bits, which breaks the stuffing rule (a <b>stuff error</b>), and add their own flags, so the bus can stay dominant for up to 12 bits. Everyone discards the frame.'}
+  else if(id==='stuff'){n=23;lab=labs([['d',5],['stf',1],['F',6],['D',8],['I',3]]);T=mkL(n);B=mkL(n);C=mkL(n);N=mkL(n);dm(T,0,4);T[5]=1;dm(T,6,11);dm(B,6,11);dm(C,6,11);N[5]=0;head='Six equal bits appear (stuff error)';
+    txt='The transmitter has sent five dominant bits followed by the recessive stuff bit, but noise overrides that stuff bit. The receivers now see <b>six equal bits</b>, which the stuffing rule forbids: a <b>stuff error</b>. The transmitter, reading the wrong value back, sees a bit error at the same moment. All send error flags together, and the frame is repeated.'}
+  else{n=18;lab=labs([['CD',1],['F',6],['D',8],['I',3]]);T=mkL(n);B=mkL(n);C=mkL(n);N=mkL(n);N[0]=0;dm(T,1,6);dm(B,1,6);dm(C,1,6);head='A fixed-form bit is corrupted (form error)';
+    txt='The CRC delimiter must always be recessive. Noise drives it dominant, which is a <b>form error</b> for the receivers and a bit error for the transmitter. Both start error flags, and the frame is sent again.'}
+  var bus=[],i;for(i=0;i<n;i++){var v=T[i]&B[i]&C[i];if(N)v&=N[i];bus.push(v)}
+  for(i=0;i<n;i++)if((lab[i]==='E'||lab[i]==='D'||lab[i]==='I')&&bus[i]===0)lab[i]='F';
+  return {n:n,lab:lab,T:T,B:B,C:C,N:N,bus:bus,tec:tec,rec:rec,head:head,txt:txt}}
+function stState(v){return v>255?'bus-off':v>=128?'error-passive':'error-active'}
+function s6(){
+  lead('When the transmitter has sent the CRC, the <b>ACK slot</b> comes: a receiver that got the frame without detecting an error drives the slot dominant. Pick a fault and see which node notices it, how the six-bit <b>error flag</b> makes everyone throw the frame away, and how the <b>error counters</b> move: the transmitter&rsquo;s (TEC) rises by 8 on each failed send and falls by 1 on each good one; a receiver&rsquo;s (REC) rises by 1 and falls by 1.');
+  body('<div class="two"><div>'+
+   '<div class="row"><label for="fSel">Fault</label><select id="fSel">'+opts([['none','No fault'],['noise','Noise at one receiver (CRC error)'],['ack','Nobody acknowledges (ACK error)'],['bit','Corrupted sent bit (bit error)'],['stuff','Six equal bits (stuff error)'],['form','Corrupted fixed bit (form error)']],S.fault)+'</select></div>'+
+   '<div class="btns"><button type="button" class="set" id="fSend">Send once</button><button type="button" id="fTen">Send 10 times</button><button type="button" class="reset" id="fReset">Reset counters</button></div></div>'+
+   '<div><div class="tiles" id="fTiles"></div></div></div>'+
+   '<div class="calc" id="fTxt" style="white-space:normal;font-family:var(--f-body);font-size:13px;line-height:1.55"></div>'+
+   '<h3 class="sub" style="margin-top:10px">What happened, send by send</h3><div class="log" id="fLog" style="min-height:40px"></div>'+
+   '<p class="note" style="max-width:90ch">After an error the transmitter sends the same frame again automatically, so every &ldquo;Send&rdquo; here is one attempt. The standard has exceptions we skip (for instance an ACK error does not raise the TEC of a lone error-passive node, and a receiver&rsquo;s counter rises by 8 instead of 1 in some cases). Recovery from bus-off, in the standard, needs 128 occurrences of 11 recessive bits.</p>');
+  $('fSel').addEventListener('change',function(){S.fault=this.value;d6()});
+  $('fSend').addEventListener('click',function(){send(1)});$('fTen').addEventListener('click',function(){send(10)});
+  $('fReset').addEventListener('click',function(){S.tec=0;S.rec=0;S.log=[];S.n=0;d6()});
+  d6();
+}
+function send(times){
+  for(var i=0;i<times;i++){
+    if(S.tec>255){break}
+    var sc=scen(S.fault);S.n++;
+    if(S.fault==='none'){S.tec=Math.max(0,S.tec-1);S.rec=Math.max(0,S.rec-1)}
+    else{S.tec+=sc.tec;S.rec+=sc.rec}
+    S.log.push({n:S.n,ok:S.fault==='none',txt:S.fault==='none'?'acknowledged':'error, frame sent again',tec:S.tec,rec:S.rec,off:S.tec>255})}
+  d6()}
+function d6(){
+  var sc=scen(S.fault),n=sc.n,o='',bw=Math.min(28,Math.floor(590/n)),x0=100,rows=[['Transmitter',sc.T,'var(--ink)'],['Receiver B',sc.B,'var(--volt)'],['Receiver C',sc.C,'var(--ok)']],i,k;
+  if(sc.N)rows.push(['Noise',sc.N,'var(--err)']);
+  rows.push(['Bus',sc.bus,'var(--curr)']);
+  var rh=44;
+  for(k=0;k<n;k++){o+='<text x="'+(x0+k*bw+bw/2)+'" y="16" text-anchor="middle" font-size="'+(bw<22?8:10)+'" fill="'+(sc.lab[k]==='F'?'var(--err)':'var(--mute)')+'">'+sc.lab[k]+'</text>';
+    if(sc.bus[k]===0&&sc.lab[k]==='F')o+='<rect x="'+(x0+k*bw)+'" y="22" width="'+bw+'" height="'+(rows.length*rh)+'" fill="var(--err)" opacity=".08"/>'}
+  rows.forEach(function(r,ri){var top=24+ri*rh,bus=r[0]==='Bus',p=[],hi=top+8,lo=top+32;
+    o+='<text x="10" y="'+(top+24)+'" font-size="12" font-weight="'+(bus?700:500)+'" fill="var(--ink)">'+r[0]+'</text>';
+    r[1].forEach(function(v,kk){var y=v?hi:lo;p.push([x0+kk*bw,y]);p.push([x0+(kk+1)*bw,y])});
+    o+='<polyline points="'+pts(p)+'" fill="none" stroke="'+r[2]+'" stroke-width="'+(bus?3:1.8)+'" stroke-linejoin="round"/>'});
+  var H=24+rows.length*rh+28;
+  o+='<text x="'+x0+'" y="'+(H-6)+'" font-size="10" fill="var(--mute)">CD = CRC delimiter &nbsp; AD = ACK delimiter &nbsp; E = end of frame &nbsp; F = error flag</text><text x="'+x0+'" y="'+(H+8)+'" font-size="10" fill="var(--mute)">D = error delimiter (8 recessive bits) &nbsp; I = intermission &nbsp; d = data &nbsp; stf = stuff bit</text>';
+  H+=12;setVB(H);fig(o,'Waveforms of the transmitter and two receivers around the ACK slot or the fault, and the resulting bus level');
+  var off=S.tec>255;
+  $('fTiles').innerHTML=tile(off?'bus-off':S.tec,'transmitter error counter (TEC): '+(off?'the node disconnects':stState(S.tec)))+tile(S.rec,'receiver B error counter (REC): '+stState(S.rec));
+  var t='<b>'+sc.head+'.</b> '+sc.txt;
+  if(S.fault!=='none')t+='<br><b>Counters:</b> transmitter TEC +8, '+(sc.rec?'receiver B REC +1':'no receiver counter changes')+'. A successful send lowers each by 1.';
+  if(S.tec>=128&&S.tec<=255)t+='<br><b>This transmitter is error-passive.</b> Its error flag is now six <i>recessive</i> bits, which others may not notice, and it must wait 8 extra bit times after each of its frames. It can still send.';
+  if(off)t+='<br><b>Bus-off.</b> TEC went above 255, so the node takes itself off the bus: it stops sending and receiving. Recovery needs 128 occurrences of 11 recessive bits, about '+fmtT(128*11*bitUs())+' at '+S.rate/1000+' kbit/s. Press Reset counters to simulate a restart.';
+  $('fTxt').innerHTML=t;
+  var lg=S.log.slice(-40),h='';lg.forEach(function(e,i){h+='<div'+'><span class="k">'+e.n+'</span><span class="a '+(e.ok?'s':'r')+'">'+(e.ok?'OK':'ERROR')+'</span><span>'+e.txt+'; TEC '+e.tec+(e.off?' (bus-off)':'')+', REC '+e.rec+'</span></div>'});
+  $('fLog').innerHTML=h||'<div><span class="k"></span><span class="a"></span><span style="color:var(--mute)">Press Send once or Send 10 times.</span></div>';
+  $('fLog').scrollTop=1e6;
+  $('fSend').disabled=off;$('fTen').disabled=off;
+}
+
+/* ---------------- shell ---------------- */
+var STEPS=[
+ {t:'Pick the message',d:'Identifier, data, bit rate',run:s1},
+ {t:'Lay out the fields',d:'Where every bit goes',run:s2},
+ {t:'Compute the CRC',d:'A fingerprint the receiver can repeat',run:s3},
+ {t:'Stuff the bits',d:'Edges for the receivers’ clocks',run:s4},
+ {t:'Win the bus',d:'Arbitration against two other nodes',run:s5},
+ {t:'Acknowledge or fail',d:'ACK, error flags and counters',run:s6}];
+function list(){
+  $('stepList').innerHTML=STEPS.map(function(s,i){return '<li><button type="button" data-i="'+i+'"'+(i===S.step?' aria-current="step"':'')+(S.seen[i]&&i!==S.step?' class="done"':'')+'><span class="n">'+(i+1)+'</span><span><span class="t">'+s.t+'</span><span class="d" style="display:block">'+s.d+'</span></span></button></li>'}).join('');
+  document.querySelectorAll('#stepList button').forEach(function(b){b.addEventListener('click',function(){show(+b.getAttribute('data-i'))})})}
+function show(i){
+  stopT();S.seen[S.step]=true;S.step=i;list();
+  $('stepNo').textContent='Step '+(i+1)+' of '+STEPS.length;$('stepTitle').textContent=STEPS[i].t;
+  chips();STEPS[i].run();
+  $('bBack').disabled=i===0;$('bNext').disabled=i===STEPS.length-1;
+  $('bNext').textContent=i===STEPS.length-2?'Last step →':'Next step →';
+}
+$('bBack').addEventListener('click',function(){if(S.step>0)show(S.step-1)});
+$('bNext').addEventListener('click',function(){if(S.step<STEPS.length-1)show(S.step+1)});
+show(0);
+})();
+
+</script>
+</body>
+</html>
