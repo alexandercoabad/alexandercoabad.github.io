@@ -160,6 +160,15 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .hand .verdict{font-size:14px;margin:6px 0 0}
 .strip{margin:2px 0 6px}.strip svg{display:block;width:100%;max-width:760px;margin:0 auto}.strip .cap2{font-size:12px;color:var(--mute);text-align:center;margin-top:2px}
 .predict{border-left:3px solid var(--curr);padding:4px 10px;margin:8px 0;font-size:13.5px;max-width:90ch}
+/* ---- whole-frame strip ---- */
+.fbar{display:flex;height:34px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--bg)}
+.fbar i{display:block;min-width:2px;background:var(--c);opacity:var(--o,.85)}
+.fleg{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px 22px;margin:12px 0 6px}
+.fleg div{font-size:13px;min-width:0}
+.fleg .sw{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:7px;vertical-align:-1px;background:var(--c);opacity:var(--o,.85)}
+.fleg p{margin:2px 0 0 18px;font-size:12.5px;color:var(--mute)}
+.fleg .m{color:var(--mute)}
+button.lk{border:0;background:none;padding:0;color:var(--volt);text-decoration:underline;cursor:pointer;font:inherit}
 </style>
 </head>
 <body>
@@ -177,6 +186,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
       </ul>
     </aside>
   </header>
+
+  <section class="panel" id="fstrip">
+    <h2>The whole frame at a glance</h2>
+    <p class="lead" style="margin-bottom:10px">Before the six steps: this is the frame you will build, drawn to scale in bits. Each coloured block is explained below, and the steps then take them one at a time. It follows the message you choose in step 1.</p>
+    <div class="fbar" id="fbar" role="img" aria-label="The frame drawn to scale in bits, coloured by field"></div>
+    <div class="fleg" id="fleg"></div>
+    <p class="note" id="fnote" style="max-width:100ch"></p>
+  </section>
 
   <section class="panel" id="lesson">
     <div class="lesson">
@@ -485,9 +502,35 @@ function drawStrip(){
     x+=w});
   o+='<rect x="10" y="4" width="'+W+'" height="22" fill="none" stroke="var(--ink)" stroke-width="1"/>';
   $('strip').innerHTML='<svg viewBox="0 0 700 30" role="img" aria-label="The whole frame as one bar, with the part this step works on highlighted">'+o+'</svg><div class="cap2">'+STRIPCAP[st]+'</div>'}
+/* ---------------- whole-frame strip ---------------- */
+var GRP=[
+ {k:'sof',n:'Start of frame',c:'var(--ink)',o:.55,names:['SOF'],d:'One dominant bit. It wakes the receivers and gives them an edge to synchronise on.'},
+ {k:'arb',n:'Arbitration',c:'var(--curr)',o:.85,names:['Identifier','Base ID','SRR','Ext ID','RTR'],st:4,d:'The identifier (the message&rsquo;s name and its priority) and the RTR bit. This is where nodes compete and the lowest value wins.'},
+ {k:'ctl',n:'Control',c:'var(--mute)',o:.6,names:['IDE','r0','r1','DLC'],st:1,d:'The DLC, which says how many data bytes follow, and bits kept in reserve.'},
+ {k:'dat',n:'Data',c:'var(--volt)',o:.85,names:['Data'],st:0,d:'0 to 8 bytes of payload. In the simulator (Step 3 of the lesson) this is the scaled sensor value.'},
+ {k:'crc',n:'CRC',c:'var(--ok)',o:.85,names:['CRC'],st:2,d:'A 15-bit check value, so receivers can detect a damaged frame.'},
+ {k:'ack',n:'Acknowledge',c:'var(--err)',o:.7,names:['CRC delim','ACK slot','ACK delim'],st:5,d:'The ACK slot is sent recessive, and any receiver that got a good frame drives it dominant.'},
+ {k:'end',n:'End',c:'var(--mute)',o:.3,names:['EOF','IFS'],d:'Seven recessive bits, then a gap of three, before the next frame may start.'}];
+function fstrip(){
+  var f=F(),T=f.bitsNoStuff,len=Math.min(S.dlc,8),cnt={},unk=[];
+  GRP.forEach(function(g){cnt[g.k]=0});
+  f.fields.forEach(function(fl,idx){var nm=fl.n.replace(/ \d+$/,''),g=null;
+    if(nm==='IDE'&&S.ext&&idx>0&&f.fields[idx-1].n==='SRR')g=GRP[1];
+    else GRP.forEach(function(q){if(!g&&q.names.indexOf(nm)>=0)g=q});
+    if(g)cnt[g.k]+=fl.b.length;else unk.push(fl.n)});
+  if(unk.length&&window.console)console.warn('whole-frame strip: unassigned fields',unk);
+  var bar='',leg='';
+  GRP.forEach(function(g){var n=cnt[g.k];if(n)bar+='<i style="--c:'+g.c+';--o:'+g.o+';flex:'+n+' 0 0" title="'+g.n+': '+n+' bit'+(n===1?'':'s')+'"></i>';
+    var step=g.st!=null?' &middot; <button type="button" class="lk" data-go="'+g.st+'">Step '+(g.st+1)+(g.k==='dat'?' and 2':'')+'</button>':'';
+    leg+='<div><span class="sw" style="--c:'+g.c+';--o:'+g.o+'"></span><b>'+g.n+'</b> <span class="m">&middot; '+n+' bit'+(n===1?'':'s')+step+'</span><p>'+g.d+'</p></div>'});
+  $('fbar').innerHTML=bar;$('fleg').innerHTML=leg;
+  var wc=CAN.wcBits(S.ext,len);
+  $('fnote').innerHTML='Total: '+T+' bits before stuffing, '+f.bitsStuffed+' with this data, at most '+wc+' in the worst case. At '+S.rate/1000+' kbit/s one bit lasts '+fmtT(bitUs())+', so this frame takes '+fmtT(f.bitsStuffed*bitUs())+'. '+(len?'The data field is only '+8*len+' of those bits.':'This frame carries no data at all.')}
+$('fleg').addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-go]');if(b){show(+b.getAttribute('data-go'));$('lesson').scrollIntoView({block:'start'})}});
+
 function chips(){
   var f=F(),n=Math.min(S.dlc,8),d=[];for(var i=0;i<n;i++)d.push(hex(S.data[i],2));
-  $('chips').innerHTML='<span class="chip on">ID 0x'+hex(S.id,S.ext?8:3)+' ('+(S.ext?'29':'11')+'-bit)</span><span class="chip">'+n+' data byte'+(n===1?'':'s')+(n?': '+d.join(' '):'')+'</span><span class="chip">'+S.rate/1000+' kbit/s</span>';drawStrip()}
+  $('chips').innerHTML='<span class="chip on">ID 0x'+hex(S.id,S.ext?8:3)+' ('+(S.ext?'29':'11')+'-bit)</span><span class="chip">'+n+' data byte'+(n===1?'':'s')+(n?': '+d.join(' '):'')+'</span><span class="chip">'+S.rate/1000+' kbit/s</span>';drawStrip();fstrip()}
 
 /* ---------------- step 1 ---------------- */
 var EX=[[0x0A0,'Brake pressure'],[0x120,'Engine speed'],[0x3A0,'Door status'],[0x7DF,'Diagnostic request (the standard OBD-II functional request ID)']];
