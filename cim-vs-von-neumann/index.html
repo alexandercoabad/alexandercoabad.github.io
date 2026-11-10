@@ -149,8 +149,37 @@ details.q p{margin:8px 0 2px;font-size:13px}
     <h1>Compute-in-Memory vs Von Neumann</h1>
     <p>A neural-network layer is a matrix-vector product, <span class="eq">y = xᵀW</span>. A <b>von Neumann</b> processor has to carry every weight from a memory to its arithmetic units, a few at a time. A memristive <b>crossbar</b>, built from <b>ReRAM</b> or <b>PCM</b> cells, keeps each weight as the conductance of a cell and does the whole product in a single read: the rows carry the inputs, every cell multiplies by Ohm&rsquo;s law, and every column adds by Kirchhoff&rsquo;s law. This page puts numbers on that advantage, shows where it comes from, and is honest about what it costs. The comparison is the same for both devices; what differs is the price each one pays, which is the last two sections.</p>
     <div class="devbar"><span class="cap">Device</span><div class="seg" role="group" aria-label="Choose the crossbar device"><button type="button" id="devReram" class="on" aria-pressed="true">ReRAM</button><button type="button" id="devPcm" aria-pressed="false">PCM</button></div><span class="note" id="devHint" style="margin:0"></span></div>
-    <p class="note" style="font-size:13px;max-width:84ch"><b>Path through this page:</b> 1) The advantage at a glance, with scenarios from the processor&rsquo;s worst case to its best, and both devices side by side. 2) The settings behind it. 3) What moves. 4) Compute power: parallelism, TOPS and TOPS per watt. 5) How the work is scheduled. 6) Where the energy goes. 7) How it scales with matrix size. 8) <span class="tt8"></span>. 9) What the crossbar pays. Every number comes from the same illustrative models as the <a class="lnkXbar2" href="../reram/crossbar/">crossbar simulator</a> and is <b>not a measurement of any chip or product</b>.</p>
+    <p class="note" style="font-size:13px;max-width:84ch"><b>Path through this page:</b> Start with one cell, two jobs: memory mode (on or off) against compute mode (many levels). Then 1) The advantage at a glance, with scenarios from the processor&rsquo;s worst case to its best, and both devices side by side. 2) The settings behind it. 3) What moves. 4) Compute power: parallelism, TOPS and TOPS per watt. 5) How the work is scheduled. 6) Where the energy goes. 7) How it scales with matrix size. 8) <span class="tt8"></span>. 9) What the crossbar pays. Every number comes from the same illustrative models as the <a class="lnkXbar2" href="../reram/crossbar/">crossbar simulator</a> and is <b>not a measurement of any chip or product</b>.</p>
   </header>
+
+  <section class="panel" id="modes">
+    <h2>Start here: one cell, two jobs</h2>
+    <p class="note" style="margin:0 0 10px;font-size:13px;max-width:90ch">A ReRAM or PCM cell is a resistor you can set. You can use it in two ways. As a <b>memory</b>, it stores one bit: <b>on or off</b>, a low conductance or a high one, and all that matters is telling the two apart. As a <b>compute-in-memory</b> cell, it stores a <b>weight</b>: one of many conductance levels, so the value is <b>analog</b>-like and the cell can take part in the multiplication. Move the sliders to see the difference.</p>
+    <div class="ctl" style="margin-bottom:6px">
+      <div class="row"><label for="mPos">Value to store</label><input type="range" id="mPos" min="0" max="100" step="1" value="62"><output id="mPosO"></output></div>
+      <div class="row"><label for="mLev">Weight levels</label><select id="mLev"><option value="4">4 levels (2 bit)</option><option value="8">8 levels (3 bit)</option><option value="16" selected>16 levels (4 bit)</option><option value="32">32 levels (5 bit)</option></select></div>
+      <div class="row"><label for="mVar">Cell variation</label><input type="range" id="mVar" min="0" max="40" step="1" value="2"><output id="mVarO"></output></div>
+      <p class="note" style="grid-column:1/-1;margin:0"><b>Cell variation</b> stands for the noise, device-to-device spread and drift that move a cell away from where it was written, as a share of the whole conductance window.</p>
+    </div>
+    <div class="figrow">
+      <div><div class="cap">Memory mode: a bit</div><svg id="svgMem" class="chart" viewBox="0 0 400 140" role="img" aria-label="Memory mode: the cell is driven to the low or high end of the conductance window and read as 0 or 1"></svg></div>
+      <div><div class="cap">Compute-in-memory mode: a weight</div><svg id="svgCim" class="chart" viewBox="0 0 400 140" role="img" aria-label="Compute-in-memory mode: the cell is set to one of many conductance levels, each a different weight"></svg></div>
+    </div>
+    <div class="tiles" id="modeTiles"></div>
+    <p class="note" id="modeNote"></p>
+    <div class="tw"><table class="cmp">
+      <thead><tr><th>Topic</th><th>Memory mode</th><th>Compute-in-memory mode</th></tr></thead>
+      <tbody>
+        <tr><td>What a cell holds</td><td>One bit: on or off</td><td>One weight: one of many levels, analog-like</td></tr>
+        <tr><td>Writing</td><td>Drive the cell hard to one end; no precision needed</td><td>Pulse and read back until it lands on the right level (Step 2 of each lesson)</td></tr>
+        <tr><td>Reading</td><td>One address at a time; a sense amplifier turns the current into 0 or 1</td><td>Every cell at once; currents add along each column and an ADC reads the sum</td></tr>
+        <tr><td>Noise and drift</td><td>Tolerant: the two states only have to stay on their own side of the line</td><td>Sensitive: neighbouring levels are only 1/(levels &minus; 1) of the window apart</td></tr>
+        <tr><td>Where the data goes</td><td>Out to a processor, so the von Neumann bottleneck stays</td><td>Weights never leave the array; only inputs go in and outputs come out</td></tr>
+        <tr><td>Typical use</td><td>Non-volatile storage that keeps its contents without power</td><td>Matrix-vector products for neural-network inference</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note" style="max-width:90ch">Real cells give a finite number of usable levels, a few bits, not a true continuum, because of noise, variation and (for PCM) drift. At 1 bit the compute mode is the same as the memory mode, so the two are two ends of one scale.</p>
+  </section>
 
   <section class="panel" id="glance">
     <h2>1. The advantage at a glance</h2>
@@ -362,6 +391,36 @@ function renderDevT(){
     '<tr><td>What limits how often weights change</td><td>nothing</td><td'+sel('reram')+'>wear (about 10<sup>6</sup> cycles)</td><td'+sel('pcm')+'>drift (rewrite every '+fmtAge(Math.pow(10,C.ref))+')</td></tr></tbody>';
   $('devNote').textContent='Same matrix, batch, converters and overhead for both devices. They differ in conductance window (which sets the array-read current), write energy and, for PCM, the rewrite interval. The read pulse is the same, so the time per product is equal; the energy differs because of those three things. Set the rewrite interval for PCM with the Rewrite every slider in section 2 (shown when PCM is selected).';
 }
+
+/* ---------- 0. one cell, two jobs ---------- */
+function renderModes(){
+  var g0=CFG.gmin,g1=CFG.gmax,win=g1-g0,pos=parseFloat($('mPos').value)/100,L=parseInt($('mLev').value,10),vr=parseFloat($('mVar').value)/100,dev=vr*win,sp=win/(L-1);
+  var gIn=g0+win*pos;$('mPosO').textContent=gIn.toFixed(gIn<10?1:0)+' µS';$('mVarO').textContent='±'+Math.round(vr*100)+'%';
+  var x0=24,x1=376;function X(v){return x0+(x1-x0)*(v-g0)/win}
+  function fg(v){return v.toFixed(v<10?1:0)}
+  function axis(){return '<line x1="'+x0+'" x2="'+x1+'" y1="84" y2="84" stroke="var(--ink)" stroke-width="1.5"/><text x="'+x0+'" y="112" text-anchor="middle" font-size="10" fill="var(--mute)">'+fg(g0)+' µS</text><text x="'+x1+'" y="112" text-anchor="middle" font-size="10" fill="var(--mute)">'+fg(g1)+' µS</text><text x="200" y="130" text-anchor="middle" font-size="10" fill="var(--mute)">conductance G</text>'}
+  /* memory: snap to the nearer end */
+  var th=(g0+g1)/2,bit=gIn>=th?1:0,gm=bit?g1:g0,memOk=dev<win/2;
+  var o=axis()+'<rect x="'+x0+'" y="30" width="'+(X(th)-x0)+'" height="40" fill="var(--bg)" stroke="var(--line)"/><rect x="'+X(th)+'" y="30" width="'+(x1-X(th))+'" height="40" fill="var(--hl)" stroke="var(--line)"/>';
+  o+='<text x="'+((x0+X(th))/2)+'" y="54" text-anchor="middle" font-size="13" fill="var(--ink)">reads 0 (off)</text><text x="'+((X(th)+x1)/2)+'" y="54" text-anchor="middle" font-size="13" fill="var(--ink)">reads 1 (on)</text>';
+  o+='<line x1="'+X(th)+'" x2="'+X(th)+'" y1="24" y2="90" stroke="var(--curr)" stroke-width="2" stroke-dasharray="4 3"/><text x="'+X(th)+'" y="18" text-anchor="middle" font-size="10" fill="var(--curr)">sense threshold</text>';
+  o+='<rect x="'+Math.max(x0-6,X(gm)-dev/win*(x1-x0))+'" y="74" width="'+Math.min(2*dev/win*(x1-x0),x1-x0+12)+'" height="20" fill="var(--volt)" fill-opacity=".25"/><circle cx="'+X(gm)+'" cy="84" r="6" fill="var(--volt)"/>';
+  $('svgMem').innerHTML=o;
+  /* CIM: nearest of L levels */
+  var k=Math.round(pos*(L-1)),gc=g0+k*sp,w=k/(L-1),cimOk=dev<sp/2;
+  o=axis();
+  for(var i=0;i<L;i++){var xi=X(g0+i*sp);o+='<line x1="'+xi+'" x2="'+xi+'" y1="'+(i===k?30:62)+'" y2="90" stroke="'+(i===k?'var(--curr)':'var(--line)')+'" stroke-width="'+(i===k?2:1)+'"/>'}
+  o+='<text x="'+X(gc)+'" y="22" text-anchor="middle" font-size="12" fill="var(--curr)">weight '+w.toFixed(2)+'</text>';
+  o+='<rect x="'+Math.max(x0-6,X(gc)-dev/win*(x1-x0))+'" y="74" width="'+Math.min(2*dev/win*(x1-x0),x1-x0+12)+'" height="20" fill="var(--volt)" fill-opacity=".25"/><circle cx="'+X(gc)+'" cy="84" r="6" fill="var(--volt)"/>';
+  $('svgCim').innerHTML=o;
+  $('modeTiles').innerHTML=tile(bit?'1 (on)':'0 (off)','Memory mode: bit stored','written to the '+(bit?'high':'low')+' end, '+fg(gm)+' µS')+
+    tile('±'+fg(dev)+' µS','Variation of the cell','of a '+fg(win)+' µS window, '+Math.round(vr*100)+'%')+
+    tile(memOk?'reads correctly':'may misread','Memory mode: '+(memOk?'the two states stay apart':'the bands cross the threshold'),'it only fails above ±50% of the window',!memOk)+
+    tile(w.toFixed(2),'Compute mode: weight stored','level '+k+' of '+(L-1)+', '+fg(gc)+' µS')+
+    tile(fg(sp)+' µS','Gap between levels',L+' levels across the window')+
+    tile(cimOk?'levels stay apart':'levels overlap','Compute mode: '+(cimOk?'each weight reads back as itself':'neighbouring weights get confused'),'it fails above ±'+Math.round(50/(L-1))+'% of the window',!cimOk);
+  $('modeNote').textContent='Same cell, same variation: '+(memOk&&!cimOk?'the memory still reads every bit correctly, but the compute mode already mixes up neighbouring weights. This is why compute-in-memory asks much more of the device, and why PCM drift matters far more for weights than for bits.':memOk&&cimOk?'both still work. Raise the variation, or the number of levels, to see where the compute mode breaks first.':'the variation is now large enough to break even the memory mode.');
+}
 /* ---------- 3. what moves ---------- */
 function renderMove(){
   var n=nOf(),d=digital(n),B=batch(),r=Math.ceil(n/C.tile),run=C.flow?' run':'';
@@ -495,7 +554,7 @@ function renderTech(){
   $('techT').innerHTML=t+'</tbody>';
   $('techNote').textContent='Reading the table: the faster the weights drift out of tolerance, the more often they have to be rewritten and the more energy goes into rewriting instead of computing. The three share columns show the same rewrite interval at three product rates: at a high rate the rewrite cost is spread thinly and hardly matters, at a low rate it can dominate. Endurance is not the limit here: even hourly rewrites for ten years use far fewer cycles than the Step 1 model allows. A drift correction (see the drift panel of the PCM crossbar simulator) lets the interval be longer. The drift speed itself is set by the cell model, ν about 0.005 for crystalline cells to about 0.1 for amorphous ones.';
 }
-function render(){renderGlance();renderDevT();renderMove();renderGrid();renderPower();renderEnergy();renderScale();renderTech()}
+function render(){renderModes();renderGlance();renderDevT();renderMove();renderGrid();renderPower();renderEnergy();renderScale();renderTech()}
 /* ---------- controls ---------- */
 function out(){
   $('cNO').textContent=nOf()+' × '+nOf();$('cBatchO').textContent=fmtN(batch());$('dLanesO').textContent=fmtN(lanes());$('dClkO').textContent=C.clk.toFixed(1)+' GHz';$('dBwO').textContent=Math.round(bw())+' GB/s';
@@ -515,7 +574,7 @@ function applyScenario(k){
 document.querySelectorAll('button[data-sc]').forEach(function(b){b.addEventListener('click',function(){applyScenario(b.getAttribute('data-sc'))})});
 function bind(id,key,cast){$(id).addEventListener('input',function(e){C[key]=cast(e.target.value);out();render()})}
 bind('cN','nIdx',parseFloat);bind('cBatch','bExp',parseFloat);bind('dLanes','lExp',parseFloat);bind('dClk','clk',parseFloat);bind('dBw','bwExp',parseFloat);
-bind('cRef','ref',parseFloat);bind('cDac','dac',parseFloat);bind('cAdc','adc',parseFloat);bind('cRead','tT',parseFloat);bind('cOver','over',parseFloat);bind('cReuse','reuse',parseFloat);bind('cRate','rate',parseFloat);
+bind('cRef','ref',parseFloat);['mPos','mVar'].forEach(function(id){$(id).addEventListener('input',renderModes)});$('mLev').addEventListener('change',renderModes);bind('cDac','dac',parseFloat);bind('cAdc','adc',parseFloat);bind('cRead','tT',parseFloat);bind('cOver','over',parseFloat);bind('cReuse','reuse',parseFloat);bind('cRate','rate',parseFloat);
 
 $('cB').addEventListener('change',function(e){C.bits=parseInt(e.target.value,10);render()});
 $('cTile').addEventListener('change',function(e){C.tile=parseInt(e.target.value,10);render()});
