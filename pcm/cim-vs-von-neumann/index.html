@@ -185,7 +185,7 @@ details.q p{margin:8px 0 2px;font-size:13px}
     <h2>3. What moves <span class="cap">per matrix-vector product</span></h2>
     <p class="note" style="margin:0 0 10px;font-size:13px;max-width:90ch">A von Neumann machine keeps the weights in a memory and the arithmetic in a processor, joined by a channel of limited width. Every weight has to cross it every time it is used: this is the <i>von Neumann bottleneck</i>. A crossbar stores each weight as a conductance, so the weights stay put; only the inputs go in and only the outputs come out.</p>
     <div class="btns" style="margin:0 0 6px"><button id="bFlow" class="on" aria-pressed="true">Animation: on</button></div>
-    <div class="figrow"><svg id="svgMove" class="chart" viewBox="0 0 760 250" role="img" aria-label="Left: a processor and a memory joined by a bus carrying the weights. Right: a crossbar where only inputs enter and outputs leave."></svg></div>
+    <div class="figrow"><svg id="svgMove" class="chart" viewBox="0 0 760 276" role="img" aria-label="Left: a processor and a memory joined by a bus carrying the weights. Right: a crossbar where only inputs enter and outputs leave."></svg></div>
     <div class="tiles" id="moveTiles"></div>
     <p class="note" id="moveNote"></p>
   </section>
@@ -357,8 +357,8 @@ function renderMove(){
   for(i=0;i<4;i++)for(j=0;j<4;j++)o+='<rect x="'+(gx+j*cs+4)+'" y="'+(gy+i*cs+4)+'" width="'+(cs-8)+'" height="'+(cs-8)+'" rx="3" fill="var(--cell)" fill-opacity="'+(0.2+0.18*((i*3+j*5)%5)).toFixed(2)+'"/>';
   for(i=0;i<4;i++)o+='<line x1="'+(gx-4)+'" x2="'+(gx+4*cs+2)+'" y1="'+(gy+i*cs+cs/2)+'" y2="'+(gy+i*cs+cs/2)+'" stroke="var(--volt)" stroke-width="1.5"/><path class="bus2'+run+'" d="M'+(gx-52)+' '+(gy+i*cs+cs/2)+' H'+(gx-8)+'" marker-end="url(#ar2)"/>';
   for(j=0;j<4;j++)o+='<line y1="'+(gy-2)+'" y2="'+(gy+4*cs+4)+'" x1="'+(gx+j*cs+cs/2)+'" x2="'+(gx+j*cs+cs/2)+'" stroke="var(--curr)" stroke-width="1.5"/><path class="bus'+run+'" d="M'+(gx+j*cs+cs/2)+' '+(gy+4*cs+6)+' V'+(gy+4*cs+36)+'" marker-end="url(#ar1)"/>';
-  o+='<text x="'+(gx-56)+'" y="'+(gy+4*cs+22)+'" text-anchor="end" font-size="12" fill="var(--volt)">x in</text><text x="'+(gx+4*cs+10)+'" y="'+(gy+4*cs+36)+'" font-size="12" fill="var(--curr)">y out (currents)</text>';
-  o+='<text x="'+(gx+2*cs)+'" y="'+(gy-12)+'" text-anchor="middle" font-size="12" fill="var(--mute)">W stays in the cells</text><text x="580" y="226" text-anchor="middle" font-size="12" fill="var(--mute)">no weights cross anything</text>';
+  o+='<text x="'+(gx-52)+'" y="'+(gy+cs/2-10)+'" text-anchor="start" font-size="12" fill="var(--volt)">x in</text><text x="'+(gx+4*cs+10)+'" y="'+(gy+4*cs+36)+'" font-size="12" fill="var(--curr)">y out (currents)</text>';
+  o+='<text x="'+(gx+2*cs)+'" y="'+(gy-12)+'" text-anchor="middle" font-size="12" fill="var(--mute)">W stays in the cells</text><text x="580" y="266" text-anchor="middle" font-size="12" fill="var(--mute)">no weights cross anything</text>';
   $('svgMove').innerHTML=o;
   var wts=n*n/B;
   $('moveTiles').innerHTML=tile(fmtN(wts),'weights fetched per product','von Neumann'+(B>1?' (shared by a batch of '+B+')':''))+tile('0','weights fetched per product','crossbar: they are the devices')+
