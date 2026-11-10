@@ -72,8 +72,6 @@ a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
         <p>Follow one weight from a number to a conductance: pick the cell, round to a level, erase, then pulse and read back until it is close enough. See the pulses, the verify loop and what it costs in time and energy.</p></li>
       <li class="item"><a href="reram/crossbar/">Step 3: ReRAM crossbar simulator</a>
         <p>A generic, textbook model of a resistive-RAM crossbar doing a matrix-vector multiply with Ohm's and Kirchhoff's laws. Set the weights and inputs, watch the currents add up on the bit lines, and compare against a digital multiply-accumulate for latency and energy. Nothing to install.</p></li>
-      <li class="item"><a href="cim-vs-von-neumann/?device=reram">Compute-in-memory vs Von Neumann (shared lesson, ReRAM view)</a>
-        <p>The same matrix-vector product on a processor that fetches every weight and on a crossbar that keeps them in place: speed, energy, TOPS and TOPS per watt, with ReRAM and PCM side by side, and how many times the weights can change before the cells wear out. Best after Step 3. Nothing to install.</p></li>
       <li class="item"><a href="reram/reference/">ReRAM reference</a>
         <p>Equations with worked examples, a searchable glossary, symbols and units, what every simulator setting does, and further reading.</p></li>
     </ul>
@@ -90,10 +88,16 @@ a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
         <p>Follow one weight from a number to a conductance: RESET, then SET pulses with read-back, and what happens when a pulse overshoots. Then watch it drift. Best after PCM Step 1. Nothing to install.</p></li>
       <li class="item"><a href="pcm/crossbar/">Step 3: PCM crossbar simulator</a>
         <p>A grid of phase-change cells multiplying a vector by a matrix, with the SET-staircase write from Step 2 and conductance drift after the write. Compare it with the ReRAM crossbar. Best after Step 2. </p></li>
-      <li class="item"><a href="cim-vs-von-neumann/?device=pcm">Compute-in-memory vs Von Neumann (shared lesson, PCM view)</a>
-        <p>The same shared comparison with PCM selected, including what drift costs: how often the weights must be rewritten and how that eats into the energy advantage. Best after Step 3. Nothing to install.</p></li>
       <li class="item"><a href="pcm/reference/">PCM reference</a>
         <p>The PCM equations with worked examples, a searchable glossary, symbols and units, and what every setting does. Keep it open next to the simulator.</p></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Compute-in-memory vs Von Neumann</h2>
+    <ul class="list">
+      <li class="item"><a href="cim-vs-von-neumann/">ReRAM and PCM vs a Von Neumann processor</a>
+        <p>Starts with one cell, two jobs: on/off memory, or analog weights for compute-in-memory. Then the same matrix-vector product on a processor that fetches every weight and on a crossbar that keeps them in place: speed, energy, TOPS and TOPS per watt. Switch between ReRAM and PCM, or compare them side by side. Best after Step 3 of either lesson. Nothing to install.</p></li>
     </ul>
   </section>
 
