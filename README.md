@@ -13,11 +13,11 @@ Personal site with browser simulators for my chip projects. Each simulator is on
 | `reram/write/index.html` | ReRAM lesson, Step 2: how a weight gets written into a cell |
 | `reram/index.html` | ReRAM overview: lesson plan linking the three steps and the reference |
 | `reram/crossbar/index.html` | ReRAM crossbar compute-in-memory simulator (Step 3) |
-| `reram/cim-vs-von-neumann/index.html` | ReRAM compute-in-memory vs Von Neumann: speed, energy, TOPS and TOPS/W of a ReRAM crossbar against a processor on matrix-vector multiplication, plus wear |
+| `cim-vs-von-neumann/index.html` | Shared lesson: compute-in-memory vs Von Neumann for ReRAM and PCM crossbars, with a device toggle (`?device=reram` or `?device=pcm`): speed, energy, TOPS and TOPS/W against a processor on matrix-vector multiplication, both devices side by side, plus wear (ReRAM) or drift (PCM) |
+| `reram/cim-vs-von-neumann/index.html`, `pcm/cim-vs-von-neumann/index.html` | Redirects to the shared page, kept so old links still work |
 | `reram/reference/index.html` | ReRAM reference: equations, glossary, symbols, settings, FAQ |
 | `pcm/index.html` | PCM overview: lesson plan linking the three steps and the reference |
 | `pcm/crossbar/index.html` | PCM lesson, Step 3: the PCM crossbar simulator (derived from `reram/crossbar/index.html`, with the PCM write model and drift) |
-| `pcm/cim-vs-von-neumann/index.html` | PCM compute-in-memory vs Von Neumann: the same comparison for a PCM crossbar, plus drift and rewrite cost |
 | `pcm/basics/index.html` | PCM lesson, Step 1: a phase-change cell compared with a ReRAM cell |
 | `pcm/write/index.html` | PCM lesson, Step 2: how a weight gets written into a PCM cell |
 | `pcm/reference/index.html` | PCM reference: equations, glossary, symbols and units, settings, questions, further reading |
@@ -111,7 +111,7 @@ The ReRAM and PCM series are cross-linked page for page: each ReRAM page (`reram
 
 ## Compute-in-memory vs Von Neumann pages
 
-`reram/cim-vs-von-neumann/index.html` and `pcm/cim-vs-von-neumann/index.html` are two single-file pages built from one template, so they have the same structure and differ only in the technology. Each puts one crossbar next to a von Neumann processor on `y = x^T W`. Sections: the advantage at a glance (speed, energy, TOPS, TOPS/W) with three one-click scenarios; the settings; what moves per product; compute power (MACs in flight, TOPS, TOPS/W, a roofline chart); a 64-MAC scheduling animation; where the energy goes (stacked shares, table, write cost spread over the products, break-even); scaling from 4 x 4 to 4096 x 4096; a technology-specific section; and a table of what the crossbar pays.
+`cim-vs-von-neumann/index.html` is one single-file page for both technologies. A ReRAM / PCM toggle (or `?device=reram` / `?device=pcm` in the URL) swaps the device parameters, the section 8 content (wear for ReRAM, drift for PCM), the comparison table, the references and the links; everything else is shared, so the two devices are always compared on the same model. It puts one crossbar next to a von Neumann processor on `y = x^T W`. The old per-device URLs are small redirects. Sections: the advantage at a glance (speed, energy, TOPS, TOPS/W) with three one-click scenarios; the settings; what moves per product; compute power (MACs in flight, TOPS, TOPS/W, a roofline chart); a 64-MAC scheduling animation; where the energy goes (stacked shares, table, write cost spread over the products, break-even); scaling from 4 x 4 to 4096 x 4096; a device-specific section; both devices side by side at the current settings; and a table of what the crossbar pays.
 
 The three scenarios show the range: the processor's worst case (weights in DRAM, batch 1), a fairer baseline (weights in SRAM, batch 1) and the hard case (GPU-style, batch 1000). The advantage depends heavily on which one is shown, so present the range, not one number.
 
